@@ -21,7 +21,10 @@ architecture is replaced here.
   Engine tab, moving Engine to another region or entering compact mode removes
   the split, rather than mounting a second engine panel.
 - The lower divider now has separator semantics, a measured value and the same
-  arrow/Shift/Home/End keyboard interaction as the side divider.
+  arrow/Shift/Home/End keyboard interaction as the side divider. A packaged pass
+  found that consumed divider keys also reached global chess navigation. The
+  shortcut handler now respects `defaultPrevented`; a populated-position
+  regression failed before this fix and passes afterward.
 - Library rows support Home/End, preserve preview selection and ignore keys
   originating in their nested controls.
 - Preparation session actions share the search/filter toolbar. An empty
@@ -63,7 +66,12 @@ All 43 visual checks still pass with the corrected coordinate ink; no baseline
 was regenerated. These small ink changes remain within the existing pixel
 tolerance, so the dedicated contrast regression supplies the precise check.
 
-Fresh full-suite and packaged results will be recorded here after completion.
+The first full source pass returned 3,904/3,904 unit tests and 438/438 browser
+tests. Signed dev build 996 (`e4cd6a9`) passed 10/10 desktop certification gates.
+A subsequent populated keyboard pass exposed the divider/global-shortcut
+interaction above, so that build is intermediate evidence, not the final
+acceptance package. The corrected revision and fresh results will be recorded
+here after completion.
 A screenshot or DOM accessibility assertion does not constitute a VoiceOver
 usability result.
 

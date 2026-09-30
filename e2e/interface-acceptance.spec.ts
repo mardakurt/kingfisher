@@ -81,6 +81,12 @@ test('the lower panel has an announced keyboard-operable divider', async ({ page
   await page.locator(READY).waitFor();
   await page.getByRole('button', { name: /^Layout/ }).click();
   await page.getByRole('menuitem', { name: 'Engine under the board', exact: true }).click();
+  await page.getByRole('gridcell', { name: 'e2, White pawn', exact: true }).click();
+  await page.getByRole('gridcell', { name: 'e4, empty', exact: true }).click();
+  await page.getByRole('gridcell', { name: 'e7, Black pawn', exact: true }).click();
+  await page.getByRole('gridcell', { name: 'e5, empty', exact: true }).click();
+  const current = page.locator('[data-current="true"]');
+  await expect(current).toHaveText('e5');
   const divider = page.getByRole('separator', { name: 'Resize the lower panel' });
   await divider.focus();
   const before = Number(await divider.getAttribute('aria-valuenow'));
@@ -88,6 +94,13 @@ test('the lower panel has an announced keyboard-operable divider', async ({ page
   await expect(divider).toHaveAttribute('aria-valuenow', String(before + 16));
   await divider.press('End');
   await expect(divider).toHaveAttribute('aria-valuenow', '96');
+  await divider.press('Home');
+  await expect(divider).toHaveAttribute('aria-valuenow', '520');
+  await expect(current).toHaveText('e5');
+  const sideDivider = page.getByRole('separator', { name: 'Resize workspace tools' });
+  await sideDivider.focus();
+  await sideDivider.press('ArrowLeft');
+  await expect(current).toHaveText('e5');
 });
 
 test('IME Escape stays in the editor until composition has finished', async ({ page }) => {

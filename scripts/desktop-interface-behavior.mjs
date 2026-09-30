@@ -15,16 +15,7 @@ mkdirSync(output, { recursive: true });
 const checks = [];
 let identity = null;
 const launch = await launchKingfisher({ packaged: true, executablePath: binary });
-const clipboardBefore = await launch.app.evaluate(({ clipboard }) => {
-  const image = clipboard.readImage();
-  return {
-    text: clipboard.readText(),
-    html: clipboard.readHTML(),
-    rtf: clipboard.readRTF(),
-    image: image.isEmpty() ? null : image.toDataURL(),
-    bookmark: clipboard.readBookmark(),
-  };
-});
+let clipboardSaved = false;
 const check = (name) => {
   checks.push(name);
   console.log(`PASS ${name}`);
@@ -45,7 +36,10 @@ const nativeMenu = async (menu, role) => {
       const item = parent.submenu.items.find((item) => item.role === requested.role);
       if (!item || !item.enabled)
         throw new Error(`Native menu role unavailable: ${requested.role}`);
-      item.click(undefined, BrowserWindow.getFocusedWindow());
+      BrowserWindow.getAllWindows()[0].focus();
+      // macOS handles Edit roles in its native responder chain. Calling the
+      // JavaScript MenuItem.click callback alone deliberately does not run them.
+      Menu.sendActionToFirstResponder(`${requested.role}:`);
     },
     { menu, role },
   );
@@ -60,6 +54,22 @@ async function tabTo(page, control) {
 }
 
 try {
+  // Electron 44 uses async ClipboardItems; keep all advertised formats in the
+  // main process rather than serializing private clipboard contents to a file.
+  await launch.app.evaluate(async ({ clipboard, ClipboardItem }) => {
+    const items = await clipboard.read();
+    globalThis.__interfaceClipboardBefore = await Promise.all(
+      items.map(
+        async (item) =>
+          new ClipboardItem(
+            Object.fromEntries(
+              await Promise.all(item.types.map(async (type) => [type, await item.getType(type)])),
+            ),
+          ),
+      ),
+    );
+  });
+  clipboardSaved = true;
   const page = launch.window;
   identity = await page.evaluate(async () => {
     const { build, shell, platform } = await window.kingfisher.diagnostics();
@@ -67,16 +77,23 @@ try {
   });
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();
   await resize(1280, 720);
+  await launch.app.evaluate(({ app, BrowserWindow }) => {
+    app.focus({ steal: true });
+    BrowserWindow.getAllWindows()[0].focus();
+  });
   await page.getByRole('button', { name: /^Import( PGN or FEN)?$/ }).click();
   const dialog = page.getByRole('dialog', { name: 'Import a game or position' });
   const editor = dialog.getByRole('textbox');
   await editor.fill('Kingfisher 棋譜');
   await editor.press('ControlOrMeta+a');
   await nativeMenu('Edit', 'copy');
-  assert.equal(
-    await launch.app.evaluate(({ clipboard }) => clipboard.readText()),
-    'Kingfisher 棋譜',
-  );
+  await expect
+    .poll(() =>
+      launch.app.evaluate(
+        async ({ clipboard }) => (await clipboard.readText()) === 'Kingfisher 棋譜',
+      ),
+    )
+    .toBe(true);
   await launch.app.evaluate(({ clipboard }) => clipboard.writeText('Mac text editing'));
   await nativeMenu('Edit', 'paste');
   await expect(editor).toHaveValue('Mac text editing');
@@ -114,6 +131,13 @@ try {
   await page.keyboard.press('Enter');
   const dock = page.getByRole('complementary', { name: 'Workspace tools' });
   const engine = dock.getByRole('region', { name: 'Engine candidates' });
+  const notationMove = dock
+    .getByRole('region', { name: 'Notation' })
+    .getByRole('button', { name: 'Nf3', exact: true })
+    .first();
+  await tabTo(page, notationMove);
+  await page.keyboard.press('Enter');
+  const selectedBeforeResize = await page.locator('[data-current="true"]').textContent();
   const candidateControl = engine.getByRole('combobox', { name: 'Candidate lines' });
   await tabTo(page, candidateControl);
   await page.keyboard.press('Home');
@@ -130,8 +154,10 @@ try {
   await tabTo(page, divider);
   await page.keyboard.press('ArrowLeft');
   await expect(divider).toHaveAttribute('aria-valuenow', '426');
+  await expect(page.locator('[data-current="true"]')).toHaveText(selectedBeforeResize);
   await page.keyboard.press('ArrowRight');
   await expect(divider).toHaveAttribute('aria-valuenow', '410');
+  await expect(page.locator('[data-current="true"]')).toHaveText(selectedBeforeResize);
   check(
     'keyboard alone selects research, configures candidates, runs/stops the engine and resizes the dock',
   );
@@ -219,24 +245,24 @@ try {
     'packaged accessibility tree exposes board context; DOM marks current notation (not a VoiceOver study)',
   );
 } finally {
-  await launch.app
-    .evaluate(
-      ({ clipboard, nativeImage }, saved) =>
-        clipboard.write({
-          text: saved.text,
-          html: saved.html,
-          rtf: saved.rtf,
-          ...(saved.image ? { image: nativeImage.createFromDataURL(saved.image) } : {}),
-          ...(saved.bookmark.title ? { bookmark: saved.bookmark.title } : {}),
-        }),
-      clipboardBefore,
-    )
-    .catch(() => {});
+  let restorationError = null;
+  if (clipboardSaved)
+    await launch.app
+      .evaluate(async ({ clipboard }) => {
+        const saved = globalThis.__interfaceClipboardBefore;
+        if (saved.length) await clipboard.write(saved);
+        else clipboard.clear();
+        delete globalThis.__interfaceClipboardBefore;
+      })
+      .catch((error) => {
+        restorationError = String(error);
+      });
   const closed = await launch.close();
+  assert.equal(restorationError, null);
   assert.equal(closed.forced, false);
   assert.deepEqual(closed.survivors, []);
   writeFileSync(
     path.join(output, 'results.json'),
-    JSON.stringify({ binary, identity, checks, closed }, null, 2) + '\n',
+    JSON.stringify({ binary, identity, checks, closed, restorationError }, null, 2) + '\n',
   );
 }
