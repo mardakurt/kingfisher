@@ -13,6 +13,14 @@ composition/accessibility fixes are shared renderer changes and Mac-facing.
 They are not in public Mac 1.3.3 build 932. A local package, browser gate or
 performance result does not publish an update. Current evidence is recorded in
 `docs/reports/2026-09-30-interface-acceptance.md`.
+Completion on October 1 also corrects selected-engine startup naming and
+notation keyboard focus. Clean dev build 1004 from `1b1b512` passed full
+packaged certification 10/10, the native interface check 11/11, the 50-cycle
+packaged resource soak and the stopped/live-engine performance comparison.
+It includes the local Syzygy helper. Harness-only and report commits after
+that revision do not change the packaged application source. The public
+descriptor and marketing version remain unchanged; this dev package is signed
+but not notarized or published.
 
 **Published revision check (2026-09-29 interface continuation).** The current
 branch keeps the Electron shell and the shared Next.js/React renderer. It

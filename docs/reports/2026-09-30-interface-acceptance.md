@@ -1,8 +1,44 @@
 # Shared interface acceptance — 2026-09-30
 
+**Retain Electron and the shared Next.js/React interface.** The implemented
+Research workspace meets the measured geometry, keyboard, responsiveness and
+bounded-resource criteria on this Mac. Full packaged certification passed.
+Actual VoiceOver, installed macOS input-method use and the five-player study
+remain unrun; this is not a claim of complete human usability certification.
+
 Starting point: clean `master` at `74bd84ad4dd95784eb9edb4d8a387427d53fe0b9`,
 matching `origin/master`, after the fast-forward merge of `shell-bugfix-pass`.
 Implementation branch: `codex/interface-acceptance`.
+
+Final application revision: `1b1b51263b8d50988951c22b12715199f4435ac1`.
+The complete source gates passed on this revision: typecheck, lint,
+format:check, 3,905 unit tests across 362 files, docs:check 357/357,
+test:no-skips, production build, benchmark and diff check. The unfiltered
+Chrome suite passed 439/439 in 27.3 minutes; the separate visual command
+passed 43/43 in 45.2 seconds. No visual baseline was regenerated. Optional
+SQLite benchmarks were not exercised without the companion configuration.
+These runs do not establish Firefox or WebKit coverage.
+
+The final package is **1.3.3 dev build 1004**, clean source `1b1b512`,
+Developer ID signed with hardened runtime, **not notarized or published**.
+Its fresh packaged boot verified the renderer, web server, companion, engine
+catalogue and Sparkle 2.10.0. Output is retained at
+`/Users/metinardakurt/Library/Caches/Kingfisher/interface-accepted-1004/`.
+The DMG is `Kingfisher-1.3.3-dev-1004-arm64.dmg`; SHA-256
+`051a5ee534e6fbf4528094656fd22c098636b9e8e7dc671e77aaadc08148e153`.
+
+`node scripts/desktop-interface-behavior.mjs <app> <output>` passed 11/11
+against this exact app. It drove native Edit Copy/Paste/Undo with Unicode text,
+keyboard-only layout selection, candidates, search and resizing, Light/Dark
+through the native menu, actual 1440×900 / 1280×720 / 1100×800 windows, actual
+full screen in both themes, and 900×600 folding and selection restoration.
+Three candidates, at least two complete reference rows and current notation
+were visible in the tested normal layouts; the board met the 480 px laptop
+floor. All eight captured screenshots were inspected. Closure was graceful,
+with no surviving descendants, and clipboard restoration succeeded.
+`tmp/session/final-interface-native/results.json` records the exact identity.
+The composition and accessibility-tree checks remain narrower than installed
+OS input-method and VoiceOver testing.
 
 This continues the four stages proposed in the Electron assessment. The prior
 handoff and merge are complete; their exact evidence is in
@@ -99,6 +135,44 @@ The existing packaged soak is configured for 50 navigation cycles and 12 passes
 through its research chain. Constructor/resource counts and process-tree RSS
 measure different things; neither alone proves the other.
 
+The production-rendered comparison passed on Apple M3 Pro, Mac15,7, 18 GiB,
+macOS 27.0.1 (26A434). Baseline is clean dev build 995 at `74bd84a`; candidate
+is clean dev build 1004 at `1b1b512`. Both use Electron 44.2.0 and browser
+Stockfish 18, one thread, 64 MiB hash and three candidates.
+
+| Measurement                          |    Baseline |   Candidate | Result       |
+| ------------------------------------ | ----------: | ----------: | ------------ |
+| Median startup to renderer readiness |    790.5 ms |    780.1 ms | −1.32%       |
+| Median settled process-tree RSS      | 1,379.4 MiB | 1,377.0 MiB | −0.17%       |
+| Navigation p95, stopped search       |    16.25 ms |    16.34 ms | Below 100 ms |
+| Navigation p95, searching            |    15.87 ms |    14.86 ms | Below 100 ms |
+
+Each response result pools 250 post-warmup samples from five fresh profiles.
+The first launch of each app was slower than subsequent launches. This is a
+same-machine comparison with warm OS caches, not an OS cold-start benchmark.
+RSS sums all descendants without deduplicating shared pages. The absolute
+memory footprint remains substantial; the result demonstrates no material
+increase from this change, not that Electron has native-app memory costs.
+Raw results: `tmp/session/final-performance.json`.
+
+`node scripts/desktop-interface-soak.mjs <app> <results>` passed (exit 0)
+against the complete acceptance package.
+The existing packaged suite passed 3/3 in 17.1 minutes, configured for 50
+cycles and 12 research-chain passes, each with its own warmup. After 52 cycles,
+it reported workers 1, observers 1, window listeners 15 and intervals 1;
+all resource-growth assertions passed. The chain reported 13 passes including
+warmup, five review prompts throughout, workers 1, observers 3, listeners 16,
+intervals 2. The production-only cache test checks absence of the development
+injection hook; it does not inject synthetic cache entries into the package.
+
+The long-run process had 177 RSS samples. After excluding its first two minutes,
+five median bins were 1,600.06 / 1,349.09 / 1,387.44 / 1,379.61 / 1,403.28 MiB,
+first-to-last −12.30%, with no strictly monotonic growth. Peak process-tree RSS
+was 1,617.36 MiB. The two shorter test processes were too short for the
+post-warmup trend calculation; no memory trend is claimed for them.
+Raw results: `tmp/session/final-soak.json`. These bounded checks do not
+prove the absence of every possible leak or substitute for an all-day field run.
+
 ## Human checkpoint
 
 The five-player study remains externally dependent. No participant observations
@@ -128,14 +202,14 @@ Existing session-switching tests remain green (20/20 focused tests together).
 completed its own UCI handshake and a real search. Reported identities and
 executable SHA-256 digests:
 
-| Engine           | UCI identity          | Executable SHA-256                                                     |
-| ---------------- | --------------------- | ---------------------------------------------------------------------- |
-| Stockfish native | Stockfish 19          | `8eed61129d1493c5d1f2fd9323f0c54c47ac49319911fbde18c6b9c87e8b13c5`     |
-| Stormphrax       | Stormphrax 8.0.0      | `5e6078f102af5bdd69e1b38ae7843581717fb42f2d0fe8d75f20ef8d097b3207`     |
-| Viridithas       | Viridithas 20.0.0-dev | `9ab84379f0241d94f926666eef8385ab032c585bb3055f27a3fbae423b75fd41`     |
-| Halogen          | Halogen 16.8.0        | `7f3a4055102512ae11139512ea02a56c0a7fbbd0b4686db02752053921639c83`     |
-| PlentyChess      | PlentyChess 8.0.0     | `50c626206b8cff74c11c830bf583560abb96f9ea6b3f0a3c490f98dc46770b21`     |
-| Lc0              | Lc0 v0.32.1+git.dirty | Located at `/opt/homebrew/bin/lc0`; separately installed system engine |
+| Engine           | UCI identity          | Executable SHA-256                                                 |
+| ---------------- | --------------------- | ------------------------------------------------------------------ |
+| Stockfish native | Stockfish 19          | `8eed61129d1493c5d1f2fd9323f0c54c47ac49319911fbde18c6b9c87e8b13c5` |
+| Stormphrax       | Stormphrax 8.0.0      | `5e6078f102af5bdd69e1b38ae7843581717fb42f2d0fe8d75f20ef8d097b3207` |
+| Viridithas       | Viridithas 20.0.0-dev | `9ab84379f0241d94f926666eef8385ab032c585bb3055f27a3fbae423b75fd41` |
+| Halogen          | Halogen 16.8.0        | `7f3a4055102512ae11139512ea02a56c0a7fbbd0b4686db02752053921639c83` |
+| PlentyChess      | PlentyChess 8.0.0     | `50c626206b8cff74c11c830bf583560abb96f9ea6b3f0a3c490f98dc46770b21` |
+| Lc0              | Lc0 v0.32.1+git.dirty | `3a1177eb7caebfbb9a71840d0e78f2fb245a20df4222099b531a626f3f486066` |
 
 The Lc0 suffix is the executable's own reported build name, not an assessment
 of Kingfisher's working tree. Its successful search includes functioning weights.
@@ -145,6 +219,9 @@ found. A digest establishes byte identity with the recorded asset, not an
 upstream code signature. Berserk 14, Koivisto 9.0 and Obsidian 16.0 have no
 published darwin-arm64 build and are explicitly unavailable on this platform.
 No claim is made that their Windows/Linux binaries were tested here.
+Lc0 was separately installed at `/opt/homebrew/bin/lc0`, rather than downloaded
+as a managed Kingfisher binary. Browser Stockfish 18 remains a separate WASM
+option; the managed native Stockfish on this platform is Stockfish 19.
 
 The marketing version remains 1.3.3. The handoff expressly prohibits a version
 bump or publication in this pass. Development builds record a new commit/build
@@ -184,3 +261,78 @@ trial clipped the third candidate and was rejected. The 184 px/four-half-move
 version passed 6/6 focused browser cases and all nine strengthened Electron
 checkout-preview checks. These preview results are not packaged acceptance.
 The final signed package and complete gates are still required below.
+
+## Final packaging and native-dialog correction
+
+The initial build-1004 variant omitted the optional Syzygy probe helper because
+it was built in a fresh worktree. Its smoke run therefore had 16 checks, not 17. The complete acceptance package stages the existing helper built by
+`npm run tablebase:install` from pinned, digest-checked Fathom sources. No
+application source, dependency, architecture or public asset was changed.
+Both variants remain in separate cache directories; the final output and hash
+above select the complete variant. Performance and soak are repeated against
+it, rather than silently attributing the first variant's measurements to it.
+
+The first certification attempt returned 9/10. Seed 46 at step 189 entered a
+native up-to-date alert after fullscreen and then lost its AX window index
+(`-1719`). The walk retried the stale index and threw before the existing
+Return fallback, leaving the modal open; quit was forced and one web server
+survived. That owned test server was stopped. This failed attempt is recorded
+in `tmp/session/accepted-certification.log`; it is not counted as passing.
+
+The test harness now resolves the current window without reusing a vanished
+index. A known up-to-date alert can use the guarded foreground/Return path
+when AX loses it, and any observed offered-update window forbids that path.
+A dialog remaining after dismissal fails immediately. Six boundary regression
+tests pass; restoring the old no-window-only fallback makes two fail.
+The full unit suite now passes 3,911/3,911 across 363 files, with typecheck,
+lint, formatting, docs and no-skip checks passing. Harness revision is
+`d24556c`; application source remains `1b1b512`. There is no change under
+`src/`, `desktop/`, `companion/` or `public/` between these commits.
+
+The final native interface run adds an actual fullscreen up-to-date alert in
+each theme: both dismissed, fullscreen and selection survived, and the package
+closed gracefully with no surviving descendants. All 11 checks passed and
+the clipboard was restored. Completion extends into October 1; the report
+retains its starting date.
+
+## Final certification and completion checklist
+
+`npm run desktop:certify -- --app <complete app> --dmg <complete DMG>`
+passed **10/10**, with no quick-mode omissions. Every packaged gate used the
+same app and DMG selected above. Final log: `tmp/session/final-certification.log`.
+
+| Gate                                         | Completed result                                          |
+| -------------------------------------------- | --------------------------------------------------------- |
+| Smoke, including local Syzygy and system Lc0 | 17/17                                                     |
+| Real traffic lights and window chrome        | 109/109                                                   |
+| Quit/reopen persistence                      | 7/7                                                       |
+| Managed engines installed and searched       | 25/25                                                     |
+| Suspend/resume                               | 14/14                                                     |
+| Seed 46, 200 actions                         | Zero findings, zero console errors                        |
+| Seed 7, 120 actions with faults              | Zero findings; two expected injected-fault console errors |
+| Exact DMG verification                       | Passed                                                    |
+| No-skip scan                                 | Passed                                                    |
+| Unit/integration suite                       | 3,911/3,911 in 363 files                                  |
+
+| Assessment item                                                           | Status                                                                        |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Handoff implementation and preferred shell-pass merge                     | ✓ Completed in the preceding report                                           |
+| Shared radii, elevation, typography/contrast checks                       | ✓ Implemented and checked; no visual baseline regenerated                     |
+| Board, notation, real engine candidates and named references together     | ✓ Research layout passes the representative window checks                     |
+| Library preview continuity and keyboard selection                         | ✓ Implemented; browser regressions pass                                       |
+| Preparation toolbar and session disclosure                                | ✓ Implemented; source facts and denominators retained                         |
+| Keyboard resizing, notation focus and composition-event guards            | ✓ Browser and packaged checks pass                                            |
+| Native menus, Unicode editing, fullscreen and update-alert dismissal      | ✓ 11/11 packaged interface checks                                             |
+| Engine identity, availability and startup naming                          | ✓ Six distinct engines searched; unsupported platform rows remain unavailable |
+| Startup, RSS, stopped/live-engine response and 50-cycle resource checks   | ✓ Measured criteria pass on this machine                                      |
+| Profile origin, authored-work persistence, engine identity and provenance | ✓ Architecture retained; relevant source and packaged gates pass              |
+| Actual VoiceOver and installed OS input methods                           | ✗ Unrun; AX/composition-event checks are narrower evidence                    |
+| Four of five strong players completing tasks unaided                      | ✗ No participants or observations supplied; protocol is ready                 |
+| New public stable Mac release                                             | ✗ Intentionally not performed: the handoff prohibits version bump/publication |
+
+No Sparkle installation/relaunch upgrade was performed here, and no claim is
+made about notarization, Windows execution or a full Firefox/WebKit matrix.
+The unchanged public Mac is 1.3.3 build 932. A future public release must follow
+the trusted-release and real Sparkle update procedures; these local results do
+not replace them. Logs, JSON results and screenshots are preserved beside the
+complete package under `evidence/` as well as in the session workspace.
