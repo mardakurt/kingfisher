@@ -90,7 +90,7 @@ const groups = [...new Set(samples.map((s) => s.pid))].map((pid) => {
     : null;
   const monotonicGrowth =
     changePercent !== null &&
-    changePercent > 10 &&
+    changePercent > 0 &&
     bins.slice(1).every((value, index) => value > bins[index]);
   return {
     pid,
@@ -113,7 +113,7 @@ const report = {
   errors,
   groups,
   samples,
-  note: 'RSS sums the whole descendant tree and does not deduplicate shared pages. Warm median bins flag a sustained >10% monotonic increase; resource constructors are independently gated by the existing soak.',
+  note: 'RSS sums the whole descendant tree and does not deduplicate shared pages. Five post-warm median bins flag any strictly monotonic increase; resource constructors are independently gated by the existing soak.',
 };
 writeFileSync(output, `${JSON.stringify(report, null, 2)}\n`);
 console.log(JSON.stringify({ groups, exitCode: code, output }, null, 2));
