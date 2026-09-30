@@ -6,6 +6,8 @@ real users notice.
 
 ## Unreleased (web)
 
+- Engine startup names the selected engine instead of hard-coding Stockfish; unknown evaluation identity is no longer attributed to Stockfish.
+
 - **Board coordinates are easier to read.** All thirteen board themes now use
   coordinate ink that reaches 4.5:1 on both base square colors.
 

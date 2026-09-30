@@ -18,6 +18,8 @@ import { formatScore } from '@/chess/evaluation';
 import { outcomeAt } from '@/chess/game';
 import { describeOutcome } from '@/features/analysis/evaluation-bar-layout';
 import { variationPositions, variationTokens } from '@/engine/pv';
+import { engineDefinition } from '@/engine/registry';
+import { useEngineDefinitionsVersion } from '@/engine/use-engines';
 import {
   depthSamples,
   describeDepthSample,
@@ -53,6 +55,8 @@ export function EnginePanel({ compact = false }: { readonly compact?: boolean })
 
   const status = useEngine((state) => state.primary.status);
   const engineId = useEngine((state) => state.primary.engineId);
+  useEngineDefinitionsVersion();
+  const definition = engineDefinition(engineId);
   const problem = useEngine((state) => state.primary.problem);
   const identity = useEngine((state) => state.primary.identity);
   const analysis = useEngine((state) => state.primary.analysis);
@@ -127,7 +131,7 @@ export function EnginePanel({ compact = false }: { readonly compact?: boolean })
       notify({ tone: 'info', message: 'Analyse this position first.' });
       return;
     }
-    const evaluation = evaluationFromAnalysis(analysis, identity?.name ?? 'Stockfish');
+    const evaluation = evaluationFromAnalysis(analysis, identity?.name ?? 'Unknown engine');
     if (!evaluation) {
       notify({ tone: 'info', message: 'The engine has not reported a score yet.' });
       return;
@@ -298,11 +302,13 @@ export function EnginePanel({ compact = false }: { readonly compact?: boolean })
           />
         ) : status === 'loading' ? (
           <EmptyState
-            title="Loading Stockfish…"
+            title={`Starting ${definition?.name ?? engineId}…`}
             description={
-              engineId === 'stockfish-wasm-full'
-                ? 'The full-network build is 113 MB, fetched from its recorded address the first time and kept by the browser afterwards.'
-                : 'The build is about 7 MB.'
+              definition?.transport === 'native'
+                ? 'Starting the selected native engine and waiting for its UCI handshake.'
+                : engineId === 'stockfish-wasm-full'
+                  ? 'The full-network build is 113 MB, fetched from its recorded address the first time and kept by the browser afterwards.'
+                  : 'The build is about 7 MB.'
             }
           />
         ) : outcome ? (

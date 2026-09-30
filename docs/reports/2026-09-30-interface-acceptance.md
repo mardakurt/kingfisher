@@ -111,3 +111,40 @@ surface only after a reproducible essential macOS failure and a native proof
 that resolves it. A broad migration additionally needs measured runtime benefit
 and compatibility tests for profile origins, portable authored work, conflicts,
 engine identities, source provenance, companion shutdown and Sparkle relaunch.
+
+## Engine identity audit added September 30
+
+The startup panel hard-coded “Loading Stockfish…” and a 7 MB download
+message even for native engines. It now reads the selected registry definition,
+updates when that definition changes, and describes native startup separately.
+Missing evaluation identity is labelled “Unknown engine”, never Stockfish.
+The rendered-panel regression exercises Lc0 followed by Stormphrax while loading.
+It passes with the correction and fails when the old title is restored.
+Existing session-switching tests remain green (20/20 focused tests together).
+
+`npm run engines:verify -- --keep` passed on darwin-arm64. Each installation
+completed its own UCI handshake and a real search. Reported identities and
+executable SHA-256 digests:
+
+| Engine           | UCI identity          | Executable SHA-256                                                     |
+| ---------------- | --------------------- | ---------------------------------------------------------------------- |
+| Stockfish native | Stockfish 19          | `8eed61129d1493c5d1f2fd9323f0c54c47ac49319911fbde18c6b9c87e8b13c5`     |
+| Stormphrax       | Stormphrax 8.0.0      | `5e6078f102af5bdd69e1b38ae7843581717fb42f2d0fe8d75f20ef8d097b3207`     |
+| Viridithas       | Viridithas 20.0.0-dev | `9ab84379f0241d94f926666eef8385ab032c585bb3055f27a3fbae423b75fd41`     |
+| Halogen          | Halogen 16.8.0        | `7f3a4055102512ae11139512ea02a56c0a7fbbd0b4686db02752053921639c83`     |
+| PlentyChess      | PlentyChess 8.0.0     | `50c626206b8cff74c11c830bf583560abb96f9ea6b3f0a3c490f98dc46770b21`     |
+| Lc0              | Lc0 v0.32.1+git.dirty | Located at `/opt/homebrew/bin/lc0`; separately installed system engine |
+
+The Lc0 suffix is the executable's own reported build name, not an assessment
+of Kingfisher's working tree. Its successful search includes functioning weights.
+These are separate binaries and identities, not Stockfish aliases. The provider
+lookup dispatches by selected ID; no native-engine-to-Stockfish substitution was
+found. A digest establishes byte identity with the recorded asset, not an
+upstream code signature. Berserk 14, Koivisto 9.0 and Obsidian 16.0 have no
+published darwin-arm64 build and are explicitly unavailable on this platform.
+No claim is made that their Windows/Linux binaries were tested here.
+
+The marketing version remains 1.3.3. The handoff expressly prohibits a version
+bump or publication in this pass. Development builds record a new commit/build
+identity automatically; a new public stable release would require its own
+version, trusted-release and Sparkle update validation procedure.

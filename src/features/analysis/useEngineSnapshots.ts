@@ -79,7 +79,10 @@ export function useEngineSnapshots(): void {
       const node = analysis.tree.nodes[nodeId];
       if (!node || node.fen !== slot.analysis.fen) return;
 
-      const evaluation = evaluationFromAnalysis(slot.analysis, slot.identity?.name ?? 'Stockfish');
+      const evaluation = evaluationFromAnalysis(
+        slot.analysis,
+        slot.identity?.name ?? 'Unknown engine',
+      );
       if (evaluation) analysis.attachEvaluation(nodeId, evaluation);
     });
 
