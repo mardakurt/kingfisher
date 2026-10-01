@@ -316,6 +316,11 @@ index built from the same main-line scan as browser search. Material, theme and
 piece-route queries execute against those bytes in companion workers, while
 comment text and old rows retain the replay fallback.
 
+The Opening Report's optional provider history query reads at most 2,001
+distinct game headers at one position from the companion's existing row or
+posting index. The extra row distinguishes a full answer from a 2,000-game
+sample; the query writes no table or persistent cache.
+
 Large-file import also belongs to the companion. A generated import kit bundles
 the application's PGN normalisation, opening classification, canonical position
 index and line-index encoder; workers stream PGN/gzip/zstd or one ChessBase

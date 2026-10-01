@@ -21,6 +21,7 @@ import {
   performanceRating,
   type ChessDatabaseProvider,
   type DatabaseMove,
+  type DatabasePositionHistory,
   type ExplorerQuery,
   type ExplorerResult,
 } from '../types';
@@ -74,6 +75,14 @@ export class CompanionSqliteProvider implements ChessDatabaseProvider {
 
   get cacheVersion(): string {
     return `${this.key}:${this.games ?? 'unknown'}`;
+  }
+
+  async positionHistory(fen: Fen, signal?: AbortSignal): Promise<DatabasePositionHistory> {
+    const client = companionClient();
+    if (!client)
+      throw new DatabaseError('The companion is not connected.', undefined, 'companion-offline');
+    if (signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
+    return client.positionHistory<DatabasePositionHistory>(this.key, positionKey(fen), 2_000);
   }
 
   async health(signal?: AbortSignal) {

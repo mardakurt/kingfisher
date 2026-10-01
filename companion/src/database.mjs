@@ -34,7 +34,13 @@ import {
   positionSql,
   splitFen,
 } from './position-schema.mjs';
-import { decodeMove, migrateToPostings, PostingIndex, POSTINGS_LAYOUT } from './postings.mjs';
+import {
+  decodeMove,
+  migrateToPostings,
+  positionHash,
+  PostingIndex,
+  POSTINGS_LAYOUT,
+} from './postings.mjs';
 
 const SCHEMA = `
 PRAGMA journal_mode = WAL;
@@ -1717,6 +1723,83 @@ export class GameDatabase {
       )
       .all(positionKey, limit)
       .map(toSummary);
+  }
+
+  /**
+   * A bounded, read-only sample for a collection's Opening Report.
+   *
+   * Both layouts already index position occurrences. Read at most 2,001
+   * distinct game headers from that index, then reduce them in memory. A
+   * common position in a multi-million-game collection must not materialise
+   * its entire game list or create another on-disk index merely to draw a
+   * report. The extra row tells the UI whether these are sample statistics.
+   */
+  positionHistory(positionKey, limit = 2_000) {
+    const cap = Math.max(1, Math.min(2_000, Math.floor(Number(limit) || 2_000)));
+    const relation = this.#postings
+      ? { table: 'postings', game: 'game', position: 'pos', key: positionHash(positionKey) }
+      : { table: 'positions', game: 'game_id', position: 'position_key', key: positionKey };
+    const rows = this.#db
+      .prepare(
+        `SELECT g.id, g.white, g.black, g.result, g.date, g.year, g.event,
+                g.white_rating AS whiteRating, g.black_rating AS blackRating
+           FROM (
+             SELECT DISTINCT p.${relation.game} AS game_id
+               FROM ${relation.table} p
+              WHERE p.${relation.position} = ?
+              LIMIT ?
+           ) reached JOIN games g ON g.id = reached.game_id`,
+      )
+      .all(relation.key, cap + 1);
+    const sampled = rows.slice(0, cap);
+    const byYear = new Map();
+    const byBand = new Map();
+    const bands = [0, 2000, 2200, 2400, 2600];
+    let undated = 0;
+    let unrated = 0;
+    const add = (map, key, result) => {
+      const tally = map.get(key) ?? { games: 0, white: 0, draws: 0, black: 0 };
+      tally.games += 1;
+      if (result === '1-0') tally.white += 1;
+      if (result === '1/2-1/2') tally.draws += 1;
+      if (result === '0-1') tally.black += 1;
+      map.set(key, tally);
+    };
+    for (const game of sampled) {
+      if (Number.isInteger(game.year) && game.year > 0) add(byYear, game.year, game.result);
+      else undated += 1;
+      const ratings = [game.whiteRating, game.blackRating].filter(
+        (rating) => Number.isInteger(rating) && rating > 0,
+      );
+      if (ratings.length) {
+        const rating = Math.min(...ratings);
+        add(byBand, bands.findLast((band) => rating >= band) ?? 0, game.result);
+      } else unrated += 1;
+    }
+    const first = sampled
+      .filter((game) => Number.isInteger(game.year) && game.year > 0)
+      .sort(
+        (a, b) => String(a.date ?? a.year).localeCompare(String(b.date ?? b.year)) || a.id - b.id,
+      )
+      .slice(0, 3)
+      .map((game) => ({
+        id: String(game.id),
+        year: game.year,
+        white: game.white,
+        black: game.black,
+        result: game.result,
+        event: game.event ?? undefined,
+      }));
+    return {
+      sampledGames: sampled.length,
+      hasMore: rows.length > cap,
+      undated,
+      unrated,
+      bands,
+      byYear: [...byYear].map(([year, tally]) => ({ year, ...tally })),
+      byBand: [...byBand].map(([band, tally]) => ({ band, ...tally })),
+      first,
+    };
   }
 
   /**

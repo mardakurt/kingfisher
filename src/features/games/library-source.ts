@@ -106,7 +106,7 @@ export async function sourceTree(source: LibrarySource, id: string): Promise<Gam
  */
 export async function openSourceGame(
   source: LibrarySource,
-  game: GameSummary,
+  game: Pick<GameSummary, 'id' | 'white' | 'black' | 'result' | 'year' | 'event'>,
   options: { readonly ply?: number } = {},
 ): Promise<void> {
   if (source.kind === 'local') {

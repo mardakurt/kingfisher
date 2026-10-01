@@ -37,6 +37,7 @@
 
 import { useExplorerSource } from '@/features/explorer/useExplorerSource';
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 import { PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { positionKey } from '@/chess/fen';
@@ -45,11 +46,13 @@ import { nodePath } from '@/chess/tree/tree';
 import type { Fen } from '@/chess/types';
 import { useChessWorkspace } from '@/features/workspace/ChessWorkspaceContext';
 import { usePreferences } from '@/stores/preferences-store';
+import { useUi } from '@/stores/ui-store';
 import { useQueries, useQuery } from '@tanstack/react-query';
 
 import { databaseProviderById } from '@/database/registry';
 import { useDatabaseProviders } from '@/database/use-database-providers';
 import { useExplorerSources } from '@/features/explorer/useExplorer';
+import { librarySource, openSourceGame } from '@/features/games/library-source';
 import { packReader } from '@/reference/manager';
 import { useReferenceSources } from '@/reference/use-references';
 import type { BranchPopulation } from '@/theory/critical-branches';
@@ -74,6 +77,8 @@ function roleOf(id: string, index: number): BranchPopulation['role'] {
 }
 
 export function OpeningReportPanel() {
+  const router = useRouter();
+  const notify = useUi((state) => state.notify);
   const { tree, currentId } = useChessWorkspace();
   const references = useReferenceSources();
   const explorerSourceId = usePreferences((state) => state.explorerSourceId);
@@ -101,6 +106,14 @@ export function OpeningReportPanel() {
 
   const node = tree.nodes[currentId];
   const fen = (node?.fen ?? '') as Fen;
+  const providers = useDatabaseProviders();
+  const collections = providers.filter(
+    (provider) => provider.id.startsWith('sqlite:') && Boolean(provider.positionHistory),
+  );
+  const [collectionChoice, setCollectionChoice] = useState<string | null>(null);
+  const selectedCollectionId =
+    collectionChoice ?? (explorerSourceId.startsWith('sqlite:') ? explorerSourceId : '');
+  const selectedCollection = collections.find((provider) => provider.id === selectedCollectionId);
 
   /*
     Every source that can actually answer. A source that is not installed is
@@ -111,13 +124,17 @@ export function OpeningReportPanel() {
     () => references.sources.filter((source) => source.installed && source.enabled).slice(0, 3),
     [references.sources],
   );
+  const reportSources = [
+    ...sources,
+    ...(selectedCollection ? [{ id: selectedCollection.id, name: selectedCollection.name }] : []),
+  ];
   const results = useExplorerSources(
-    sources.map((source) => source.id),
+    reportSources.map((source) => source.id),
     fen,
     {},
   );
 
-  const populations: readonly BranchPopulation[] = sources.map((source, index) => {
+  const populations: readonly BranchPopulation[] = reportSources.map((source, index) => {
     const query = results[index];
     return {
       id: source.id,
@@ -132,22 +149,18 @@ export function OpeningReportPanel() {
   /*
     The continuations, from the first source that can supply them.
 
-    Searched across every *registered provider* rather than across the three
-    populations above, and that distinction is the whole feature: the
-    populations are reference packs, and a pack aggregated its games into
-    per-position counts before Kingfisher ever saw it, so no pack can answer
-    this — ever. Looking only there made both plan sections unreachable in the
-    product while their unit tests passed, which is precisely the shape of
-    defect this project keeps finding.
+    Searched across registered providers. Reference packs aggregate their
+    games and cannot supply per-game continuations; a selected SQLite
+    collection can, and its plan sections must use that same collection.
 
     The query is keyed on the position so that walking the board re-asks, and
     it returns an empty list rather than throwing when the companion is not
     there.
   */
-  const providers = useDatabaseProviders();
   /*
-    The chosen explorer source first, when it can answer, and otherwise the
-    first registered provider that can. Which one it was is then reported in
+    The chosen report collection first, then the chosen Explorer source if it
+    can answer, and otherwise the first registered provider. The source is
+    reported in
     the section's own provenance line, because a machine can hold several
     collections and only one of them supplied these games: "106 games from
     Plans" is a citation, "106 games" is a rumour.
@@ -155,14 +168,20 @@ export function OpeningReportPanel() {
   const resolvedSource = useExplorerSource(explorerSourceId);
   const preferred = resolvedSource.kind === 'ready' ? resolvedSource.provider : undefined;
   // While the chosen source could still register, nothing answers in its place.
-  const continuationSource =
-    resolvedSource.kind === 'waiting'
+  const continuationSource = selectedCollection?.continuations
+    ? selectedCollection
+    : resolvedSource.kind === 'waiting'
       ? undefined
       : preferred?.continuations
         ? preferred
         : providers.find((provider) => Boolean(provider.continuations));
   const continuations = useQuery({
-    queryKey: ['opening-report-continuations', continuationSource?.id ?? null, fen],
+    queryKey: [
+      'opening-report-continuations',
+      continuationSource?.id ?? null,
+      continuationSource?.cacheVersion ?? '',
+      fen,
+    ],
     enabled: Boolean(continuationSource) && fen.length > 0,
     queryFn: async ({ signal }) => {
       const provider = databaseProviderById(continuationSource!.id);
@@ -226,6 +245,47 @@ export function OpeningReportPanel() {
     })),
   });
   const histories = historyQueries.flatMap((query) => (query.data ? [query.data] : []));
+  const collectionHistory = useQuery({
+    queryKey: [
+      'collection-opening-history',
+      selectedCollection?.id ?? '',
+      selectedCollection?.cacheVersion ?? '',
+      historyKey,
+    ],
+    enabled: Boolean(selectedCollection && historyKey),
+    queryFn: ({ signal }) => selectedCollection!.positionHistory!(fen, signal),
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    retry: false,
+  });
+  const collectionHistoryEntry: PopulationHistory | null =
+    selectedCollection && collectionHistory.data
+      ? {
+          id: selectedCollection.id,
+          name: selectedCollection.name,
+          history:
+            collectionHistory.data.sampledGames === 0
+              ? null
+              : {
+                  key: historyKey,
+                  byYear: new Map(
+                    collectionHistory.data.byYear.map(({ year, ...tally }) => [year, tally]),
+                  ),
+                  byBand: new Map(
+                    collectionHistory.data.byBand.map(({ band, ...tally }) => [band, tally]),
+                  ),
+                  first: collectionHistory.data.first.map(({ year, id }) => ({ year, id })),
+                },
+          bands: collectionHistory.data.bands,
+          pioneers: collectionHistory.data.first,
+          sample: {
+            games: collectionHistory.data.sampledGames,
+            hasMore: collectionHistory.data.hasMore,
+            undated: collectionHistory.data.undated,
+            unrated: collectionHistory.data.unrated,
+          },
+        }
+      : null;
   const historyAnswered = histories
     .map((entry) => `${entry.id}:${entry.history ? entry.history.first.length : 'none'}`)
     .join('|');
@@ -275,7 +335,7 @@ export function OpeningReportPanel() {
         ...(continuations.data
           ? { continuations: continuations.data, continuationSource: continuationName }
           : {}),
-        histories,
+        histories: collectionHistoryEntry ? [...histories, collectionHistoryEntry] : histories,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
@@ -289,8 +349,26 @@ export function OpeningReportPanel() {
       repertoirePosition,
       historyAnswered,
       historyKey,
+      collectionHistory.data,
+      selectedCollection?.id,
     ],
   );
+
+  const openFirstGame = async (id: string) => {
+    if (!selectedCollection || !collectionHistory.data) return;
+    const game = collectionHistory.data.first.find((entry) => entry.id === id);
+    if (!game) return;
+    try {
+      await openSourceGame(librarySource(selectedCollection.id, selectedCollection.name), game);
+      router.push('/analysis');
+    } catch (error) {
+      notify({
+        tone: 'error',
+        message: `Could not open the game from ${selectedCollection.name}.`,
+        detail: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
 
   if (!node) {
     return (
@@ -308,6 +386,34 @@ export function OpeningReportPanel() {
       <PanelHeader>Opening Report</PanelHeader>
       <PanelBody>
         <div className="flex flex-col gap-4" data-opening-report>
+          {collections.length > 0 && (
+            <label className="text-xs text-secondary">
+              Report collection
+              <select
+                aria-label="Report collection"
+                value={selectedCollection?.id ?? ''}
+                onChange={(event) => setCollectionChoice(event.target.value)}
+                className="mt-1 block w-full rounded border border-line bg-surface-inset p-2"
+              >
+                <option value="">Reference packs only</option>
+                {collections.map((provider) => (
+                  <option key={provider.id} value={provider.id}>
+                    {provider.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {selectedCollection && collectionHistory.isPending && (
+            <p role="status" className="text-xs text-secondary">
+              Reading a bounded collection sample…
+            </p>
+          )}
+          {selectedCollection && collectionHistory.isError && (
+            <p role="alert" className="text-xs text-negative">
+              {selectedCollection.name} could not supply history for this position.
+            </p>
+          )}
           {Boolean(repertoires.data?.length) && (
             <label className="text-xs text-secondary">
               Compare repertoire
@@ -349,7 +455,21 @@ export function OpeningReportPanel() {
                 <ul className="mt-2 flex flex-col gap-1.5">
                   {section.entries.map((entry, index) => (
                     <li key={`${section.id}-${index}`} className="text-xs">
-                      <span className="text-primary">{entry.primary}</span>
+                      {section.id === `pioneers:${selectedCollection?.id}` &&
+                      collectionHistory.data?.first[index]?.id ? (
+                        <button
+                          type="button"
+                          className="text-left text-accent-ink hover:underline"
+                          aria-label={`Open ${collectionHistory.data.first[index]!.white} – ${collectionHistory.data.first[index]!.black} from ${selectedCollection?.name ?? 'collection'}`}
+                          onClick={() =>
+                            void openFirstGame(collectionHistory.data!.first[index]!.id)
+                          }
+                        >
+                          {entry.primary}
+                        </button>
+                      ) : (
+                        <span className="text-primary">{entry.primary}</span>
+                      )}
                       {entry.criterion && (
                         <span className="ml-2 text-[11px] text-tertiary">{entry.criterion}</span>
                       )}

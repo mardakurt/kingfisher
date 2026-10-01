@@ -167,6 +167,12 @@ function firstDifference(rows, postings, keys) {
     const b = ids(postings.gamesAtPosition(key, 10_000));
     if (JSON.stringify(a) !== JSON.stringify(b)) return { key, what: 'games', a, b };
 
+    const historyRows = rows.positionHistory(key, 200);
+    const historyPostings = postings.positionHistory(key, 200);
+    if (JSON.stringify(historyRows) !== JSON.stringify(historyPostings)) {
+      return { key, what: 'position-history', historyRows, historyPostings };
+    }
+
     const byGame = (list) => [...list].sort((x, y) => Number(x.gameId) - Number(y.gameId));
     const c = byGame(rows.continuationsAt(key, { games: 1000, plies: 40 }));
     const d = byGame(postings.continuationsAt(key, { games: 1000, plies: 40 }));

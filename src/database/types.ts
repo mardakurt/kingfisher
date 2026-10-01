@@ -80,6 +80,37 @@ export interface ExplorerResult {
   readonly truncated?: boolean;
 }
 
+/** A bounded read of one collection's games at a position, never an imported copy. */
+export interface DatabasePositionHistory {
+  readonly sampledGames: number;
+  readonly hasMore: boolean;
+  readonly undated: number;
+  readonly unrated: number;
+  readonly bands: readonly number[];
+  readonly byYear: readonly {
+    readonly year: number;
+    readonly games: number;
+    readonly white: number;
+    readonly draws: number;
+    readonly black: number;
+  }[];
+  readonly byBand: readonly {
+    readonly band: number;
+    readonly games: number;
+    readonly white: number;
+    readonly draws: number;
+    readonly black: number;
+  }[];
+  readonly first: readonly {
+    readonly id: string;
+    readonly year: number;
+    readonly white: string;
+    readonly black: string;
+    readonly result: GameResult;
+    readonly event?: string;
+  }[];
+}
+
 export interface ExplorerFilters {
   readonly minRating?: number;
   readonly maxRating?: number;
@@ -139,6 +170,8 @@ export interface ChessDatabaseProvider {
   explore(query: ExplorerQuery, signal?: AbortSignal): Promise<ExplorerResult>;
   health?(signal?: AbortSignal): Promise<ProviderHealth>;
   game?(id: string, signal?: AbortSignal): Promise<string>;
+  /** Optional read-only, capped history of games reaching this position. */
+  positionHistory?(fen: Fen, signal?: AbortSignal): Promise<DatabasePositionHistory>;
   /**
    * What was played *after* a position, in the games that reached it.
    *

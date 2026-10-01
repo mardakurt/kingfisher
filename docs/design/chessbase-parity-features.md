@@ -163,6 +163,12 @@ Find Novelty and Novelty Annotation, as a fact about a named population.
   stores per-position counts by year and 200-point Elo class plus earliest
   game references. The Opening Report renders each pack separately and a test
   rejects figures labelled with another population.
+- A selected companion SQLite collection now contributes its own year and Elo
+  sections. The companion reads at most 2,001 distinct headers through the
+  position index and returns only compact tallies plus up to three linked
+  games. When it reaches the 2,000-game limit, the report calls these sample
+  figures and does not call a sampled first game the first in the collection.
+  No collection is copied and no new index or persistent cache is written.
 - Large-file import is owned by the companion. It streams PGN, gzip, seekable
   zstd and ChessBase records, uses the application's parser/indexer bundle,
   writes only the destination collection, and records user-supplied licence

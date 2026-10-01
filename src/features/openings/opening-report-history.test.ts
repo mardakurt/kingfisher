@@ -110,4 +110,26 @@ describe('the Opening Report’s history, per population', () => {
     expect(section('popularity:empty').emptyReason).toContain('carries no history');
     expect(section('pioneers:empty').entries).toEqual([]);
   });
+
+  it('labels a capped collection as a sample and does not call its first game a pioneer', () => {
+    const sampled = buildOpeningReport({
+      fen: FEN,
+      histories: [
+        {
+          id: 'sqlite:mine',
+          name: 'My archive',
+          history: starter,
+          bands: [0, 2000, 2200, 2400, 2600],
+          sample: { games: 2_000, hasMore: true, undated: 7, unrated: 19 },
+          pioneers: [{ year: 2020, id: 'a1', white: 'Anand, V', black: 'Carlsen, M' }],
+        },
+      ],
+    });
+    const find = (id: string) => sampled.sections.find((entry) => entry.id === id)!;
+    expect(find('popularity:sqlite:mine').provenance).toContain('bounded sample of 2,000');
+    expect(find('popularity:sqlite:mine').provenance).toContain('7 sampled games had no date');
+    expect(find('elo:sqlite:mine').provenance).toContain('19 sampled games state no rating');
+    expect(find('pioneers:sqlite:mine').provenance).toContain('not necessarily the first');
+    expect(find('pioneers:sqlite:mine').entries[0]!.criterion).toBe('earliest in this sample');
+  });
 });

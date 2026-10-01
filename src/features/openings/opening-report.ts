@@ -117,6 +117,13 @@ export interface PopulationHistory {
   readonly history: PackPositionHistory | null | undefined;
   /** Lower bounds of the pack's rating bands. */
   readonly bands: readonly number[];
+  /** A collection report reads a bounded set of games from the existing index. */
+  readonly sample?: {
+    readonly games: number;
+    readonly hasMore: boolean;
+    readonly undated: number;
+    readonly unrated: number;
+  };
   /** The earliest games, as the pack describes them, when it carries their scores. */
   readonly pioneers?: readonly {
     readonly year: number;
@@ -526,11 +533,15 @@ function historySections(input: OpeningReportInput): ReportSection[] {
     const total = history
       ? [...history.byYear.values()].reduce((sum, tally) => sum + tally.games, 0)
       : 0;
+    const sampled = population.sample?.hasMore ?? false;
+    const scope = sampled
+      ? `a bounded sample of ${count(population.sample!.games)} games that reached this position`
+      : `the ${count(total)} dated games that reached this position`;
     out.push({
       id: `popularity:${population.id}`,
       title: `Popularity by year — ${population.name}`,
       provenance: history
-        ? `${population.name}: the ${count(total)} dated games that reached this position, by year. One population; nothing combined.`
+        ? `${population.name}: ${scope}, by year.${population.sample?.undated ? ` ${count(population.sample.undated)} sampled games had no date.` : ''} One population; nothing combined.`
         : null,
       entries: history
         ? [...history.byYear.entries()]
@@ -541,9 +552,13 @@ function historySections(input: OpeningReportInput): ReportSection[] {
               criterion: `share of ${population.name}'s dated games here: ${percent(total > 0 ? tally.games / total : 0)}`,
             }))
         : [],
-      emptyReason: history
+      emptyReason: history?.byYear.size
         ? null
-        : `${population.name} carries no history for this position (too few games, or deeper than its history reaches).`,
+        : history
+          ? `${population.name} has no dated game in ${sampled ? 'this sample' : 'this population'} at this position.`
+          : population.sample
+            ? `${population.name} has no games at this position.`
+            : `${population.name} carries no history for this position (too few games, or deeper than its history reaches).`,
     });
     const bands = [...population.bands].sort((a, b) => a - b);
     const bandName = (bound: number) => {
@@ -555,7 +570,7 @@ function historySections(input: OpeningReportInput): ReportSection[] {
       id: `elo:${population.id}`,
       title: `Results by Elo class — ${population.name}`,
       provenance: history
-        ? `${population.name}: games filed by the lower rating the game states; games stating none are in no class.`
+        ? `${population.name}: ${sampled ? `a bounded sample of ${count(population.sample!.games)} games; ` : ''}games filed by the lower rating the game states; ${population.sample ? `${count(population.sample.unrated)} sampled games state no rating and are in no class.` : 'games stating none are in no class.'}`
         : null,
       entries: history
         ? [...history.byBand.entries()]
@@ -566,9 +581,11 @@ function historySections(input: OpeningReportInput): ReportSection[] {
               criterion: 'Elo class',
             }))
         : [],
-      emptyReason: history
+      emptyReason: history?.byBand.size
         ? null
-        : `${population.name} carries no rating history for this position.`,
+        : history
+          ? `${population.name} has no game with a stated rating in ${sampled ? 'this sample' : 'this population'} at this position.`
+          : `${population.name} carries no rating history for this position.`,
     });
     const pioneers = population.pioneers ?? [];
     out.push({
@@ -576,7 +593,7 @@ function historySections(input: OpeningReportInput): ReportSection[] {
       title: `First games — ${population.name}`,
       provenance:
         history && history.first.length > 0
-          ? `The earliest games in ${population.name} to reach this position: the first in this population, not in chess.`
+          ? `The earliest ${sampled ? 'sampled ' : ''}games in ${population.name} to reach this position: ${sampled ? 'not necessarily the first in the collection' : 'the first in this population, not in chess'}.`
           : null,
       entries: (history?.first ?? []).map((first) => {
         const game = pioneers.find((entry) => entry.id === first.id);
@@ -586,7 +603,7 @@ function historySections(input: OpeningReportInput): ReportSection[] {
             game?.white && game.black
               ? `${game.white} – ${game.black}${game.result ? ` ${game.result}` : ''}${game.event ? `, ${game.event}` : ''}`
               : `game ${first.id} (its score is not carried by this pack)`,
-          criterion: 'earliest in this population',
+          criterion: sampled ? 'earliest in this sample' : 'earliest in this population',
         };
       }),
       emptyReason:

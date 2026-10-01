@@ -139,6 +139,7 @@ export declare class GameDatabase {
   rebuildPlayers(): void;
   players(prefix: string): readonly { name: string; games: number }[];
   gamesAtPosition<T = unknown>(positionKey: string, limit?: number): readonly T[];
+  positionHistory<T = unknown>(positionKey: string, limit?: number): T;
   searchStructures<T = unknown>(query: unknown): readonly T[];
   unindexedPositions(limit?: number): {
     positions: readonly { positionKey: string }[];

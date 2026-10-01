@@ -6,6 +6,12 @@ real users notice.
 
 ## Unreleased (web)
 
+- **Opening Reports can read a selected companion collection.** At a position,
+  choose a local SQLite collection to see its games by year and rating class,
+  then open one of the earliest games shown. Common positions use a clearly
+  labelled sample of at most 2,000 games. The report reads the existing index
+  without making another copy of the collection.
+
 ## 1.4.0 — 2026-10-01
 
 - **Research readiness is one action away.** Analysis shows the selected engine's

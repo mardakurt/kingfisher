@@ -1401,6 +1401,15 @@ async function route(url, request, response) {
     });
   }
 
+  if (pathname === '/db/position-history' && request.method === 'POST') {
+    const body = await readBody(request);
+    return json(
+      response,
+      200,
+      database(String(body.key)).positionHistory(String(body.positionKey), body.limit),
+    );
+  }
+
   if (pathname === '/db/players' && request.method === 'POST') {
     const body = await readBody(request);
     return json(response, 200, {

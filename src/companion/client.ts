@@ -499,6 +499,10 @@ export class CompanionClient {
     return this.request('/db/games-at', { key, positionKey, limit });
   }
 
+  positionHistory<T>(key: string, positionKey: string, limit?: number): Promise<T> {
+    return this.request('/db/position-history', { key, positionKey, limit });
+  }
+
   /** The moves that followed a position, per game. See `continuationsAt`. */
   continuationsAt<T>(
     key: string,

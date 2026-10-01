@@ -124,6 +124,61 @@ describe('GameDatabase', () => {
     expect(database.content(result.games[0].id)).toBe(game.pgn);
   });
 
+  it('reads a capped, source-backed position history without adding an index', () => {
+    const games = [
+      entry({
+        fingerprint: 'early',
+        white: 'A',
+        black: 'B',
+        result: '1-0',
+        year: 2020,
+        rating: 2410,
+        uci: 'e2e4',
+        san: 'e4',
+      }),
+      entry({
+        fingerprint: 'late',
+        white: 'C',
+        black: 'D',
+        result: '0-1',
+        year: 2025,
+        rating: 2610,
+        uci: 'd2d4',
+        san: 'd4',
+      }),
+      entry({
+        fingerprint: 'other',
+        white: 'E',
+        black: 'F',
+        result: '1/2-1/2',
+        year: 2026,
+        rating: 2210,
+        uci: 'g1f3',
+        san: 'Nf3',
+      }),
+    ];
+    // A repeated position is still one game in the report.
+    games[0].positions.push({ ...games[0].positions[0], ply: 4 });
+    database.insertGames(games);
+    const complete = database.positionHistory(POSITION);
+    expect(complete).toMatchObject({ sampledGames: 3, hasMore: false, undated: 0, unrated: 0 });
+    expect(complete.byYear.map((row) => [row.year, row.games])).toEqual([
+      [2020, 1],
+      [2025, 1],
+      [2026, 1],
+    ]);
+    // The lower of both recorded ratings determines the class.
+    expect(complete.byBand.map((row) => [row.band, row.games])).toEqual([
+      [2200, 1],
+      [2400, 1],
+      [2000, 1],
+    ]);
+    expect(complete.first.map((game) => game.white)).toEqual(['A', 'C', 'E']);
+    const capped = database.positionHistory(POSITION, 2);
+    expect(capped).toMatchObject({ sampledGames: 2, hasMore: true });
+    expect(capped.byYear.reduce((sum, row) => sum + row.games, 0)).toBe(2);
+  });
+
   it('pages and filters summaries with truthful hasMore semantics', () => {
     database.insertGames([
       entry({
