@@ -39,6 +39,7 @@ import { cpus, release, totalmem } from 'node:os';
 import { performance } from 'node:perf_hooks';
 
 import { GameDatabase } from '../companion/src/database.mjs';
+import { positionHash } from '../companion/src/postings.mjs';
 import { closeApp, loadApp } from './load-app.mjs';
 
 const args = process.argv.slice(2);
@@ -68,15 +69,32 @@ const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -';
  * the index, and a probe that reaches no games is an error rather than a fast
  * time.
  */
-function commonestPositions(database, count) {
-  const handle = database.handleForTest();
-  return handle
-    .prepare(
-      'SELECT position_key, COUNT(*) AS occurrences FROM positions' +
-        ' GROUP BY position_key ORDER BY occurrences DESC LIMIT ?',
-    )
-    .all(count)
-    .map((row) => ['a common position', row.position_key]);
+function commonestPositions(payloads, count) {
+  /*
+    Derived from the prepared games, not from a table.
+
+    Two earlier drafts got this wrong in instructive ways. The first named
+    "after 1.e4" and "after 1.e4 e5" and measured 0.0 ms against both, because
+    the generated corpus opens 1.d4 — a benchmark that quietly probes an absent
+    position reports the fastest number in the run and calls it a result. The
+    second asked the database for its commonest keys, which is a different
+    failure: the postings layout stores a 64-bit hash with no FEN beside it, and
+    `positionHistory` hashes the key it is given, so a hash cannot be handed
+    back to it. Reading the keys from the prepared games is layout-independent,
+    uses the very keys the application stored, and counts the same thing the
+    report's denominator counts — games that reached the position.
+
+    A probe that reaches no game is still an error, not a fast time.
+  */
+  const reach = new Map();
+  for (const game of payloads) {
+    for (const key of new Set(game.positions.map((position) => position.positionKey))) {
+      reach.set(key, (reach.get(key) ?? 0) + 1);
+    }
+  }
+  const commonest = [...reach.entries()].sort((a, b) => b[1] - a[1]).slice(0, count);
+  if (commonest.length === 0) throw new Error('the corpus indexed no positions at all');
+  return commonest.map(([key, games]) => ['a common position', key, games]);
 }
 
 /**
@@ -167,16 +185,22 @@ async function main() {
   );
   console.log('');
 
+  /*
+    The same discovery for both layouts, so the two runs are comparable. The
+    rows layout also indexes the starting position — which every game has
+    passed through, and is therefore the one position whose reach is known
+    before the run — and it is worth timing as a fixed reference. The postings
+    layout does not carry it, so it is added only where it exists rather than
+    timed against nothing.
+  */
   const probes = [
-    ['the starting position', START],
-    ...commonestPositions(database, 5)
-      .filter(([, key]) => key !== START)
-      .slice(0, 3),
+    ...(POSTINGS ? [] : [['the starting position', START]]),
+    ...commonestPositions(prepared.payloads, 4).filter(([, key]) => key !== START),
   ];
 
   console.log(`the Opening Report's own read — target p95 < ${TARGET_P95_MS} ms`);
   let worstP95 = 0;
-  for (const [label, key] of probes) {
+  for (const [label, key, reach] of probes) {
     const history = database.positionHistory(key);
     if (history.sampledGames === 0) {
       throw new Error(`${label} reaches no game in this collection; the probe is wrong`);

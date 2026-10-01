@@ -185,16 +185,109 @@ exercised in the bundle rather than merely unit-tested.
    with network downloads — not something to slip into a fix commit, and not
    something to do on a disk the maintainer has asked to keep small. Recorded in
    `docs/design/chessbase-parity-features.md` with that reason attached.
-2. **Real-scale timing and complete-corpus equivalence for the collection
-   report.** The bounded read is proven correct against fixtures and against the
-   row/postings layout differential, but no million-game collection was measured,
-   and none was generated. The parity ledger row stays `partial`.
+2. **A million-game collection, and complete-corpus equivalence.** The read is
+   now measured at 2,000 / 5,000 / 20,000 / 100,000 games and flat across fifty
+   times the population (§6), and correct against hand-computed figures (§7).
+   What is still missing is a collection that is somebody's actual archive: the
+   million-game figure is a projection, and the parity ledger row stays
+   `partial` until the maintainer points Kingfisher at a database they own.
 3. **A reference pack rebuild** is the remaining work on defect 2's pack side,
    and it is a data phase rather than a code change.
-4. **60 inert `focus:outline-none` utilities** remain, carried from Phase 88's
+4. **Provenance on a carried finding.** The assessment's loop ends "carry a
+   finding into a study or repertoire without losing the source". The part that
+   can be done today is done and pinned: opening a backing game puts the
+   collection in the document title, so a game lifted onto the board remembers
+   where it came from. What does not exist is a repertoire or study _record_
+   that names the evidence it came from. A repertoire position carries the
+   repertoire's own identity and the reasons its prompt was chosen, and its
+   population is My games; a study chapter has no provenance field at all.
+   Closing it means a payload on the shared `addToRepertoireOpen` store state
+   that nine call sites reach, a convention for writing into a note the player
+   authored, and a decision about what a source means for a study. That is its
+   own change with its own trade-offs, and it is not item 1's acceptance
+   criterion — so it is written down rather than half-built.
+5. **60 inert `focus:outline-none` utilities** remain, carried from Phase 88's
    judgement that removing them was more churn than the defect warranted.
 
-## 5. What this session did not do
+## 5. The three items, measured
+
+The assessment that sent this here listed three items. This is what each one is
+worth now, and what each still is not.
+
+### 1. Collection backed Opening Report — acceptance met
+
+The acceptance criterion was "a selected collection's figures reconcile with its
+backing games, including transpositions and incomplete headers". That is now
+proven rather than asserted: `companion/src/position-history-reconcile.test.mjs`
+writes its expectations out by hand from the PGNs and compares them with what
+the companion returns through its index, over a corpus carrying a transposition,
+a thrice-visited position, and games with no date, no rating and only one of the
+two rating tags. Three mutations are caught — filing an unrecorded result as a
+Black win, filing a game under the higher of its ratings, and dropping the
+distinction between a game with no year and one with a year.
+
+Still not: the loop's "carry a finding into a study or repertoire without losing
+the source", recorded as open item 4.
+
+### 2. Research continuity at scale — half of it was already built
+
+Phase 87 had already done the continuity half: the search, the player, the
+database, the page and the previewed game all live in the address, and
+`e2e/library-continuity.spec.ts` covers returning from a game to the same row.
+It was not rebuilt. What was missing was the number, so:
+
+| games (rows layout) |  on disk | report p95 |
+| ------------------- | -------: | ---------: |
+| 2,000               |   6.3 MB |     4.0 ms |
+| 5,000               |  15.5 MB |     4.5 ms |
+| 20,000              |  62.5 MB |     4.4 ms |
+| 100,000             | 314.7 MB |     4.9 ms |
+
+Flat across fifty times the population, which is the bounded read doing the job
+it exists for, against a stated 150 ms p95 target. `bench:collection-report`
+writes its collection to a temporary directory outside the repository and
+deletes it unless `--keep` is passed, so measuring costs nothing to keep.
+
+The layouts are not the same size, and the difference is worth knowing before
+anyone commits disk to one:
+
+| layout (20,000 games) | on disk | per game | report p95 |
+| --------------------- | ------: | -------: | ---------: |
+| rows                  | 62.5 MB |   3.2 kB |     4.4 ms |
+| postings              | 21.9 MB |   1.1 kB |     5.9 ms |
+
+About 1.5 ms of latency for roughly a third of the disk. On a million games that
+is 1.1 GB instead of 3.1 GB.
+
+### 3. Reference packs with inspectable backing games — the cost, recorded
+
+Not built, deliberately: the assessment calls it "a larger data project", and
+the part it asked for _before_ expanding anything is the storage cost. Measured
+from the shipped bytes of `kingfisher-starter`, where 38,749 of 206,451 games
+carry a score at 239 B each: giving every game one takes the pack from 39.39 MB
+to 77.59 MB, ×1.97, and the ratio does not improve with a bigger archive.
+
+Two facts from the same table that the totals hide: the **history is 41 % of a
+pack**, more than the explorer aggregates it augments; and the obstacle to
+storing every game is **rights, not size** — at 239 B a score is cheaper than
+the aggregates leading to it. Full table and reasoning in
+`docs/data/reference-packs.md`.
+
+## 6. Two things the benchmark got wrong before it measured anything
+
+Recorded because both produced a plausible number.
+
+It named "after 1.e4" and "after 1.e4 e5" and timed 0.0 ms against both, because
+the generated corpus opens 1.d4. A probe that reaches no game is now an error
+rather than a fast time.
+
+It then asked the database for its commonest keys, and on the postings layout
+that silently reduced the run to one probe — a 64-bit hash came back where a
+position key was wanted, and `positionHistory` hashes what it is given. The
+probes are now read from the prepared games, which is layout-independent and
+counts the same thing the report's denominator counts.
+
+## 7. What this session did not do
 
 - No data was added, imported or generated. Nothing was downloaded. The only
   disk movement was build output: the repository's `.next` cache is 5.9 GB and
