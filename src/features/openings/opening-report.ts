@@ -123,6 +123,8 @@ export interface PopulationHistory {
     readonly hasMore: boolean;
     readonly undated: number;
     readonly unrated: number;
+    /** Games in the sample that ended in no result the report can name. */
+    readonly undecided?: number;
   };
   /** The earliest games, as the pack describes them, when it carries their scores. */
   readonly pioneers?: readonly {
@@ -585,7 +587,7 @@ function historySections(input: OpeningReportInput): ReportSection[] {
       id: `elo:${population.id}`,
       title: `Results by Elo class — ${population.name}`,
       provenance: history
-        ? `${population.name}: ${sampled ? `a bounded sample of ${count(population.sample!.games)} games; ` : ''}games filed by the lower rating the game states; ${population.sample ? `${count(population.sample.unrated)} sampled games state no rating and are in no class.` : 'games stating none are in no class.'}`
+        ? `${population.name}: ${sampled ? `a bounded sample of ${count(population.sample!.games)} games; ` : ''}games filed by the lower rating the game states; ${population.sample ? `${count(population.sample.unrated)} sampled games state no rating and are in no class.` : 'games stating none are in no class.'}${population.sample?.undecided ? ` ${count(population.sample.undecided)} sampled games state no result and are counted in no column below.` : ''}`
         : null,
       entries: history
         ? [...history.byBand.entries()]

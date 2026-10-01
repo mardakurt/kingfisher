@@ -1757,17 +1757,29 @@ export class GameDatabase {
     const bands = [0, 2000, 2200, 2400, 2600];
     let undated = 0;
     let unrated = 0;
+    let undecided = 0;
     const add = (map, key, result) => {
       const tally = map.get(key) ?? { games: 0, white: 0, draws: 0, black: 0 };
       tally.games += 1;
       if (result === '1-0') tally.white += 1;
-      if (result === '1/2-1/2') tally.draws += 1;
-      if (result === '0-1') tally.black += 1;
+      else if (result === '1/2-1/2') tally.draws += 1;
+      else if (result === '0-1') tally.black += 1;
+      /*
+        A game whose result is `*` is not a Black win, and it lands in none of
+        the three columns here — which is why a collection's columns need not
+        add up to its game count, where a pack's always do. The count is
+        taken per game below, not here: `add` runs once for the year tally and
+        once for the band tally, and a game with both a year and a rating
+        reaches it twice.
+      */
       map.set(key, tally);
     };
     for (const game of sampled) {
       if (Number.isInteger(game.year) && game.year > 0) add(byYear, game.year, game.result);
       else undated += 1;
+      if (game.result !== '1-0' && game.result !== '1/2-1/2' && game.result !== '0-1') {
+        undecided += 1;
+      }
       const ratings = [game.whiteRating, game.blackRating].filter(
         (rating) => Number.isInteger(rating) && rating > 0,
       );
@@ -1795,6 +1807,7 @@ export class GameDatabase {
       hasMore: rows.length > cap,
       undated,
       unrated,
+      undecided,
       bands,
       byYear: [...byYear].map(([year, tally]) => ({ year, ...tally })),
       byBand: [...byBand].map(([band, tally]) => ({ band, ...tally })),

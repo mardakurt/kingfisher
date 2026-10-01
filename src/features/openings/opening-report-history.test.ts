@@ -129,6 +129,29 @@ describe('the Opening Report’s history, per population', () => {
     expect(find('popularity:sqlite:mine').provenance).toContain('bounded sample of 2,000');
     expect(find('popularity:sqlite:mine').provenance).toContain('7 sampled games had no date');
     expect(find('elo:sqlite:mine').provenance).toContain('19 sampled games state no rating');
+
+    /*
+      A game that ended in no recorded result is in none of the three outcome
+      columns, so the columns need not add up to the game count. Saying so is
+      the difference between a reader who can reconcile the line and one
+      hunting for the missing quarter.
+    */
+    const withUndecided = buildOpeningReport({
+      fen: FEN,
+      histories: [
+        {
+          id: 'sqlite:mine',
+          name: 'My archive',
+          history: starter,
+          bands: [0, 2000, 2200, 2400, 2600],
+          sample: { games: 40, hasMore: false, undated: 0, unrated: 0, undecided: 11 },
+        },
+      ],
+    });
+    const elo = withUndecided.sections.find((entry) => entry.id === 'elo:sqlite:mine')!;
+    expect(elo.provenance).toContain('11 sampled games state no result');
+    // And it is not mentioned when every game ended.
+    expect(find('elo:sqlite:mine').provenance).not.toContain('no result');
     expect(find('pioneers:sqlite:mine').provenance).toContain('not necessarily the first');
     expect(find('pioneers:sqlite:mine').entries[0]!.criterion).toBe('earliest in this sample');
   });

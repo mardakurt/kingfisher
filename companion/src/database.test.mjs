@@ -179,6 +179,44 @@ describe('GameDatabase', () => {
     expect(capped.byYear.reduce((sum, row) => sum + row.games, 0)).toBe(2);
   });
 
+  it('counts an unfinished game in no result column, and says how many', () => {
+    // A `*` result is not a Black win. The pack builder's three-way ternary
+    // files it as one, which is why a pack's outcome columns always add up;
+    // here they must not, and the shortfall has to be visible rather than
+    // leaving a reader to find it.
+    const unfinished = entry({
+      fingerprint: 'unfinished',
+      white: 'U',
+      black: 'V',
+      result: '*',
+      year: 2021,
+      rating: 2250,
+      uci: 'e2e4',
+      san: 'e4',
+    });
+    database.insertGames([
+      unfinished,
+      entry({
+        fingerprint: 'decided',
+        white: 'X',
+        black: 'Y',
+        result: '1-0',
+        year: 2022,
+        rating: 2300,
+        uci: 'e2e4',
+        san: 'e4',
+      }),
+    ]);
+    const history = database.positionHistory(POSITION);
+    expect(history.undecided).toBe(1);
+    const total = history.byYear.reduce((sum, row) => sum + row.games, 0);
+    const named = history.byYear.reduce((sum, row) => sum + row.white + row.draws + row.black, 0);
+    expect(named).toBe(1);
+    expect(total).toBe(2);
+    // And the difference is exactly what was reported as undecided.
+    expect(total - named).toBe(history.undecided);
+  });
+
   it('pages and filters summaries with truthful hasMore semantics', () => {
     database.insertGames([
       entry({

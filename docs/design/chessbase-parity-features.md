@@ -163,6 +163,17 @@ Find Novelty and Novelty Annotation, as a fact about a named population.
   stores per-position counts by year and 200-point Elo class plus earliest
   game references. The Opening Report renders each pack separately and a test
   rejects figures labelled with another population.
+  - **Open defect, recorded not fixed.** The pack's outcome tally is a
+    three-way ternary — `result === '1-0' ? white : result === '1/2-1/2' ?
+draws : black` — so a game with no recorded result (`*`) is filed as a
+    **Black win**. That is a false claim about a game, and it is why a pack's
+    three outcome columns always add up to its game count while a collection's
+    do not. It is not fixed here because the correction changes pack bytes:
+    every pack would need rebuilding and re-digesting, which is a data phase
+    with network downloads, not a code change. The companion side already
+    counts such games and the report states how many are in no column, so the
+    shortfall is visible rather than silent; the pack side stays wrong until a
+    pack rebuild carries the correction.
 - A selected companion SQLite collection now contributes its own year and Elo
   sections. The companion reads at most 2,001 distinct headers through the
   position index and returns only compact tallies plus up to three linked

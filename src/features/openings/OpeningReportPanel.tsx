@@ -298,6 +298,7 @@ export function OpeningReportPanel() {
             hasMore: collectionHistory.data.hasMore,
             undated: collectionHistory.data.undated,
             unrated: collectionHistory.data.unrated,
+            undecided: collectionHistory.data.undecided,
           },
         }
       : null;

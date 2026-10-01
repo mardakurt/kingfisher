@@ -86,6 +86,8 @@ export interface DatabasePositionHistory {
   readonly hasMore: boolean;
   readonly undated: number;
   readonly unrated: number;
+  /** Games in the sample whose result is not one of the three a game can end. */
+  readonly undecided: number;
   readonly bands: readonly number[];
   readonly byYear: readonly {
     readonly year: number;

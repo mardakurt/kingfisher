@@ -16,6 +16,12 @@ real users notice.
   installed saw their own games labelled "compared for disagreement", and a
   player with none had their archive quietly become the reference that defines
   the opening's branches. It is now reported and compared against nothing.
+- **A game with no recorded result is no longer left unexplained.** A
+  collection's results-by-Elo-class line could show fewer outcomes than games
+  without saying why. The count of games in no outcome column is now reported
+  beside it. Reference packs are not corrected by this: they file an
+  unfinished game as a Black win, and fixing that means rebuilding every
+  pack, which is a separate data phase.
 
 ## 1.4.0 — 2026-10-01
 
