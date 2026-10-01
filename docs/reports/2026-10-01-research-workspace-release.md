@@ -277,5 +277,11 @@ case; after restoring it, the entire local suite passed **3,921/3,921 in 364
 files, 52.46 seconds**. The extra four cases reflect the split, not added chess
 features. Typecheck, lint, formatting, docs and zero-skip checks were rerun.
 No runtime source or package bytes changed. The original failed CI run
-`36900284341` is retained, not described as green. Remote repair verification
-is recorded when it completes.
+`36900284341` is retained, not described as green. Remote repair verification passed: GitHub Actions run **36901434132**,
+commit `7dafaa0fea0fc7ba966d13ac9b0a82c28e54c3e0`, both Quality and Production
+build successful. Loaded live production assets contain this full revision and
+the actual diagnostic export reports 1.4.0. Vercel reports this deployment
+successful. Subsequent commits that only update this report do not change the
+web build or the published Mac bytes. Logs:
+`tmp/session/release-140-ci-repair-final.log`,
+`tmp/session/release-140-live-final-identity.log`.
