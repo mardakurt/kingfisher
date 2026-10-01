@@ -5,7 +5,7 @@
   "engines": {
     "node": ">=24"
   },
-  "description": "Kingfisher — a chess research workspace for strong players.",
+  "description": "Kingfisher \u2014 a chess research workspace for strong players.",
   "scripts": {
     "dev": "next dev --port 3210",
     "build": "next build",
@@ -66,6 +66,7 @@
     "companion:shared": "node --no-warnings scripts/companion-shared.mjs",
     "bench:sqlite": "node scripts/bench-sqlite.mjs",
     "bench:collections": "node scripts/bench-collections.mjs",
+    "bench:collection-report": "node scripts/bench-collection-report.mjs",
     "bench:engines": "node scripts/bench-engines.mjs",
     "bench:evidence": "node scripts/bench-evidence.mjs",
     "bench:pgn": "node scripts/bench-pgn.mjs",

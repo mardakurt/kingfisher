@@ -238,6 +238,55 @@ The explorer shows the two apart, because "recent" means a different window in
 each case: a filtered query answers the window the user chose, and a carried
 counter answers the one the pack was built with.
 
+## What it would cost for an aggregate to lead to its games
+
+The parity assessment's third item is to "evolve the pack format where rights
+permit, so an aggregate can lead to its games", and to "keep the current compact
+packs usable and record storage costs before expanding them". This is that
+record. It is measured from the shipped bytes of `kingfisher-starter` version 6
+(2026-09-26) rather than estimated.
+
+| family      | bytes on disk |  share | per unit                |
+| ----------- | ------------: | -----: | ----------------------- |
+| history     |      16.22 MB | 41.2 % | 57 B per position       |
+| explorer    |      13.09 MB | 33.2 % | 46 B per position       |
+| game        |       8.83 MB | 22.4 % | 239 B per openable game |
+| playergames |       0.90 MB |  2.3 % |                         |
+| players     |       0.36 MB |  0.9 % |                         |
+| **all**     |  **39.39 MB** |        | 168 chunks              |
+
+That pack holds 206,451 games, of which **38,749 — 18.8 % — carry a full
+score**. The other 81 % are aggregates only, which is the shape the format is
+built around and the reason a pack fits a browser mirror.
+
+So the cost of making every aggregate lead to its game, at the measured 239 B
+per score:
+
+- the game family goes **8.83 MB → 47.03 MB**, ×5.3;
+- the pack goes **39.39 MB → 77.59 MB**, ×1.97.
+
+Nearly double, for the same population. The number to weigh is not the total
+but the ratio, because it does not improve with a larger archive: it is
+whatever fraction of games you choose to store, and the sixth pack already
+shows 426.7 MB for a population this one covers with 39.
+
+Two things in the table are worth saying plainly, because neither is visible
+from the totals.
+
+**The history is the most expensive part of a pack, not the explorer.** 41 % of
+the bytes buy the Opening Report's year, Elo-class and first-game sections,
+against 33 % for the per-position move aggregates everything else reads. It is a
+deliberate trade — the history chunks are separately discardable, so a pack can
+be shipped without them — but "expand the pack" most often means the history,
+and it is the part a reader is least likely to notice is missing.
+
+**The game family is the cheap part per game, and that is the point.** At 239 B
+a score is smaller than the aggregates that lead to it, so storing every game
+costs less than storing every position twice. The obstacle to "an aggregate
+leads to its games" is therefore not size. It is rights — which games may be
+redistributed at all — and the fact that `openRating` is a deliberate filter
+rather than an accident of budget.
+
 ## Player identities
 
 Two spellings become one player **only when the archive recorded the same FIDE

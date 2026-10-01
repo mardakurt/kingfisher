@@ -271,6 +271,21 @@ test('the plan sections count a real collection, and cite how many games they re
   await expect(page.getByText('A – B, Plan evidence 1 2020').first()).toBeVisible();
 
   /*
+    And the source travels with the game.
+
+    The assessment's loop ends with "carry a finding into a study or repertoire
+    without losing the source". Opening the backing game is where that is won or
+    lost: a game lifted out of a named collection and onto the board with no
+    memory of which collection it came from is a game the player can no longer
+    attribute, and every later decision made on it inherits the ambiguity. The
+    document title carries the collection, so the provenance is visible on the
+    board rather than only in the report that produced it.
+  */
+  await expect(
+    page.getByText('A – B, Plan evidence 1 2020 (Plan evidence E2E)').first(),
+  ).toBeVisible();
+
+  /*
     And it is never graded against theory.
 
     The collection entered the report's comparative role space by position, so
