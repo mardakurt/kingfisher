@@ -249,3 +249,33 @@ still covers the unchanged 1.4.0 application implementation; it was not repeated
 for version text, descriptors or test-output filenames under the user's expedited
 scope. Ephemeral helper scripts were archived outside the checkout; they were
 not included in the source or package.
+
+## Final live verification and CI follow-up
+
+Publication commit `4036344ae47b0aa73b8d82bde5e21a57e74405ff` deployed
+successfully through Vercel. Actual live assets contained that full source
+identity; readiness completed a real engine search and answered the named
+206,451-game offline population in a fresh isolated profile. This fresh browser's
+initial pack install took about 50 seconds, so first-use installation timing is
+not represented as a fixed 18-second promise. Actual landing, install and
+security pages were opened; the install filename/hash and Mac security version
+were verified, and the install/security screenshots were inspected.
+The final `desktop:public:verify -- --landing --full` passed **67/67** against
+the live website and every byte of the public DMG. Logs:
+`tmp/session/release-140-live-postpublish.log`,
+`tmp/session/release-140-public-final.log`.
+
+The publication commit's remote Production build passed, but Quality failed
+one of 3,917 tests: replaying all 3,810 opening lines exceeded the default
+five-second single-test deadline on the shared Linux runner. The unchanged
+application had passed the local source suite and packaged suite. The repair
+splits replay into five ECO-volume cases, retaining every entry, the real rules
+comparison and the five-second deadline. Existing coverage asserts the dataset
+contains exactly A–E, and each replay case asserts a nonempty volume.
+A deliberately corrupted catalogue position identity failed the real replay
+case; after restoring it, the entire local suite passed **3,921/3,921 in 364
+files, 52.46 seconds**. The extra four cases reflect the split, not added chess
+features. Typecheck, lint, formatting, docs and zero-skip checks were rerun.
+No runtime source or package bytes changed. The original failed CI run
+`36900284341` is retained, not described as green. Remote repair verification
+is recorded when it completes.

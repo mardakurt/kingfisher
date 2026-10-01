@@ -38,12 +38,18 @@ describe('the opening catalog', () => {
     }
   });
 
-  it('replays every single line in the dataset to the position it is filed under', () => {
-    // The whole point of the generated index is that it agrees with the rules
-    // code. This is the check that it still does, over all 3,810 entries.
-    const wrong = catalog.filter((entry) => keyAfter(entry.moves) !== entry.key);
-    expect(wrong.map((entry) => entry.label)).toEqual([]);
-  });
+  it.each(['A', 'B', 'C', 'D', 'E'])(
+    'replays every line in ECO volume %s to the position it is filed under',
+    (volume) => {
+      // Replay all 3,810 entries, in five independently bounded cases. A single
+      // case exceeded Vitest's five-second limit on the shared CI runner.
+      // The dataset coverage and rule comparison stay unchanged.
+      const entries = catalog.filter((entry) => entry.eco.startsWith(volume));
+      expect(entries.length).toBeGreaterThan(0);
+      const wrong = entries.filter((entry) => keyAfter(entry.moves) !== entry.key);
+      expect(wrong.map((entry) => entry.label)).toEqual([]);
+    },
+  );
 
   it('covers all five ECO volumes', () => {
     const volumes = new Set(catalog.map((entry) => entry.eco[0]));
