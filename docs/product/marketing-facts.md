@@ -6,8 +6,11 @@ behind it. A claim that is not on this list has not been certified;
 do not make it. When the product changes, change the fact here first
 (and the row in [`public-claims.md`](public-claims.md)), then the copy.
 
-Last certified in Phase 49 (2026-09-13),
-[`final-certification.md`](final-certification.md).
+Historical certification: Phase 49 (2026-09-13),
+[`final-certification.md`](final-certification.md). Starter population and
+update-check wording were refreshed for 1.4.0; current release evidence is in
+[`2026-10-01-research-workspace-release.md`](../reports/2026-10-01-research-workspace-release.md).
+Other dated corpus figures below describe their named pack versions.
 
 ## The product
 
@@ -36,7 +39,7 @@ permissions), "the strongest engine", or any Elo figure.
 
 | You may say                                                                                                  | Because                                                                                        |
 | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| 172,376 recent elite over-the-board games ship inside the application and work offline.                      | `public/reference/kingfisher-starter/manifest.json` (Lichess broadcast archive, CC BY-SA 4.0). |
+| 206,451 recent elite broadcast games, including online events, ship inside the application and work offline. | `public/reference/kingfisher-starter/manifest.json` (Lichess broadcast archive, CC BY-SA 4.0). |
 | Elite OTB: 407,538 title- and rating-filtered broadcast games since 2020, installable on demand.             | `reference-elite-v2/manifest.json` on the data mirror.                                         |
 | High-Rated Online: 305,169 Lichess games, both players 2400+, classical/rapid/blitz, a rolling three months. | `reference-online-v1/manifest.json`.                                                           |
 | Recent Theory: the last 24 broadcast months at a 2400+ threshold, 44,200 games / 918,069 positions.          | `reference-recent-v1/manifest.json` (the catalog ships v1).                                    |
@@ -46,8 +49,7 @@ permissions), "the strongest engine", or any Elo figure.
 | The Lichess masters database is available as a further source with your own Lichess API token.               | `src/database/providers/lichess.ts`; the endpoint answers 401 without one.                     |
 | A bundled three-piece Syzygy tablebase; larger tables are yours to supply; the Lichess tablebase online.     | `companion/fixtures/syzygy-3/`; `tbprobe-real.test.mjs`; `src/tablebase/lichess.ts`.           |
 
-Do not say: "millions of games", "the whole of chess history" (nothing
-before 2020 in a first-party source), or compare the size to a
+Do not say: "millions of games", "the whole of chess history", or compare the size to a
 commercial database.
 
 ## Workflow
@@ -67,13 +69,13 @@ Do not say: "AI coach", "personalised training plan", "accuracy",
 
 ## The Mac application
 
-| You may say                                                                  | Because                                                                                                                 |
-| ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Signed with an Apple Developer ID certificate and notarised by Apple.        | `npm run desktop:public:verify -- --landing --full` on the public DMG; `spctl` accepted, source=Notarized Developer ID. |
-| Opens with a normal double-click; no right-click workaround.                 | The install guide; the assessment above.                                                                                |
-| Apple Silicon (arm64), macOS 13 (Ventura) or later.                          | `desktop/src/platform-floor.mjs` — Electron 44's own floor.                                                             |
-| Checks for updates only when you ask, and keeps your work through an update. | `desktop/src/update-service.mjs` (no poller); `desktop:update:real`; the public 1.1.0 → 1.1.1 update in Phase 49.       |
-| Native engines and SQLite databases with nothing else to install.            | The shell starts and pairs its own companion; `desktop:smoke`.                                                          |
+| You may say                                                                                               | Because                                                                                                                 |
+| --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Signed with an Apple Developer ID certificate and notarised by Apple.                                     | `npm run desktop:public:verify -- --landing --full` on the public DMG; `spctl` accepted, source=Notarized Developer ID. |
+| Opens with a normal double-click; no right-click workaround.                                              | The install guide; the assessment above.                                                                                |
+| Apple Silicon (arm64), macOS 13 (Ventura) or later.                                                       | `desktop/src/platform-floor.mjs` — Electron 44's own floor.                                                             |
+| Checks quietly at launch and explicitly from its menu; installation is user-requested and preserves work. | `desktop/src/update-service.mjs` (no poller); `desktop:update:real`; the public 1.1.0 → 1.1.1 update in Phase 49.       |
+| Native engines and SQLite databases with nothing else to install.                                         | The shell starts and pairs its own companion; `desktop:smoke`.                                                          |
 
 Do not say: "Apple approved", "Apple certified", "App Store", "Windows",
 "Linux", "Intel Mac", "auto-update" (nothing updates without a click).

@@ -77,7 +77,7 @@ test('an unavailable online reference offers an explicit offline recovery and us
 for (const theme of ['light', 'dark']) {
   test(`readiness remains reachable and scrollable in ${theme} on a narrow window`, async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.addInitScript((theme) => {
       localStorage.setItem(
         'kingfisher.preferences',
@@ -94,7 +94,7 @@ for (const theme of ['light', 'dark']) {
     const backups = dialog.getByRole('button', { name: 'Manage and export backups', exact: true });
     await backups.scrollIntoViewIfNeeded();
     await expect(backups).toBeInViewport();
-    await page.screenshot({ path: `tmp/session/readiness-${theme}-narrow.png` });
+    await page.screenshot({ path: testInfo.outputPath(`readiness-${theme}-narrow.png`) });
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
     ).toBeLessThanOrEqual(1);
@@ -120,7 +120,7 @@ test('an empty local collection is a valid zero answer, not a missing source', a
   await expect(dialog).toContainText('This is a valid empty answer');
 });
 
-test('opening readiness never replaces an active analysis search', async ({ page }) => {
+test('opening readiness never replaces an active analysis search', async ({ page }, testInfo) => {
   await page.goto('/analysis');
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();
   await page.getByRole('button', { name: /^Layout/ }).click();
@@ -134,7 +134,7 @@ test('opening readiness never replaces an active analysis search', async ({ page
   await expect(dialog.locator('[data-readiness-engine]')).toHaveText('Search responding');
   await expect(dialog).toHaveCSS('opacity', '1');
   await expect(dialog.locator('..')).toHaveCSS('opacity', '1');
-  await page.screenshot({ path: 'tmp/session/readiness-wide.png' });
+  await page.screenshot({ path: testInfo.outputPath('readiness-wide.png') });
   await page.keyboard.press('Escape');
   await expect(engine.getByRole('button', { name: 'Stop analysis (E)' })).toBeVisible();
   await engine.getByRole('button', { name: 'Stop analysis (E)' }).click();

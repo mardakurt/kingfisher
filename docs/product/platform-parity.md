@@ -1,11 +1,17 @@
 # Platform parity — the web application and the macOS application
 
-**Release in preparation (2026-10-01).** Source version 1.4.0 adds the shared
-Research readiness panel and fixes the pending-backup label. Root and desktop
-versions agree. The public Mac descriptor still selects 1.3.3 build 932 until
-the new signed/notarized artifact is published and its public bytes verified.
-Existing layouts remain unchanged; the five-player study has no observations
-yet. See `docs/release/1.4.0.md` for the planned release content.
+**Published revision check (2026-10-01, 1.4.0).** The public Mac download is
+1.4.0 build 1007 from `a88c130bd5a211608ef0c097a8b801adbd0b2b45`, stable and
+clean at packaging. It includes the shared Research layout, readiness,
+keyboard/focus and selected-engine fixes described below. Publication metadata
+and documentation commits after that revision change version/download claims,
+not the chess interface, persistence or desktop runtime. The packaged descriptor
+inside the immutable release still names its preceding public release; the
+website's descriptor names the newly published bytes. Both products share the
+1.4.0 application implementation; their Git revisions differ for this publication
+metadata. Research stays opt-in and the five-player study remains pending.
+See `docs/reports/2026-10-01-research-workspace-release.md` for validation and
+remaining limitations. The dated entries below preserve earlier release states.
 
 Kingfisher runs in a browser and as a Mac application, and they are the
 same application architecture: `desktop/` packages a Next.js build from this

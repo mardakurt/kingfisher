@@ -135,10 +135,117 @@ or an Electron limitation. Firefox remains uncertified here. Logs:
 `tmp/session/release-140-browser-focused-matrix.log` and
 `tmp/session/release-140-webkit-final.log`.
 
-Validation is in progress. Results below must be recorded before they may be
-claimed: exact app/DMG identity;
-notarization and trust; packaged certification; actual VoiceOver/input-method
-observations and restored settings; staged/public Sparkle upgrade; public asset
-verification; live web/version claims. The five-player study stays pending by
-the user's decision, and there is no claim of Windows execution or a full
-Firefox/WebKit certification matrix.
+## Packaged candidate and final checks
+
+Candidate: **1.4.0, build 1007, stable, clean**, source
+`a88c130bd5a211608ef0c097a8b801adbd0b2b45`. The working tree was clean and
+HEAD equalled origin/master when it was packaged. Root/desktop versions and
+lockfiles agree. Developer ID signing, application notarization and stapling,
+packaged boot, DMG notarization/stapling and the combined trust gate passed.
+DMG submission: `8711e461-997b-4bed-9fa8-b992c49d8388`, Accepted.
+DMG: **192,321,952 bytes**, SHA-256
+`d1f669a9028c909f2e0053bc4b6fcacf3ebf636604ec13b74317050a2d18fd23`.
+The update ZIP and appcast were signed with the existing Sparkle key.
+
+The initial full desktop certification failed one of ten steps: Stormphrax's
+57 MB download exceeded the engine harness's five-minute install wait. It
+subsequently completed and the companion's real search checks passed. That run
+remains a failure; its result was not re-labelled. The unchanged complete repeat
+passed **10/10 steps**, including smoke 17/17, chrome 109/109, restart 7/7,
+engine fleet 25/25, suspend 14/14, seed-46 walk 200 actions, seed-7 fault walk
+120 actions, DMG verification, zero-skips and 3,917 unit tests. Both walks
+reported zero findings; the fault walk's two console errors were expected
+injected failures. Logs: `tmp/session/release-140-certify.log` and
+`tmp/session/release-140-certify-repeat.log`. No deadline or assertion was weakened.
+
+Native interface checks passed **14/14** against this candidate, including
+actual native menus, Unicode copy/paste/undo, unfinished form preservation,
+focus return, keyboard dividers and notation, narrow windows, light/dark mode,
+real full screen and the native update sheet. All eight 1440×900, 1280×720,
+1100×800 and full-screen light/dark screenshots were inspected. Their renderer
+captures do not show OS traffic lights; the separate chrome harness checks
+those. Log: `tmp/session/release-140-native-interface.log`.
+
+Five fresh profiles per exact app compared the public 1.3.3 baseline to this
+candidate at 1280×720 with the same annotated game and browser engine settings.
+Median startup: 880 → 832 ms; summed process-tree RSS: 1,389 → 1,384 MiB.
+Stopped-engine navigation p95: 15.88 → 15.86 ms; live-engine p95:
+17.05 → 15.12 ms. The <=100 ms response and <=10% startup/RSS regression
+criteria passed. These are local median timings, not a cold-cache promise;
+RSS sums shared pages rather than deduplicating them. Evidence:
+`~/Library/Caches/Kingfisher/release-1.4.0/evidence/performance.json`.
+
+Live production was tested in a fresh isolated browser. The bundled Starter
+completed its digest-checked first installation in about 18 seconds. The
+readiness answer named **206,451 games in this population**, and an actual
+Stockfish short search completed. Loaded production assets contained the full
+`a88c130` source identity and diagnostics reported 1.4.0. Log:
+`tmp/session/release-140-live-prepublish.log`. Initial diagnostic attempts that
+opened readiness before installation finished were retained separately and
+were not counted as passing checks.
+
+## Scope explicitly deferred or excluded
+
+The user requested faster completion. The additional 50-cycle packaged resource
+soak was interrupted during its first test and is **not passed**. The additional
+1,000-action walk, 300-action fault walk and 30-minute wall soak were not run.
+The standard full certification's 200/120-action walks and existing full browser
+resource tests passed; those do not stand in for the longer runs.
+
+VoiceOver testing was **cancelled by the user** and is excluded from this release.
+No VoiceOver observations are claimed. The attempted macOS input-method check
+selected Japanese Hiragana but automation entered Latin text; actual OS marked
+composition was not demonstrated. This is an unverified test, not an established
+application failure. Original U.S./Turkish Q keyboard selections and the original
+three dictation languages were restored, with VoiceOver off. macOS registered
+an extra hidden Japanese palette service; the entire service inventory is not
+claimed to be byte-identical. Automated composition guards passed, which is
+narrower evidence than installed-IME correctness.
+
+The five-player study remains pending by the user's decision. Research remains
+opt-in. Firefox is uncertified on this host, focused WebKit coverage does not
+establish a full matrix, and Windows execution is not claimed.
+
+## Publication and upgrade evidence
+
+Published **2026-10-01 20:28 Istanbul (17:28:23 UTC)** as GitHub `v1.4.0`.
+The tag pins the exact packaged source `a88c130`; six new assets were uploaded
+to a fresh draft and it was made public only after candidate checks. Existing
+release assets were not replaced. A public download of the DMG passed **61/61**
+byte, version/build/commit, layout, signature and notarization checks before
+publication metadata was pushed. Log: `tmp/session/release-140-public-bytes.log`.
+
+The previous-public-profile upgrade passed **7/7**: study, preferences,
+reference metadata and the same data directory survived 1.3.3 → 1.4.0.
+The real staged Sparkle update and the real **public-feed Sparkle update both
+passed**: native offer, download, signature validation, installation, relaunch
+into the test profile and retained study. The default profile log was unchanged
+and no descendant survived quit. Logs: `tmp/session/release-140-upgrade.log`,
+`tmp/session/release-140-sparkle-staging.log`,
+`tmp/session/release-140-sparkle-public.log`.
+
+A fresh quarantined DMG copy was mounted read-only and its app copied without
+removing quarantine. Gatekeeper accepted it as Notarized Developer ID. Opening
+it through LaunchServices produced the actual translocated Analysis window;
+its renderer reported the exact stable 1007/a88c130 identity. No first-open
+sheet was observed on this host and no developer/damaged-app warning appeared.
+The initial helper could not scope quit by its original path because macOS
+translocated the app; that helper exit is not called green. CUA observed and
+quit the exact translocated test app, and all four recorded scoped processes
+were gone. Evidence: `~/Library/Caches/Kingfisher/release-1.4.0/evidence/quarantined-launch.json`.
+
+Publication claims now select the public 1.4.0 bytes. These metadata/documentation
+changes do not alter the immutable package. The docs fixture audit exposed a
+pre-existing false positive in the new test: its generated screenshot filename
+was treated as an ignored input fixture after the test became tracked. Screenshot
+outputs now use Playwright's per-test `outputPath`; no assertion was removed,
+no product implementation changed and no visual baseline was regenerated.
+
+After publication metadata and the screenshot-output correction, focused Chrome
+readiness and landing checks passed **17/17 in 30.4 seconds**, zero retries.
+Typecheck, lint, formatting, production build, docs **359/359**, public links
+**22/22** and diff checks passed. The earlier full **448/448** browser result
+still covers the unchanged 1.4.0 application implementation; it was not repeated
+for version text, descriptors or test-output filenames under the user's expedited
+scope. Ephemeral helper scripts were archived outside the checkout; they were
+not included in the source or package.
