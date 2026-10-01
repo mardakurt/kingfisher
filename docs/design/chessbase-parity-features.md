@@ -169,6 +169,13 @@ Find Novelty and Novelty Annotation, as a fact about a named population.
   games. When it reaches the 2,000-game limit, the report calls these sample
   figures and does not call a sampled first game the first in the collection.
   No collection is copied and no new index or persistent cache is written.
+- A selected collection is a population of role `own`, which is reported and
+  compared against nothing. It was previously given a `reference`, `recent` or
+  `contrast` role by its position in the source list, so with a pack installed
+  the report printed "compared for disagreement" beside the reader's own games
+  and with none installed their archive became the reference population whose
+  frequencies define the opening's critical branches. Which of the three it
+  became was decided by an unrelated setting, and neither reading was true.
 - Large-file import is owned by the companion. It streams PGN, gzip, seekable
   zstd and ChessBase records, uses the application's parser/indexer bundle,
   writes only the destination collection, and records user-supplied licence

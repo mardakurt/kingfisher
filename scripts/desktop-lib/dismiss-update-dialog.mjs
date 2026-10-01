@@ -7,6 +7,7 @@ export async function dismissUpdateDialog(target, ui) {
   );
   let said = shown?.texts.join(' | ') ?? null;
   let clicked = false;
+  let vanished = false;
   let lastError = null;
   if (shown) {
     const dismiss = ['OK', 'Cancel Update', 'Close', 'Remind Me Later'].find((name) =>
@@ -48,7 +49,41 @@ export async function dismissUpdateDialog(target, ui) {
     }
   }
   if (shown && !clicked) {
-    throw lastError ?? new Error('Native update window could not be safely dismissed');
+    /*
+      Re-resolve before calling this a failure.
+
+      A window can leave between `findWindow` and `clickButton`, and the error
+      that follows — "Can't get window 1 of process 1 … Invalid index. (-1719)"
+      — describes the harness losing a race, not the application misbehaving.
+      Sparkle's own up-to-date alert closes itself, and a modal alert in a
+      full-screen Space can drop out of Accessibility's window list entirely.
+      The seeded action sequence is deterministic and the moment Sparkle
+      decides to put its window up is not, so this fires on a passing bundle.
+
+      What must not be forgiven is a window that is still there, and an
+      *offered* update must never be treated as dismissed on a vanished-window
+      reading: its default button installs the bundle under test, and a
+      dismissal this function could not perform is precisely the case a
+      finding exists to report.
+    */
+    const offered =
+      shown.buttons.includes('Install Update') ||
+      ui.windowsOf(target).some((window) => window.buttons.includes('Install Update'));
+    const remaining = ui
+      .windowsOf(target)
+      .filter((window) =>
+        window.buttons.some((button) =>
+          /^(OK|Install Update|Cancel Update|Remind Me Later|Close)$/.test(button),
+        ),
+      );
+    if (!offered && remaining.length === 0) {
+      // The dialog we were sent to dismiss is not there any more. That is the
+      // outcome, not a finding.
+      clicked = true;
+      vanished = true;
+    } else {
+      throw lastError ?? new Error('Native update window could not be safely dismissed');
+    }
   }
   if (
     clicked &&
@@ -62,5 +97,5 @@ export async function dismissUpdateDialog(target, ui) {
   ) {
     throw new Error('Native update dialog remains open after dismissal');
   }
-  return { verdict, said, shown: Boolean(shown) };
+  return { verdict, said, shown: Boolean(shown), vanished };
 }

@@ -69,8 +69,16 @@ import { buildOpeningReport, type PopulationHistory } from './opening-report';
  * order it happens to be installed in, because "recent" and "contrast" are
  * claims about the population and getting them the wrong way round would
  * reverse every growth figure in the report.
+ *
+ * A selected collection is `own` and nothing else, and that is stated rather
+ * than left to the fallback. Falling through to `index === 0` would make the
+ * reader's own archive the reference population whenever no pack was
+ * installed — quietly redefining the opening's branches as their own games —
+ * and `contrast` whenever one was, which asserts that their games disagree
+ * with theory. Both are decided by an unrelated setting, and neither is true.
  */
-function roleOf(id: string, index: number): BranchPopulation['role'] {
+function roleOf(id: string, index: number, own = false): BranchPopulation['role'] {
+  if (own) return 'own';
   if (id.includes('recent')) return 'recent';
   if (id.includes('online') || id.includes('lichess')) return 'contrast';
   return index === 0 ? 'reference' : 'contrast';
@@ -124,9 +132,18 @@ export function OpeningReportPanel() {
     () => references.sources.filter((source) => source.installed && source.enabled).slice(0, 3),
     [references.sources],
   );
-  const reportSources = [
-    ...sources,
-    ...(selectedCollection ? [{ id: selectedCollection.id, name: selectedCollection.name }] : []),
+  /*
+    The populations, and the selected collection with them.
+
+    `own` travels on the entry rather than being inferred from an id, so the
+    collection's role is the same whatever else is installed and whatever
+    order the rest arrive in.
+  */
+  const reportSources: readonly { id: string; name: string; own: boolean }[] = [
+    ...sources.map((source) => ({ ...source, own: false })),
+    ...(selectedCollection
+      ? [{ id: selectedCollection.id, name: selectedCollection.name, own: true }]
+      : []),
   ];
   const results = useExplorerSources(
     reportSources.map((source) => source.id),
@@ -139,7 +156,7 @@ export function OpeningReportPanel() {
     return {
       id: source.id,
       name: source.name,
-      role: roleOf(source.id, index),
+      role: roleOf(source.id, index, source.own),
       // Undefined while loading, null when the source could not answer. The
       // report distinguishes them and so must this.
       result: query?.isPending ? undefined : (query?.data ?? null),
@@ -153,17 +170,15 @@ export function OpeningReportPanel() {
     games and cannot supply per-game continuations; a selected SQLite
     collection can, and its plan sections must use that same collection.
 
+    The chosen report collection first, then the chosen Explorer source if it
+    can answer, and otherwise the first registered provider. The source is
+    reported in the section's own provenance line, because a machine can hold
+    several collections and only one of them supplied these games: "106 games
+    from Plans" is a citation, "106 games" is a rumour.
+
     The query is keyed on the position so that walking the board re-asks, and
     it returns an empty list rather than throwing when the companion is not
     there.
-  */
-  /*
-    The chosen report collection first, then the chosen Explorer source if it
-    can answer, and otherwise the first registered provider. The source is
-    reported in
-    the section's own provenance line, because a machine can hold several
-    collections and only one of them supplied these games: "106 games from
-    Plans" is a citation, "106 games" is a rumour.
   */
   const resolvedSource = useExplorerSource(explorerSourceId);
   const preferred = resolvedSource.kind === 'ready' ? resolvedSource.provider : undefined;

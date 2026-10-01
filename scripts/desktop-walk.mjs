@@ -812,7 +812,7 @@ class Walk {
           */
           const target = { pid: w.app.process().pid };
           await p.evaluate(() => window.kingfisher.showUpdateDialog());
-          const { verdict, said } = await dismissUpdateDialog(target, {
+          const { verdict, said, vanished } = await dismissUpdateDialog(target, {
             waitForWindow,
             findWindow,
             clickButton,
@@ -840,7 +840,13 @@ class Walk {
               detail: said ?? 'an update window stayed open',
             });
           }
-          return `verdict ${verdict?.status}${verdict?.reason ? ` — ${verdict.reason}` : ''}${said ? ` · "${said}"` : ' · no window within 45 s'}`;
+          /*
+            A window that left before the click landed is the outcome, not a
+            finding, but it is still worth printing: a run that never once hits
+            it and a run that hits it every time are different builds of
+            harness and the difference should be readable in the log.
+          */
+          return `verdict ${verdict?.status}${verdict?.reason ? ` — ${verdict.reason}` : ''}${said ? ` · "${said}"` : ' · no window within 45 s'}${vanished ? ' · window had already gone' : ''}`;
         },
       },
       {

@@ -11,6 +11,11 @@ real users notice.
   then open one of the earliest games shown. Common positions use a clearly
   labelled sample of at most 2,000 games. The report reads the existing index
   without making another copy of the collection.
+- **Your own collection is no longer graded against theory.** A selected
+  collection was given a report role by its position, so a player with a pack
+  installed saw their own games labelled "compared for disagreement", and a
+  player with none had their archive quietly become the reference that defines
+  the opening's branches. It is now reported and compared against nothing.
 
 ## 1.4.0 — 2026-10-01
 

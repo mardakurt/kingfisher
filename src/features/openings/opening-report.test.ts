@@ -19,6 +19,7 @@ import type { TheoryBookNode } from '@/theory/theory-book';
 import type { ResolvedBrief } from '@/theory/variation-briefs';
 
 import { buildOpeningReport, type OpeningReportInput } from './opening-report';
+import { criticalBranches } from '@/theory/critical-branches';
 
 const FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -352,5 +353,57 @@ describe('the plans, with their denominators', () => {
     )!;
     expect(scattered.entries).toEqual([]);
     expect(scattered.emptyReason).toBeTruthy();
+  });
+});
+
+/**
+ * A reader's own collection is not a population to be graded against theory.
+ *
+ * Phase 88's follow-through: selecting a collection put it into the report's
+ * comparative role space by *position*, so with one pack installed the report
+ * printed the word "contrast" beside the player's own games, and with none
+ * installed the player's archive silently became the reference population
+ * whose frequencies define the opening's critical branches. Both are decided
+ * by an unrelated setting and neither is true.
+ */
+describe('a selected collection is reported, never compared', () => {
+  const MINE = population('sqlite:mine', 'My archive', 'own', [
+    // Deliberately far from the reference: 40% a6 against 20% there.
+    move('Nf6', 'g8f6', 100),
+    move('a6', 'a7a6', 40),
+  ]);
+
+  it('never produces growth or divergence reasoning about the reader’s games', () => {
+    const branches = criticalBranches({
+      populations: [ELITE, MINE],
+      ...(full.repertoireMoves ? { repertoireMoves: full.repertoireMoves } : {}),
+    });
+    expect(branches.length).toBeGreaterThan(0);
+    const reasons = branches.flatMap((branch) => branch.reasons);
+    // The frequency is a fact and is kept.
+    expect(
+      reasons.some((reason) => reason.kind === 'frequency' && reason.source === 'My archive'),
+    ).toBe(true);
+    // Being different from a pack is not a finding about the reader.
+    expect(reasons.some((reason) => reason.kind === 'divergence')).toBe(false);
+    expect(reasons.some((reason) => reason.kind === 'growth')).toBe(false);
+  });
+
+  it('is never the population the report counts frequencies against', () => {
+    // `own` alone must not be enough for the report to name a reference.
+    expect(criticalBranches({ populations: [MINE] })).toEqual([]);
+    // And it does not displace a real reference.
+    const withReference = criticalBranches({ populations: [ELITE, MINE] });
+    const referenceNamed = withReference
+      .flatMap((branch) => branch.reasons)
+      .filter((reason) => reason.kind === 'frequency' && reason.source === 'Elite OTB');
+    expect(referenceNamed.length).toBeGreaterThan(0);
+  });
+
+  it('says what it is, in the one line that names its role', () => {
+    const populations = section({ ...full, populations: [ELITE, MINE] }, 'populations')!;
+    const mine = populations.entries.find((entry) => entry.primary.includes('My archive'))!;
+    expect(mine.criterion).toBe('your own games — reported, not compared');
+    expect(JSON.stringify(populations)).not.toContain('contrast');
   });
 });

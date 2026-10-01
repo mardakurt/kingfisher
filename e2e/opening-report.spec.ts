@@ -270,6 +270,22 @@ test('the plan sections count a real collection, and cite how many games they re
   await collectionFirst.getByRole('button', { name: 'Open A – B from Plan evidence E2E' }).click();
   await expect(page.getByText('A – B, Plan evidence 1 2020').first()).toBeVisible();
 
+  /*
+    And it is never graded against theory.
+
+    The collection entered the report's comparative role space by position, so
+    with a pack installed it was labelled "contrast" — asserting that the
+    player's own games disagree with a pack — and with none installed it became
+    the reference population that defines the opening's critical branches.
+    Which one it was depended on an unrelated setting.
+  */
+  const populations = report(page).locator('[data-report-section="populations"]');
+  await expect(populations).toContainText('Plan evidence E2E');
+  await expect(populations).toContainText('your own games — reported, not compared');
+  await expect(populations).not.toContainText('compared for disagreement');
+  // And no reason anywhere claims the archive diverges or grows against one.
+  await expect(report(page)).not.toContainText(/diverges|disagrees with/i);
+
   await page.goto('/databases');
   await page.locator(READY).waitFor();
   await page.getByRole('button', { name: /Plan evidence E2E/ }).click();

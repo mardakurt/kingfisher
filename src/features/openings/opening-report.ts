@@ -266,6 +266,21 @@ function branchesSection(
   };
 }
 
+/**
+ * What each role is doing, in the one line that says so beside its numbers.
+ *
+ * `own` is worded as what it is rather than as a bare token: a reader who
+ * chose this collection should not be shown the word "contrast" next to their
+ * own games, and the honest statement is that they are reported and not
+ * compared.
+ */
+const ROLE_CRITERION: Record<BranchPopulation['role'], string> = {
+  reference: 'reference population',
+  recent: 'compared for growth',
+  contrast: 'compared for disagreement',
+  own: 'your own games — reported, not compared',
+};
+
 function populationSection(input: OpeningReportInput): ReportSection {
   const populations = (input.populations ?? []).filter(
     (population) => population.result !== undefined,
@@ -300,7 +315,7 @@ function populationSection(input: OpeningReportInput): ReportSection {
               total > 0 ? top.games / total : 0,
             )})`
           : 'no moves recorded from this position',
-        criterion: population.role === 'reference' ? 'reference population' : population.role,
+        criterion: ROLE_CRITERION[population.role],
       };
     }),
     emptyReason: null,
@@ -602,14 +617,25 @@ function historySections(input: OpeningReportInput): ReportSection[] {
           secondary:
             game?.white && game.black
               ? `${game.white} – ${game.black}${game.result ? ` ${game.result}` : ''}${game.event ? `, ${game.event}` : ''}`
-              : `game ${first.id} (its score is not carried by this pack)`,
+              : `game ${first.id} (its score is not carried by ${population.sample ? 'this sample' : 'this pack'})`,
           criterion: sampled ? 'earliest in this sample' : 'earliest in this population',
         };
       }),
       emptyReason:
         history && history.first.length > 0
           ? null
-          : `${population.name} records no dated game at this position.`,
+          : /*
+              Three different absences, and the popularity section above already
+              distinguishes them. "This collection records no dated game here"
+              would be a claim about the whole collection when only the sample
+              was read — which is how a bounded read turns into a statement
+              about a million games.
+            */
+            population.sample
+            ? sampled
+              ? `${population.name} has no dated game in this sample at this position.`
+              : `${population.name} has no games at this position.`
+            : `${population.name} records no dated game at this position.`,
     });
   }
   return out;

@@ -93,8 +93,14 @@ export interface BranchPopulation {
    * `reference` is a population whose frequencies are reported as frequencies.
    * `recent` is compared against the reference to find what is growing.
    * `contrast` is compared against it to find where practice disagrees.
+   * `own` is the reader's own games. It is reported, and it is never compared:
+   * a claim that somebody's archive "diverges from theory" is either a
+   * tautology or an accusation, and a role that also let a personal database
+   * become the reference would quietly redefine the branches of the opening
+   * as whatever that person happens to have played. Which of the three it
+   * would be was decided by how many packs happened to be installed.
    */
-  readonly role: 'reference' | 'recent' | 'contrast';
+  readonly role: 'reference' | 'recent' | 'contrast' | 'own';
 }
 
 export interface BranchInput {
@@ -226,6 +232,13 @@ export function criticalBranches(
           share,
         });
       }
+      /*
+        `own` is reported above and compared below nothing. Its frequency is a
+        fact about the reader; a gap against the reference would only say that
+        the reader's games and a pack differ, which is the definition of a
+        reader's games. The two comparisons are named, not defaulted, so a role
+        added later is compared by nothing until somebody says so.
+      */
       if (referenceMove === undefined) continue;
       const gap = share - referenceShare;
       if (population.role === 'recent' && gap >= settings.growthThreshold) {
