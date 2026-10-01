@@ -24,6 +24,7 @@
  */
 
 import { useEffect } from 'react';
+import { handOffFocusedModal } from '@/components/ui/modal-handoff';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { CompanionClient } from '@/companion/client';
@@ -179,6 +180,7 @@ export function useDesktopIntegration(): void {
     const bridge = desktop();
     if (!bridge) return;
     return bridge.onShowSettings(() => {
+      if (!useUi.getState().settingsOpen && !handOffFocusedModal(document.activeElement)) return;
       useUi.getState().setSettingsOpen(true);
     });
   }, []);

@@ -6,6 +6,21 @@ real users notice.
 
 ## Unreleased (web)
 
+## 1.4.0 — 2026-10-01
+
+- **Research readiness is one action away.** Analysis shows the selected engine's
+  reported identity and a real short-search result, the reference population's
+  answer at the current position, and autosave/conflict/backup states. Choose an
+  installed offline population explicitly, or open the relevant settings.
+- **Backup checks no longer claim there is no backup before storage is read.**
+  The indicator says "Checking backups…" until it knows the result.
+- **Modal controls keep their keyboard navigation.** Arrow keys and single-key
+  workspace actions no longer edit the board behind a dialog when one of its
+  buttons has focus. Opening Settings, Save to study or the command palette
+  transfers focus from readiness to one dialog; dismissal returns to the invoking
+  control. Editing forms block a second modal to retain unfinished work.
+  Repeating Save to study preserves the title being edited.
+
 - Keep current notation in view through keyboard navigation with one move tab stop, and put the Explorer move table before optional departure analysis.
 
 - Engine startup names the selected engine instead of hard-coding Stockfish; unknown evaluation identity is no longer attributed to Stockfish.
@@ -26,8 +41,6 @@ real users notice.
 - **Chessboard and notation expose position context.** The board describes the
   side to move, move number, orientation and selected square; notation marks
   the current move for assistive technology.
-
-Phase numbers below this header will be moved into a dated `## <version>` section at the next release. Until then, they sit here in chronological order.
 
 - **Library filters keep the selected game in view.** On a desktop-width
   window, opening Filters places them over the game table while the selected

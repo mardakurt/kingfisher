@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { handOffFocusedModal } from '@/components/ui/modal-handoff';
 
 import { desktop } from '@/desktop/bridge';
 import { usePreferences } from '@/stores/preferences-store';
@@ -35,13 +36,32 @@ export const MENU_INTERFACE_COMMAND_IDS = Object.keys(INTERFACE_COMMANDS);
  */
 export function runMenuCommand(id: string, commands: readonly Command[]): boolean {
   const own = INTERFACE_COMMANDS[id];
+  const command = own ? undefined : commands.find((candidate) => candidate.id === id);
+  if (!own && !command) return false;
+  const ui = useUi.getState();
+  const alreadyOpen =
+    (id === 'palette' && ui.commandPaletteOpen) ||
+    ((id === 'shortcuts' || id === 'open-shortcuts') && ui.shortcutsOpen) ||
+    ((id === 'settings' || id.startsWith('settings-')) && ui.settingsOpen) ||
+    (id === 'save-to-study' && ui.saveToStudyOpen) ||
+    (id === 'import-pgn' && ui.importOpen);
+  const opensDialog =
+    ['palette', 'shortcuts', 'open-shortcuts', 'settings', 'save-to-study', 'import-pgn'].includes(
+      id,
+    ) || id.startsWith('settings-');
+  if (
+    opensDialog &&
+    !alreadyOpen &&
+    typeof document !== 'undefined' &&
+    !handOffFocusedModal(document.activeElement)
+  ) {
+    return true; // An undismissable (for example, busy saving) modal owns input.
+  }
   if (own) {
     own();
     return true;
   }
-  const command = commands.find((candidate) => candidate.id === id);
-  if (!command) return false;
-  void command.run();
+  void command!.run();
   return true;
 }
 

@@ -515,7 +515,9 @@ number (`git rev-list --count HEAD`), commit, dirty flag and channel, in
 them. `KINGFISHER_DESKTOP_CHANNEL` is `dev` (default), `preview` or
 `stable`; a publishable channel refuses a dirty tree.
 
-- **The current marketing version is 1.3.3. Bump it only for a real release.**
+- **The current source marketing version is 1.4.0, preparing a real release.**
+  The public Mac descriptor still names 1.3.3 until publication is verified.
+  Bump the marketing version only for a real release.
   Never create a version to freshen a filename.
 - **A trusted build is made by the pipeline, not by hand.** With the
   Developer ID identity in the login keychain and `APPLE_API_KEY`,

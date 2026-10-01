@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { Search } from '@/components/icons';
+import { MODAL_HANDOFF_EVENT } from '@/components/ui/modal-handoff';
 import { useWorkspaceSearch } from '@/features/persistence/queries';
 import { cn } from '@/lib/cn';
 import { getRepositories } from '@/persistence/repositories';
@@ -261,11 +262,18 @@ function PaletteDialog() {
   const selected = Math.min(index, Math.max(0, matches.length - 1));
 
   useEffect(() => {
+    const previousFocus =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     inputRef.current?.focus();
+    return () => previousFocus?.focus();
   }, []);
 
   useEffect(() => {
+    const dialog = dialogRef.current;
+    const handOff = () => setOpen(false);
+    dialog?.addEventListener(MODAL_HANDOFF_EVENT, handOff);
     const handleDialogKeys = (event: KeyboardEvent) => {
+      if (event.isComposing || event.keyCode === 229) return;
       if (event.key === 'Escape') {
         event.preventDefault();
         setOpen(false);
@@ -288,7 +296,10 @@ function PaletteDialog() {
       }
     };
     document.addEventListener('keydown', handleDialogKeys);
-    return () => document.removeEventListener('keydown', handleDialogKeys);
+    return () => {
+      dialog?.removeEventListener(MODAL_HANDOFF_EVENT, handOff);
+      document.removeEventListener('keydown', handleDialogKeys);
+    };
   }, [setOpen]);
 
   useEffect(() => {

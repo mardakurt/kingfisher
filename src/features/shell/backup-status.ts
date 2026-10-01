@@ -59,6 +59,16 @@ export function describeBackupStatus(input: {
   const days = daysSinceLastBackup(lastBackupAt, now);
   const open = ' — open the database settings';
 
+  if (status === 'checking') {
+    return {
+      label: 'Checking backups…',
+      tone: 'accent',
+      ariaLabel: 'Checking backups' + open,
+      title: 'Reading the backup store. The last successful backup is not known yet.',
+      lastBackupAt,
+    };
+  }
+
   if (status === 'running') {
     return {
       label: 'Backing up…',

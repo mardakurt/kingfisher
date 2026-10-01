@@ -23,6 +23,7 @@ import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 
 import { DocumentHeader } from './DocumentHeader';
+import { ResearchReadiness } from './ResearchReadiness';
 import { useCopyActions } from './useCopyActions';
 import { useEvaluationWriteBack } from './useEvaluationWriteBack';
 
@@ -178,6 +179,8 @@ export function Toolbar() {
       <IconButton label="Import PGN or FEN" onClick={() => setImportOpen(true)}>
         <Import />
       </IconButton>
+
+      <ResearchReadiness />
 
       <Menu
         sections={sections}

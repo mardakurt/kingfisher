@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { handOffFocusedModal } from '@/components/ui/modal-handoff';
 
 import { positionKey, START_FEN } from '@/chess/fen';
 import { useAnalysis } from '@/stores/analysis-store';
@@ -26,7 +27,8 @@ const isTypingTarget = (target: EventTarget | null): boolean => {
     target.tagName === 'INPUT' ||
     target.tagName === 'TEXTAREA' ||
     target.tagName === 'SELECT' ||
-    target.isContentEditable
+    target.isContentEditable ||
+    target.closest('[role="dialog"][aria-modal="true"]') !== null
   );
 };
 
@@ -86,6 +88,19 @@ export function useGlobalHotkeys(): void {
       if (typing && !WORKS_WHILE_TYPING.has(action)) return;
 
       const analysis = useAnalysis.getState();
+
+      if (
+        (action === 'palette' && !ui.commandPaletteOpen) ||
+        (action === 'settings' && !ui.settingsOpen) ||
+        (action === 'save-to-study' &&
+          analysis.document.kind !== 'study-chapter' &&
+          !ui.saveToStudyOpen)
+      ) {
+        if (!handOffFocusedModal(event.target)) {
+          event.preventDefault();
+          return;
+        }
+      }
 
       switch (action) {
         case 'palette':

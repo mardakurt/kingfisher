@@ -37,6 +37,7 @@ with [`AGENTS.md`](../AGENTS.md).
 - [`product/public-claims.md`](product/public-claims.md) — every public
   claim, where it appears, what backs it, and what must not be claimed.
   **Read before changing a landing-page or README sentence.**
+- [`release/1.4.0.md`](release/1.4.0.md) — Research workspace release in preparation.
 - [`release/1.3.3.md`](release/1.3.3.md) — release notes for the current
   release. [`release/1.3.2.md`](release/1.3.2.md), [`release/1.3.1.md`](release/1.3.1.md), [`release/1.3.0.md`](release/1.3.0.md), [`release/1.2.6.md`](release/1.2.6.md), [`release/1.2.5.md`](release/1.2.5.md), [`release/1.2.4.md`](release/1.2.4.md), [`release/1.2.3.md`](release/1.2.3.md), [`release/1.2.2.md`](release/1.2.2.md), [`release/1.2.1.md`](release/1.2.1.md), [`release/1.2.0.md`](release/1.2.0.md), [`release/1.1.9.md`](release/1.1.9.md), [`release/1.1.8.md`](release/1.1.8.md), [`release/1.1.7.md`](release/1.1.7.md), [`release/1.1.6.md`](release/1.1.6.md), [`release/1.1.5.md`](release/1.1.5.md), [`release/1.1.4.md`](release/1.1.4.md), [`release/1.1.3.md`](release/1.1.3.md),
   [`release/1.1.2.md`](release/1.1.2.md), [`release/1.1.1.md`](release/1.1.1.md),
@@ -272,6 +273,8 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ## Historical
 
+- [`reports/2026-10-01-research-workspace-release.md`](reports/2026-10-01-research-workspace-release.md)
+  — Research readiness implementation and the 1.4.0 release evidence ledger.
 - [`reports/2026-09-30-interface-acceptance.md`](reports/2026-09-30-interface-acceptance.md)
   — the populated Analysis prototype, keyboard and composition fixes, and its
   measured acceptance evidence.

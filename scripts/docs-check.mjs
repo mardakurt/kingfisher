@@ -525,8 +525,13 @@ if (descriptor) {
   mustExist(`docs/release/${version}.md`);
   mustMatch(
     'docs/product/public-claims.md',
-    new RegExp(`Kingfisher ${escaped} \\(web and macOS\\)`),
-    `public-claims names ${version} as the current public release`,
+    new RegExp(`current public macOS release is Kingfisher ${escaped}`),
+    `public-claims names ${version} as the current public macOS release`,
+  );
+  mustMatch(
+    'docs/product/public-claims.md',
+    new RegExp(`web source is Kingfisher ${pkgEscaped}`),
+    `public-claims names ${pkg.version} as the web source`,
   );
 }
 

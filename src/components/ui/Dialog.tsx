@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, type ReactNode } from 'react';
 
 import { Close } from '@/components/icons';
 import { cn } from '@/lib/cn';
+import { MODAL_HANDOFF_EVENT } from './modal-handoff';
 
 interface DialogProps {
   readonly open: boolean;
@@ -15,6 +16,8 @@ interface DialogProps {
   readonly width?: string;
   /** Replaces the body's padding and height limit, for a dialog that lays itself out. */
   readonly bodyClassName?: string;
+  /** Window commands may replace information; editing forms retain their local work. */
+  readonly allowCommandHandoff?: boolean;
 }
 
 export function Dialog({
@@ -26,6 +29,7 @@ export function Dialog({
   footer,
   width = 'w-[520px]',
   bodyClassName,
+  allowCommandHandoff = false,
 }: DialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -42,6 +46,9 @@ export function Dialog({
     const previousFocus =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
     closeRef.current?.focus();
+    const dialog = dialogRef.current;
+    const handOff = () => onCloseRef.current();
+    if (allowCommandHandoff) dialog?.addEventListener(MODAL_HANDOFF_EVENT, handOff);
 
     const handleKeyDown = (event: KeyboardEvent) => {
       // Candidate selection belongs to the input method while composing.
@@ -71,10 +78,11 @@ export function Dialog({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => {
+      dialog?.removeEventListener(MODAL_HANDOFF_EVENT, handOff);
       document.removeEventListener('keydown', handleKeyDown);
       previousFocus?.focus();
     };
-  }, [open]);
+  }, [open, allowCommandHandoff]);
 
   if (!open) return null;
 

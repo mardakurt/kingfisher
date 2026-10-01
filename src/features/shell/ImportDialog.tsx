@@ -230,7 +230,6 @@ function ImportForm() {
       </label>
       <textarea
         value={text}
-        autoFocus
         readOnly={busy || file !== null}
         onChange={(event) => {
           setText(event.target.value);

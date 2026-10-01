@@ -157,7 +157,6 @@ function SaveToStudyForm() {
         <label className="mt-3 block text-2xs text-tertiary">
           New study title
           <input
-            autoFocus
             value={newStudyTitle}
             onChange={(event) => setNewStudyTitle(event.target.value)}
             placeholder="Najdorf"

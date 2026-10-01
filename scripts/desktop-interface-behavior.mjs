@@ -192,6 +192,54 @@ try {
   check(
     'keyboard alone selects research, configures candidates, runs/stops the engine and resizes the dock',
   );
+  await page.getByRole('button', { name: 'Research readiness', exact: true }).click();
+  await launch.app.evaluate(({ Menu, BrowserWindow }) => {
+    const file = Menu.getApplicationMenu().items.find((item) => item.label === 'File');
+    const open = file.submenu.items.find((item) => item.label === 'Import Game or Position…');
+    if (!open?.enabled) throw new Error('Native Import command unavailable');
+    open.click(undefined, BrowserWindow.getAllWindows()[0]);
+  });
+  const importDialog = page.getByRole('dialog', { name: 'Import a game or position', exact: true });
+  await expect(importDialog).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(1);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: 'Research readiness', exact: true })).toBeFocused();
+  await expect(page.locator('[data-current="true"]')).toHaveText(selectedBeforeResize);
+  check('native File Import hands off readiness without overlapping dialogs or losing focus');
+  await page.getByRole('button', { name: 'Research readiness', exact: true }).click();
+  await launch.app.evaluate(({ Menu, BrowserWindow }) => {
+    const application = Menu.getApplicationMenu().items.find((item) =>
+      item.submenu?.items.some((child) => child.label === 'Settings…'),
+    );
+    const settings = application?.submenu.items.find((item) => item.label === 'Settings…');
+    if (!settings?.enabled) throw new Error('Native Settings command unavailable');
+    settings.click(undefined, BrowserWindow.getAllWindows()[0]);
+  });
+  await expect(page.getByRole('dialog', { name: 'Settings', exact: true })).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(1);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: 'Research readiness', exact: true })).toBeFocused();
+  check('native application Settings hands off readiness and restores its invoking control');
+  await page.keyboard.press('ControlOrMeta+s');
+  const saveDialog = page.getByRole('dialog', { name: 'Save to study', exact: true });
+  const studyTitle = saveDialog.getByRole('textbox', { name: 'New study title', exact: true });
+  await studyTitle.fill('Unfinished native-menu acceptance title');
+  for (const label of ['Settings…', 'Import Game or Position…']) {
+    await launch.app.evaluate(({ Menu, BrowserWindow }, label) => {
+      const parent = Menu.getApplicationMenu().items.find((item) =>
+        item.submenu?.items.some((child) => child.label === label),
+      );
+      const command = parent?.submenu.items.find((item) => item.label === label);
+      if (!command?.enabled) throw new Error(`Native command unavailable: ${label}`);
+      command.click(undefined, BrowserWindow.getAllWindows()[0]);
+    }, label);
+    await expect(saveDialog).toBeVisible();
+    await expect(studyTitle).toHaveValue('Unfinished native-menu acceptance title');
+    await expect(page.getByRole('dialog')).toHaveCount(1);
+  }
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: 'Research readiness', exact: true })).toBeFocused();
+  check('native Settings and Import preserve an unfinished Save to study form');
   await page
     .getByText('1 game added to your database.', { exact: true })
     .waitFor({ state: 'hidden', timeout: 12000 });

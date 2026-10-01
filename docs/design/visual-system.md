@@ -284,3 +284,10 @@ Menus, dialogs and panel transitions use short easing without bounce or
 spring. `prefers-reduced-motion` reduces all transitions and animations to an
 imperceptible duration. Icons supplement visible labels, and every icon-only
 button has an accessible name. Focus is always visible in both themes.
+
+A modal owns navigation and annotation keys even when a button has focus.
+Readiness and the command palette may hand focus to a window command's dialog;
+the previous surface closes before the destination captures its invoking control.
+Editing forms retain unfinished local work and block a second modal until they
+are saved or explicitly dismissed. Repeating an already open form does not reset
+its input. Input-method composition owns Escape and candidate-navigation keys.

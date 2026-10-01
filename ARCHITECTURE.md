@@ -2,6 +2,13 @@
 
 ## What this is optimising for
 
+Analysis's Research readiness dialog reads the existing engine slot, save/conflict
+state, backup indicator and Explorer provider/cache. A short search uses the
+same engine session at the current position and cannot replace an active search.
+Reference switching is explicit; readiness never merges populations. It mounts
+its query only while open, introduces no persistence schema, and keeps Research
+opt-in so existing workspace arrangements are preserved.
+
 A chess research environment that is still worth working in several years from
 now. Every structural decision here is made against that horizon rather than
 against the shortest path to a working demo. Concretely, that means three

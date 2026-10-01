@@ -12,6 +12,15 @@ describe('describeBackupStatus', () => {
     reminderDays = 7,
   ) => describeBackupStatus({ status, lastBackupAt, reminderDays, now: NOW });
 
+  it('does not claim an empty or healthy backup store while the read is pending', () => {
+    for (const timestamp of [null, daysAgo(1)]) {
+      const state = show('checking', timestamp);
+      expect(state.label).toBe('Checking backups…');
+      expect(state.label).not.toMatch(/No backup|today|ago/);
+      expect(state.tone).not.toBe('positive');
+    }
+  });
+
   /*
     The two states that used to have no arm. Both left `lastBackupAt` at its
     previous value, so the indicator fell through to the ordinary branch and

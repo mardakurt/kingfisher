@@ -16,9 +16,10 @@ import type { ExplorerFilters, ExplorerResult } from '@/database/types';
  * user moves on. Putting them in a client store would mean reimplementing all
  * of that badly.
  */
-export function useExplorer(sourceId: string, fen: Fen, filters: ExplorerFilters) {
+export function useExplorer(sourceId: string, fen: Fen, filters: ExplorerFilters, enabled = true) {
   const sourceVersion = databaseProviderById(sourceId)?.cacheVersion ?? 'live';
   return useQuery<ExplorerResult>({
+    enabled,
     queryKey: ['explorer', sourceId, sourceVersion, fen, filters],
     queryFn: async ({ signal }) => {
       const provider = databaseProviderById(sourceId);
