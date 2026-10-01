@@ -83,6 +83,17 @@ game count and the three columns _equals_ the reported figure.
 
 **Not fixed on the pack side, deliberately.** See §4.
 
+### And one gap closed rather than left
+
+The selected collection was component state, so every reload silently put the
+report back on reference packs and asked the player a question they had already
+answered — in the one workflow where they are walking an opening and
+repeatedly checking their own games. It is now a preference, with a
+`settings-contract.ts` row, and the three states are kept apart: `null` is
+"never decided" and follows the Explorer source, `''` is the decision "packs
+only". Collapsing those two would have made the Explorer default into a silent
+override of a choice the player had made.
+
 ### Two smaller ones, in the same files
 
 - a missing pioneer score said "its score is not carried by **this pack**",
@@ -178,10 +189,8 @@ exercised in the bundle rather than merely unit-tested.
    report.** The bounded read is proven correct against fixtures and against the
    row/postings layout differential, but no million-game collection was measured,
    and none was generated. The parity ledger row stays `partial`.
-3. **The selected report collection is not persisted.** It is component state,
-   so a reload or a route change returns the report to packs-only. It needs a
-   preference and a `settings-contract.ts` entry, which is the next piece of work
-   rather than a drive-by.
+3. **A reference pack rebuild** is the remaining work on defect 2's pack side,
+   and it is a data phase rather than a code change.
 4. **60 inert `focus:outline-none` utilities** remain, carried from Phase 88's
    judgement that removing them was more churn than the defect warranted.
 

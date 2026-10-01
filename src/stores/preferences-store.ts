@@ -84,6 +84,17 @@ export interface Preferences {
   engineHashMb: number;
   engineLimit: AnalysisLimit;
   explorerSourceId: string;
+  /**
+   * The collection the Opening Report reads its own history from.
+   *
+   * `null` means "follow the Explorer source", so a player who has already
+   * pointed the explorer at their archive gets the report reading it too
+   * without choosing twice. `''` is a decision — reference packs only — and is
+   * different from never having decided, which is why this is not `''` by
+   * default: a report that silently reverted to packs-only on every reload was
+   * re-asking a question the player had already answered.
+   */
+  reportCollectionId: string | null;
   explorerMinRating: number | null;
   explorerSinceYear: number | null;
   /**
@@ -206,6 +217,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   engineHashMb: 64,
   engineLimit: { kind: 'infinite' },
   explorerSourceId: 'kingfisher-starter',
+  reportCollectionId: null,
   explorerMinRating: null,
   explorerSinceYear: null,
   boardPriority: DEFAULT_BOARD_PRIORITY,

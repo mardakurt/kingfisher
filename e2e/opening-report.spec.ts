@@ -286,6 +286,30 @@ test('the plan sections count a real collection, and cite how many games they re
   // And no reason anywhere claims the archive diverges or grows against one.
   await expect(report(page)).not.toContainText(/diverges|disagrees with/i);
 
+  /*
+    And the choice survives a reload.
+
+    It was component state, so every reload silently put the report back on
+    reference packs and asked the player the same question again — in the one
+    workflow where they are walking an opening and repeatedly checking their own
+    games. "Packs only" is a decision and is kept as one, separately from never
+    having decided.
+  */
+  const collectionSelect = report(page).getByLabel('Report collection');
+  await expect(collectionSelect).toHaveValue(/sqlite:/);
+  await page.reload();
+  await page.locator(READY).waitFor();
+  await selectTool(page, page.locator('[data-workspace-dock]').first(), 'Opening Report');
+  await report(page).waitFor();
+  await expect(report(page).getByLabel('Report collection')).toHaveValue(/sqlite:/);
+  // And an explicit "packs only" is honoured, and remembered as that.
+  await report(page).getByLabel('Report collection').selectOption('');
+  await page.reload();
+  await page.locator(READY).waitFor();
+  await selectTool(page, page.locator('[data-workspace-dock]').first(), 'Opening Report');
+  await report(page).waitFor();
+  await expect(report(page).getByLabel('Report collection')).toHaveValue('');
+
   await page.goto('/databases');
   await page.locator(READY).waitFor();
   await page.getByRole('button', { name: /Plan evidence E2E/ }).click();

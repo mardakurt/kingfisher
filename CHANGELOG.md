@@ -16,6 +16,12 @@ real users notice.
   installed saw their own games labelled "compared for disagreement", and a
   player with none had their archive quietly become the reference that defines
   the opening's branches. It is now reported and compared against nothing.
+- **The Opening Report remembers which collection you chose.** The choice was
+  component state, so every reload quietly put the report back on reference
+  packs and asked again — during the walk where you are checking your own games
+  most. "Reference packs only" is now a decision you can make, and is kept
+  apart from never having decided.
+
 - **A game with no recorded result is no longer left unexplained.** A
   collection's results-by-Elo-class line could show fewer outcomes than games
   without saying why. The count of games in no outcome column is now reported

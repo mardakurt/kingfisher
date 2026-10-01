@@ -118,9 +118,17 @@ export function OpeningReportPanel() {
   const collections = providers.filter(
     (provider) => provider.id.startsWith('sqlite:') && Boolean(provider.positionHistory),
   );
-  const [collectionChoice, setCollectionChoice] = useState<string | null>(null);
+  /*
+    `null` is "never decided", and it follows the Explorer source: a player who
+    has already pointed the explorer at their archive should not have to answer
+    the same question a second time. `''` is the decision "packs only", and it
+    is not the same as never having decided — which is why the choice is
+    persisted rather than held in component state that a reload discards.
+  */
+  const reportCollectionId = usePreferences((state) => state.reportCollectionId);
+  const setReportCollectionId = usePreferences((state) => state.set);
   const selectedCollectionId =
-    collectionChoice ?? (explorerSourceId.startsWith('sqlite:') ? explorerSourceId : '');
+    reportCollectionId ?? (explorerSourceId.startsWith('sqlite:') ? explorerSourceId : '');
   const selectedCollection = collections.find((provider) => provider.id === selectedCollectionId);
 
   /*
@@ -408,7 +416,9 @@ export function OpeningReportPanel() {
               <select
                 aria-label="Report collection"
                 value={selectedCollection?.id ?? ''}
-                onChange={(event) => setCollectionChoice(event.target.value)}
+                onChange={(event) =>
+                  setReportCollectionId('reportCollectionId', event.target.value)
+                }
                 className="mt-1 block w-full rounded border border-line bg-surface-inset p-2"
               >
                 <option value="">Reference packs only</option>
