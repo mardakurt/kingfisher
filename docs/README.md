@@ -283,6 +283,14 @@ with [`AGENTS.md`](../AGENTS.md).
 - [`reports/2026-09-29-interface-continuation.md`](reports/2026-09-29-interface-continuation.md)
   — the remaining shell-pass gates, the ChessBase-reference comparison, the
   shared-interface improvements, and the reasons for keeping Electron.
+- [`reports/phase-89-handover.md`](reports/phase-89-handover.md) — the
+  collection-backed Opening Report audited, and two false claims found in it: a
+  player's own archive taking the role that decides whether the report calls it
+  "compared for disagreement" or makes it the reference that defines the
+  opening's branches, and outcome columns that did not add up to the games
+  behind them. Also Phase 88's recorded walk-harness defect, closed, and the
+  packaged application re-verified at build 1012 — with the open pack-side
+  `*`-as-Black-win defect that correcting would cost a full pack rebuild.
 - [`reports/phase-88-shell-pass.md`](reports/phase-88-shell-pass.md) — the
   shell and workspace bug-fix pass: the settings-contract guard that passed
   four mis-declared consumers, a Tailwind class that was completed by
