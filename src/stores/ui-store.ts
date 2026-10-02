@@ -178,7 +178,19 @@ export const useUi = create<UiState>((set) => ({
 
   notify: (notice) => {
     const id = `notice-${++noticeId}`;
-    set((state) => ({ notices: [...state.notices, { ...notice, id }] }));
+    set((state) => ({
+      // Transient notices are not an error log. Keep the latest distinct
+      // messages readable instead of stacking repeated import failures.
+      notices: [
+        ...state.notices.filter(
+          (item) =>
+            item.tone !== notice.tone ||
+            item.message !== notice.message ||
+            item.detail !== notice.detail,
+        ),
+        { ...notice, id },
+      ].slice(-4),
+    }));
     // Errors stay until dismissed; confirmations get out of the way.
     if (notice.tone !== 'error') {
       setTimeout(() => {

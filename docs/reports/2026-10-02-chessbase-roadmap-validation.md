@@ -36,7 +36,10 @@ with a supplied SHA-256 produced a 618,496-byte compact collection, with 14
 annotated and dated games, zero evaluated games and zero games with both ratings.
 Eight independently replayed position checks and three line-index equivalence
 checks matched. This is small-corpus correctness evidence, not 10M certification.
-Evidence: `/tmp/kingfisher-roadmap-real-book/result.json` on this machine.
+Query/oracle evidence: `/tmp/kingfisher-roadmap-real-book/result.json` and
+`/tmp/kingfisher-roadmap-real-book-final.log` on this machine. The JSON was
+replaced by a query-only run and its import `stats` field is null; coverage
+was recorded during import and retained in the collection ledger.
 
 The invalid cached-outcome regression was mutation checked: removing the reducer
 rejection made the test fail; restoring it passed. The scanner already rejected
@@ -66,7 +69,8 @@ remain dated and do not certify this implementation.
 
 A newly licensed corpus of thousands of expert annotations, overnight remote-worker
 recovery, independent ChessBase execution, strong-player timing, Windows runtime,
-new packaged Mac certification and public 1.4.1 publication remain open.
+public 1.4.1 publication remain open. The local stable candidate passed packaged
+certification; extended release checks are recorded below.
 
 ## Follow-up gate results
 
@@ -107,17 +111,117 @@ new packaged Mac certification and public 1.4.1 publication remain open.
 - `npm run public:check`: all 22 links responded successfully on the final run.
   The GitHub install-guide URL had previously returned HTTP 503; no source URL
   was changed to hide that transient external failure.
-- Deployment status reached the API using the existing release environment.
-  Before pushing, it describes GitHub master `2857625` / deployment `7dafaa0`,
-  not the local implementation. Its “Local master HEAD” label reads the remote
-  ref in this ahead-of-remote state and is not proof these changes are live.
-- Mac release preflight found signing and notarization prerequisites but refused
-  the dirty, ahead-of-origin checkout. The installed `/Applications/Kingfisher.app`
-  reports 1.4.0 build 1007 and is available as a real previous-release baseline
-  for isolated upgrade checks. The public descriptor remains unchanged.
+- After the implementation commits were pushed, deployment status reported
+  `up to date (b9da957)`. GitHub CI run 37040517428 passed quality and build.
+- The initial dirty/ahead-of-origin Mac preflight correctly refused packaging.
+  After commit and push, clean/synchronized preflight was GREEN; the stable
+  candidate's trust and packaged results are detailed below. Installed
+  `/Applications/Kingfisher.app` remains 1.4.0 build 1007 and was used only
+  as the previous-release binary with isolated acceptance profiles.
 
 Job discovery retains up to twenty recent finished jobs, serializes file imports,
 and distinguishes a renderer reload from a companion process restart. Connection
 failures retain the last progress and show a reconnect error. Playout orchestration
 now lives in `src/stores/playout-store.ts`; the rendering feature imports that
 store, keeping engine/session and repository wiring below features.
+
+## Publication and packaged evidence
+
+The five roadmap increments were committed in order, ending with version 1.4.1
+in `b9da957` (build 1024), preserving the nine prior local commits. The source
+was pushed to master. GitHub CI run 37040517428 passed quality and production
+build. Deployment status reported `up to date (b9da957)`. A real fresh Chrome
+profile on the canonical site generated a Starter survey, saved a study
+question and retained it on reload, with no page errors. Initial source
+installation exceeded the first script's 30-second click timeout; waiting for
+source readiness completed the workflow. Visual inspection followed all 32
+piece images loading, rather than counting an early screenshot as complete.
+
+The clean, synchronized Mac release preflight was GREEN. The stable package
+was built in `/tmp/kingfisher-release-1.4.1-1024`; Apple accepted and stapled the
+application, its fresh packaged boot passed, and Apple separately accepted
+and stapled the DMG (submission `f1ceffd5-065b-4299-9f80-92f5d955b444`).
+The trust gate was GREEN: 29 code objects passed signature checks, audited
+entitlements and Hardened Runtime checks passed, both tickets validated and
+Gatekeeper accepted the app and DMG. These assessments alone do not certify a
+quarantined GUI launch. Sparkle's signed appcast was generated for build 1024.
+
+The actual native folder and file panels were operated on an isolated candidate
+profile. A synthetic 50,000-record archive deduplicated to one retained game;
+the dialog closed during import, the renderer reloaded, the recent job was
+recovered, and its terminal `done` status was asserted. The selected folder
+held 573,496 bytes across database/journal files before cleanup. This is picker,
+placement, deduplication and background recovery evidence, not real-scale corpus
+certification. Fixture files and isolated profile were removed. The first native
+run was deliberately stopped to canonicalize macOS `/var` versus `/private/var`
+path aliases in the harness. UI app-name resolution initially opened the installed
+1.4.0 application; it was closed without edits, and subsequent UI selection used
+the candidate's full path.
+
+Full `desktop:certify` passed all ten gates on this same candidate: smoke 17/17,
+window chrome 109/109, restart 7/7, engine fleet 25/25, suspend 14/14, 200-action
+walk with no findings or console errors, 120-action fault walk with no findings
+and two console errors during injected failures, DMG verification, zero-skip
+scan, and 371 test files / 3,961 unit/integration tests (53 seconds).
+`annotated:check` replayed all 14 committed Capablanca games with none refused.
+
+The push reported dependency alerts. `npm audit --omit=dev` reports one critical
+Next.js advisory in pinned 16.3.5, [GHSA-vcvr-r3jv-pc5j](https://github.com/advisories/GHSA-vcvr-r3jv-pc5j).
+The upstream advisory requires attacker-controlled SVG content passed to Node
+`next/og` ImageResponse. The source search found no `next/og` or `ImageResponse`
+use. The dependency was not upgraded in this roadmap increment, and the audit
+is not reported as green.
+
+## Extended packaged checks in progress
+
+The stable build 1024 completed the required seed 46 walk with 1,000 actions
+in 515 seconds, no findings or console errors, and zero descendant survivors
+on quit. Renderer RSS increased from 201 to 661 MB; this observation is not
+a claim of flat memory usage.
+
+The first seed 7 / 300-action fault run exited before completion after the
+second web-server kill. Its shell log records a quit request during recovery.
+A fresh 60-action reproduction passed that sequence with no findings and
+zero process survivors. The cause of the initial quit is not established;
+the failed run is retained. A full repeat passed 300 actions in 160 seconds,
+with no findings, two console errors during injected failures, and zero
+descendant survivors on quit. It does not retroactively pass the first run. The subsequent
+30-minute soak was interrupted and has no completed result. Neither is
+counted as a passing extended gate.
+
+The packaged 52-cycle resource pass (two warm-ups plus 50 measured cycles)
+passed its worker, channel, EventSource, interval, listener and observer
+bounds and console-error assertions. End counts: one worker, one observer,
+15 window listeners, one interval; estimated JS heap 148.5 MB. This is
+resource-count evidence, not a guarantee of flat RSS. The repeated research
+chain passed 13 passes with review prompts steady at five, one worker, three
+observers, 16 listeners and two intervals. All three packaged suite tests
+passed in 17.3 minutes. The production-only cache-injection case does not
+assert synthetic cache eviction; the navigation/resource passes do run.
+
+All three real optional reference packs installed from their published
+manifests (Elite OTB 407,538, Recent Theory 44,200, High-Rated Online 305,169).
+After restart, each answered offline (338, 367 and 98 ms including UI
+selection), and Theory Book return navigation passed. Populations stayed
+separate. The temporary pack profile was removed. The real 1.4.0 build 1007
+to 1.4.1 build 1024 upgrade passed 7/7 checks, preserving authored study,
+preferences, reference metadata and the isolated profile identity.
+
+## Release correction found by the long soak
+
+Build 1024's seed 19447 soak found persistent error notices covering the board
+and intercepting moves (steps 479, 482 and 484). This is a release-blocking
+interaction defect. The run was stopped after the finding and is not green.
+The concurrent full browser run was stopped before changing production code:
+348 passed, one interrupted, 104 not run (22.5 minutes), not a completed gate.
+Uploaded 1.4.1 artifacts remain in a draft release, outside the public feed.
+
+The correction collapses equivalent notices, retains the four most recent
+distinct messages and allows pointer events through notice text, with Dismiss
+still interactive. Two store regressions failed against the original behavior
+and passed after the change. A real-browser regression forces the observed
+overlap independently of viewport/font differences, with only the clipboard
+boundary denied: the original timed out because notice text intercepted the
+board click, while the correction plays e2-e4 and then dismisses the notice
+(3.1 seconds). The package must be rebuilt; prior build 1024 results do not
+certify the correction. Marketing version remains 1.4.1, still unpublished.

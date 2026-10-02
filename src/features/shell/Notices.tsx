@@ -18,7 +18,7 @@ export function Notices() {
           key={notice.id}
           role="status"
           className={cn(
-            'pointer-events-auto flex items-start gap-2 rounded-[var(--radius-panel)] border bg-surface-2 px-3 py-2 shadow-[var(--shadow-popover)] animate-rise',
+            'pointer-events-none flex items-start gap-2 rounded-[var(--radius-panel)] border bg-surface-2 px-3 py-2 shadow-[var(--shadow-popover)] animate-rise',
             notice.tone === 'error' ? 'border-negative/45' : 'border-line',
           )}
         >
@@ -35,7 +35,7 @@ export function Notices() {
           <button
             type="button"
             onClick={() => dismiss(notice.id)}
-            className="mt-0.5 text-tertiary transition-colors hover:text-primary"
+            className="pointer-events-auto mt-0.5 text-tertiary transition-colors hover:text-primary"
             aria-label="Dismiss"
           >
             <Close className="h-3.5 w-3.5" />

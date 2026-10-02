@@ -6,6 +6,9 @@ real users notice.
 
 ## 1.4.1 — 2026-10-02
 
+- Repeated error notices collapse into a bounded stack. Notice text permits
+  board clicks while Dismiss remains interactive.
+
 - Preparation survey answers save as portable study questions with dated evidence.
 - Large imports support external storage, compact indexes, rating filters,
   checksums, disk safeguards, annotation coverage and incremental rollback.
