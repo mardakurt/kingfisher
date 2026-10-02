@@ -358,3 +358,14 @@ describe('header-first rejection', () => {
     }
   });
 });
+
+it('refuses unfinished results in a cached explorer row instead of counting a Black win', async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'kf-outcome-cache-'));
+  try {
+    const file = path.join(dir, 'rows.txt');
+    writeFileSync(file, 'position\te4\te2e4\t*\t2400\t2026\t0\tgame-id\t2400\t1\n');
+    await expect(reduceExplorer(file, { maxPly: 4 }, 2025, {})).rejects.toThrow('Invalid outcome');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

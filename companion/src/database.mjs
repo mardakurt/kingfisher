@@ -16,6 +16,7 @@
  * interface can sit on top of either.
  */
 
+import { randomUUID } from 'node:crypto';
 import { availableParallelism } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
 import { Worker } from 'node:worker_threads';
@@ -109,6 +110,17 @@ CREATE TABLE IF NOT EXISTS collection_sources (
   imported_at   INTEGER NOT NULL,
   stopped       INTEGER NOT NULL DEFAULT 0
 );
+
+CREATE TABLE IF NOT EXISTS collection_updates (
+  id TEXT PRIMARY KEY, metadata TEXT NOT NULL, status TEXT NOT NULL, created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS collection_update_games (
+  update_id TEXT NOT NULL REFERENCES collection_updates(id),
+  game_id INTEGER NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+  PRIMARY KEY(update_id, game_id)
+);
+
+CREATE INDEX IF NOT EXISTS collection_update_game_id ON collection_update_games(game_id);
 
 CREATE TABLE IF NOT EXISTS game_lines (
   game_id       INTEGER PRIMARY KEY REFERENCES games(id) ON DELETE CASCADE,
@@ -392,6 +404,18 @@ export class GameDatabase {
    * `preparePgnBatch`), needed by a posting-layout collection to derive SAN
    * and, for export, the position rows it does not store.
    */
+  setStorageLimit(bytes) {
+    if (!Number.isSafeInteger(bytes) || bytes < 1024 ** 2)
+      throw new Error('Invalid collection storage limit.');
+    const pageSize = this.#db.prepare('PRAGMA page_size').get().page_size;
+    const pages = Math.floor(bytes / pageSize);
+    this.#db.exec(`PRAGMA max_page_count = ${pages}`);
+  }
+
+  get file() {
+    return this.#file;
+  }
+
   constructor(file, options = {}) {
     this.#file = file;
     this.#db = new DatabaseSync(file);
@@ -1005,6 +1029,57 @@ export class GameDatabase {
     this.checkpoint();
   }
 
+  beginUpdate(metadata) {
+    const id = randomUUID();
+    this.#db
+      .prepare('INSERT INTO collection_updates VALUES (?,?,?,?)')
+      .run(id, JSON.stringify(metadata), 'running', Date.now());
+    return id;
+  }
+
+  finishUpdate(id, metadata, status) {
+    this.#db
+      .prepare('UPDATE collection_updates SET metadata = ?, status = ? WHERE id = ?')
+      .run(JSON.stringify(metadata), status, id);
+  }
+
+  updates() {
+    return this.#db
+      .prepare(
+        `SELECT u.id, u.metadata, u.status, u.created_at AS createdAt,
+      (SELECT COUNT(*) FROM collection_update_games g WHERE g.update_id = u.id) AS retainedGames
+      FROM collection_updates u ORDER BY u.created_at DESC`,
+      )
+      .all()
+      .map((row) => ({ ...row, metadata: JSON.parse(row.metadata) }));
+  }
+
+  rollbackUpdate(id) {
+    const update = this.#db.prepare('SELECT id FROM collection_updates WHERE id = ?').get(id);
+    if (!update) throw new Error('Unknown update batch.');
+    let deleted = 0;
+    for (;;) {
+      const rows = this.#db
+        .prepare(
+          `SELECT g.fingerprint FROM games g JOIN collection_update_games u ON g.id = u.game_id WHERE u.update_id = ? LIMIT 5000`,
+        )
+        .all(id);
+      if (!rows.length) break;
+      deleted += this.deleteGamesByFingerprint(
+        rows.map((row) => row.fingerprint),
+        { rebuild: false },
+      ).deleted;
+    }
+    if (deleted) {
+      this.rebuildPlayers();
+      this.rebuildSearchIndex();
+    }
+    this.#db
+      .prepare('UPDATE collection_updates SET status = ? WHERE id = ?')
+      .run('rolled-back', id);
+    return { deleted };
+  }
+
   /** Phase 85: record where imported games came from. */
   recordSource(source) {
     this.#db
@@ -1071,7 +1146,7 @@ export class GameDatabase {
    * missing. Duplicates are decided by the same fingerprint the browser
    * computes, so a game imported through either path is the same game.
    */
-  insertGames(batch) {
+  insertGames(batch, updateId = null) {
     const insertGame = this.#db.prepare(`
       INSERT OR IGNORE INTO games (
         fingerprint, white, black, white_key, black_key, result, date, year,
@@ -1179,6 +1254,10 @@ export class GameDatabase {
           game.classifiedWith ?? null,
         );
         const id = findId.get(game.fingerprint).id;
+        if (updateId)
+          this.#db
+            .prepare('INSERT INTO collection_update_games(update_id, game_id) VALUES (?,?)')
+            .run(updateId, id);
         insertContent.run(id, entry.pgn ?? '');
         const line = lineBytes(entry.line);
         if (line) insertLine.run(id, line);
@@ -1297,7 +1376,7 @@ export class GameDatabase {
    * collection. This collects the affected position keys first, so the rebuild
    * reads only the positions the deletion could possibly have changed.
    */
-  deleteGamesByFingerprint(fingerprints) {
+  deleteGamesByFingerprint(fingerprints, { rebuild = true } = {}) {
     const remove = this.#db.prepare('DELETE FROM games WHERE fingerprint = ?');
     const collect = this.#db.prepare(
       `INSERT OR IGNORE INTO affected_positions (position_key)
@@ -1334,7 +1413,7 @@ export class GameDatabase {
       game count no game supports — a wrong answer that survives until
       somebody notices, which is worse than a slower delete.
     */
-    if (deleted > 0) {
+    if (deleted > 0 && rebuild) {
       this.rebuildPlayers();
       this.rebuildSearchIndex();
     }

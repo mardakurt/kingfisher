@@ -10,8 +10,8 @@
  * name and size.
  */
 
-import { useEffect, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { CompanionFileImport } from '@/companion/client';
 import { companionClient } from '@/companion/session';
@@ -31,8 +31,31 @@ export function LargeFileImportDialog({ onClose }: { readonly onClose: () => voi
   const [path, setPath] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [licence, setLicence] = useState('');
-  const [job, setJob] = useState<{ id: string; key: string } | null>(null);
+  const [directory, setDirectory] = useState<string | undefined>();
+  const [maxGiB, setMaxGiB] = useState(10);
+  const [minRating, setMinRating] = useState(0);
+  const [excludeBots, setExcludeBots] = useState(true);
+  const [sha256, setSha256] = useState('');
+  const [target, setTarget] = useState('');
+  const [keepPositions, setKeepPositions] = useState(true);
+  const [selectedJob, setJob] = useState<{ id: string; key: string } | null>(null);
   const [status, setStatus] = useState<CompanionFileImport | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+
+  const imports = useQuery({
+    queryKey: ['companion-file-imports'],
+    retry: false,
+    queryFn: async () => {
+      const client = companionClient();
+      if (!client) return [];
+      return (await client.importFileJobs()).jobs;
+    },
+  });
+  const job = useMemo(() => {
+    if (selectedJob) return selectedJob;
+    const active = imports.data?.find((entry) => !FINISHED.has(entry.status.phase));
+    return active ? { id: active.id, key: active.key } : null;
+  }, [imports.data, selectedJob]);
 
   useEffect(() => {
     if (!job) return;
@@ -44,13 +67,22 @@ export function LargeFileImportDialog({ onClose }: { readonly onClose: () => voi
         const next = await client.importFileStatus(job.id);
         if (!live) return;
         setStatus(next);
+        setConnectionError(null);
         if (FINISHED.has(next.phase)) {
           void queryClient.invalidateQueries({ queryKey: ['collections'] });
           void queryClient.invalidateQueries({ queryKey: ['companion'] });
+          void queryClient.invalidateQueries({ queryKey: ['collection-sources'] });
+          void queryClient.invalidateQueries({ queryKey: ['collection-updates'] });
+          void queryClient.invalidateQueries({ queryKey: ['collection-games'] });
+          void queryClient.invalidateQueries({ queryKey: ['explorer'] });
           return;
         }
-      } catch {
-        /* The next poll asks again. */
+      } catch (error) {
+        if (live)
+          setConnectionError(
+            error instanceof Error ? error.message : 'The companion did not answer.',
+          );
+        /* Keep the last evidence and retry while the companion reconnects. */
       }
       if (live) timer = window.setTimeout(() => void poll(), 1_000);
     };
@@ -81,9 +113,16 @@ export function LargeFileImportDialog({ onClose }: { readonly onClose: () => voi
     const client = companionClient();
     if (!client || !path) return;
     try {
-      const created = await client.createDatabase(name.trim() || 'Imported');
+      const created = target
+        ? { key: target }
+        : await client.createDatabase(name.trim() || 'Imported', 'postings', directory);
       const started = await client.importFile(created.key, path, {
         ...(licence.trim() ? { licence: licence.trim() } : {}),
+        ...(sha256.trim() ? { sha256: sha256.trim() } : {}),
+        maxBytes: Math.floor(maxGiB * 1024 ** 3),
+        keepPositions,
+        minRating,
+        excludeBots,
       });
       setJob({ id: started.jobId, key: created.key });
     } catch (error) {
@@ -100,27 +139,46 @@ export function LargeFileImportDialog({ onClose }: { readonly onClose: () => voi
   return (
     <Dialog
       open
-      onClose={running ? () => undefined : onClose}
+      onClose={onClose}
       title="Import a large file"
-      description="For millions of games: the companion reads the file from disk, streams it, and never writes to it. The games go into a new collection."
+      description="For millions of games: the companion reads the file from disk, streams it, and never writes to it. Games go into the chosen collection. You can close this dialog while the companion keeps importing."
       width="w-[560px]"
       footer={
         <>
           {running ? (
-            <Button
-              onClick={() => {
-                if (job) void companionClient()?.cancelImportFile(job.id);
-              }}
-            >
-              Stop
-            </Button>
+            <>
+              <Button onClick={onClose}>Keep importing in background</Button>
+              <Button
+                onClick={() => {
+                  if (job)
+                    void companionClient()
+                      ?.cancelImportFile(job.id)
+                      .catch((error: unknown) =>
+                        setConnectionError(
+                          error instanceof Error ? error.message : 'The companion did not answer.',
+                        ),
+                      );
+                }}
+              >
+                Stop
+              </Button>
+            </>
           ) : (
             <Button onClick={onClose}>Close</Button>
           )}
           {!job ? (
             <Button
               variant="accent"
-              disabled={!path || !companionClient()}
+              disabled={
+                !path ||
+                !companionClient() ||
+                !Number.isFinite(maxGiB) ||
+                !Number.isInteger(minRating) ||
+                minRating < 0 ||
+                minRating > 4000 ||
+                maxGiB < 1 ||
+                (!!sha256.trim() && !/^[a-f0-9]{64}$/i.test(sha256.trim()))
+              }
               onClick={() => void start()}
             >
               Import
@@ -130,6 +188,38 @@ export function LargeFileImportDialog({ onClose }: { readonly onClose: () => voi
       }
     >
       <div className="space-y-3 text-sm" data-large-import>
+        {imports.data?.length ? (
+          <label className="block">
+            Recent companion imports
+            <select
+              aria-label="Recent companion imports"
+              value={job?.id ?? ''}
+              onChange={(event) => {
+                const selected = imports.data?.find((entry) => entry.id === event.target.value);
+                setJob(selected ? { id: selected.id, key: selected.key } : null);
+                setStatus(selected?.status ?? null);
+              }}
+            >
+              <option value="">New import</option>
+              {imports.data.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {(entry.status.file ?? 'Archive').split(/[\\/]/).pop()} · {entry.status.phase}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+        {imports.error ? <p role="alert">{imports.error.message}</p> : null}
+        {connectionError ? (
+          <p role="alert">
+            {connectionError} Last recorded progress is retained; reconnect the companion.
+          </p>
+        ) : null}
+        <p className="text-secondary">
+          Reopen this dialog after navigation or reload to recover a running import. The companion
+          must still be running. After a companion restart, reimport the source to retain committed
+          games through deduplication.
+        </p>
         {!bridge ? (
           <p className="text-secondary">
             A file this size is read by the companion from its place on disk, which needs the Mac
@@ -147,6 +237,103 @@ export function LargeFileImportDialog({ onClose }: { readonly onClose: () => voi
                 {path ?? 'No file chosen'}
               </span>
             </div>
+            <Button
+              onClick={() =>
+                void bridge
+                  .chooseDirectory({
+                    title: 'Choose collection storage (an external drive is recommended)',
+                  })
+                  .then((choice) => {
+                    if (!choice.canceled && choice.path) setDirectory(choice.path);
+                  })
+              }
+            >
+              Choose storage folder…
+            </Button>
+            <p>
+              {directory ?? 'Companion data directory'}. The archive stays where you put it; the new
+              compact index and game records go here.
+            </p>
+            <label className="block">
+              Collection disk limit (GiB)
+              <input
+                aria-label="Collection disk limit"
+                type="number"
+                min={1}
+                max={1000}
+                value={maxGiB}
+                onChange={(event) => setMaxGiB(Number(event.target.value))}
+              />
+            </label>
+            <p>
+              Imports stop between batches at the disk limit or a 2 GiB free-space reserve. Index
+              finalisation and a batch can exceed the limit; leave headroom.
+            </p>
+            <label className="block">
+              <input
+                type="checkbox"
+                checked={keepPositions}
+                onChange={(event) => setKeepPositions(event.target.checked)}
+              />{' '}
+              Index all positions (compact; supports the Explorer)
+            </label>
+            <label>
+              Minimum rating for both players (PGN archives)
+              <input
+                aria-label="Archive rating floor"
+                type="number"
+                min={0}
+                max={4000}
+                value={minRating}
+                onChange={(event) => setMinRating(Number(event.target.value))}
+              />
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={excludeBots}
+                onChange={(event) => setExcludeBots(event.target.checked)}
+              />{' '}
+              Exclude games explicitly tagged BOT (PGN archives)
+            </label>
+            <p>
+              Rating 0 retains unrated games. A positive floor requires both ratings. Filtered PGNs
+              are skipped before parsing, keeping high-rated online populations manageable.
+            </p>
+            <p>
+              Without position indexing, game search remains available; the Explorer cannot query
+              these games. Compact indexes do not support pawn-structure or positional-claim
+              searches.
+            </p>
+            <label className="block">
+              Existing companion collection key (optional, to add an update)
+              <input
+                aria-label="Update collection key"
+                value={target}
+                onChange={(event) => setTarget(event.target.value)}
+              />
+            </label>
+            <label className="block">
+              Publisher archive SHA-256 (optional)
+              <input
+                aria-label="Archive checksum"
+                value={sha256}
+                onChange={(event) => setSha256(event.target.value)}
+              />
+            </label>
+            <p>
+              With a checksum, Kingfisher verifies the entire selected archive before importing.
+              Repeated games are deduplicated. Save a collection backup before applying an update if
+              you need to roll it back.
+            </p>
+            <p>
+              <a href="https://database.lichess.org/" target="_blank" rel="noreferrer">
+                Lichess open database
+              </a>{' '}
+              · CC0 standard games, including computer evaluations where available. Download a month
+              and its published SHA-256 to your chosen drive. These are online games and engine
+              annotations, not an annotated master-game collection.
+            </p>
             <label className="block text-xs text-secondary">
               Collection name
               <input
@@ -172,21 +359,26 @@ export function LargeFileImportDialog({ onClose }: { readonly onClose: () => voi
             data-large-import-status={status.phase}
           >
             <p>
-              {status.phase === 'indexing'
-                ? 'Building the indexes and the explorer totals once, over every game…'
-                : status.phase === 'done'
-                  ? 'Done.'
-                  : status.phase === 'stopped'
-                    ? 'Stopped; the games read so far are in the collection.'
-                    : status.phase === 'failed'
-                      ? `Failed: ${status.error ?? 'unknown error'}`
-                      : 'Importing…'}
+              {status.phase === 'verifying'
+                ? 'Checking the archive against the supplied SHA-256 before any writes…'
+                : status.phase === 'indexing'
+                  ? 'Building the indexes and the explorer totals once, over every game…'
+                  : status.phase === 'done'
+                    ? 'Done.'
+                    : status.phase === 'stopped'
+                      ? 'Stopped; the games read so far are in the collection.'
+                      : status.phase === 'failed'
+                        ? `Failed: ${status.error ?? 'unknown error'}`
+                        : 'Importing…'}
             </p>
             <p>
               {(status.imported ?? 0).toLocaleString()} games imported of{' '}
               {(status.read ?? 0).toLocaleString()} read
               {status.duplicates ? ` · ${status.duplicates.toLocaleString()} already there` : ''}
               {status.rejected ? ` · ${status.rejected.toLocaleString()} could not be read` : ''}
+              {status.filtered
+                ? ` · ${status.filtered.toLocaleString()} excluded by archive header filters`
+                : ''}
             </p>
             <p>
               {seconds > 0 ? `${Math.round(seconds).toLocaleString()} s · ` : ''}
@@ -197,6 +389,15 @@ export function LargeFileImportDialog({ onClose }: { readonly onClose: () => voi
               {status.peakRssBytes ? `peak memory ${formatBytes(status.peakRssBytes)}` : ''}
               {status.workers ? ` · ${status.workers} workers` : ''}
             </p>
+            {status.coverage ? (
+              <p>
+                Accepted archive coverage (includes duplicates):{' '}
+                {status.coverage.annotated.toLocaleString()} with comments, symbols or variations ·{' '}
+                {status.coverage.evaluated.toLocaleString()} with evaluations ·{' '}
+                {status.coverage.dated.toLocaleString()} dated ·{' '}
+                {status.coverage.rated.toLocaleString()} with both ratings.
+              </p>
+            ) : null}
             {status.failures?.length ? (
               <p className="text-caution">
                 For example, game {status.failures[0]!.id}: {status.failures[0]!.reason}

@@ -16,7 +16,10 @@
  * licence the person named, is recorded in the collection itself.
  */
 
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, statSync, createReadStream } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { importFilter } from './import-filter.mjs';
+import { checkImportStorage } from './collection-location.mjs';
 import { availableParallelism } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -111,6 +114,26 @@ export class ImportFileError extends Error {}
  */
 export async function runImport(database, options, onProgress = () => undefined, signal) {
   const source = describeSource(options.file);
+  const maxBytes = options.maxBytes ?? 10 * 1024 ** 3;
+  checkImportStorage(database.file, maxBytes);
+  importFilter({}, options.filters);
+  let verifiedDigest = null;
+  if (options.sha256) {
+    if (source.kind !== 'pgn' || !/^[a-f0-9]{64}$/i.test(options.sha256))
+      throw new ImportFileError(
+        'A SHA-256 must be 64 hexadecimal characters for the selected PGN archive.',
+      );
+    onProgress({ phase: 'verifying', file: source.file, bytes: source.bytes });
+    const hash = createHash('sha256');
+    for await (const bytes of createReadStream(source.file)) {
+      if (signal?.aborted) throw new ImportFileError('Verification cancelled; no games imported.');
+      hash.update(bytes);
+    }
+    verifiedDigest = hash.digest('hex');
+    if (verifiedDigest !== options.sha256.toLowerCase())
+      throw new ImportFileError('Archive checksum mismatch; no games imported.');
+  }
+  database.setStorageLimit(maxBytes);
   const kit = await ensureKit();
   const shares = Math.max(1, Math.min(options.workers ?? availableParallelism() - 1, 8));
   const keepPositions = options.keepPositions !== false;
@@ -120,20 +143,33 @@ export async function runImport(database, options, onProgress = () => undefined,
     kind: source.kind,
     file: source.file,
     bytes: source.bytes,
+    sha256: verifiedDigest,
     bulk,
     workers: shares,
     read: 0,
     imported: 0,
+    coverage: { annotated: 0, evaluated: 0, dated: 0, rated: 0 },
     duplicates: 0,
     rejected: 0,
+    filtered: 0,
     failures: [],
     peakRssBytes: 0,
     elapsedMs: 0,
     indexMs: 0,
     stopped: false,
   };
+  const updateId = bulk
+    ? null
+    : database.beginUpdate({
+        file: path.basename(source.file),
+        sha256: verifiedDigest,
+        licence: options.licence ?? null,
+        filters: source.kind === 'pgn' ? (options.filters ?? {}) : null,
+      });
   if (bulk) database.beginBulk();
   const workers = [];
+  let failed = false;
+  let accepting = true;
   try {
     await new Promise((resolve, reject) => {
       let finished = 0;
@@ -153,34 +189,48 @@ export async function runImport(database, options, onProgress = () => undefined,
             share,
             shares,
             keepPositions,
+            filters: options.filters,
             batch: source.kind === 'pgn' ? 300 : 500,
           },
         });
         workers.push(worker);
         worker.on('error', reject);
         worker.on('message', (message) => {
-          if (message.kind === 'done') {
-            finished += 1;
-            if (finished === shares) resolve();
-            return;
+          if (!accepting) return;
+          try {
+            checkImportStorage(database.file, maxBytes);
+            if (message.kind === 'done') {
+              state.filtered += message.filtered ?? 0;
+              finished += 1;
+              if (finished === shares) resolve();
+              return;
+            }
+            if (message.payloads.length) {
+              const result = database.insertGames(message.payloads, updateId);
+              state.imported += result.imported;
+              state.duplicates += result.duplicates;
+            }
+            for (const key of Object.keys(state.coverage))
+              state.coverage[key] += message.coverage?.[key] ?? 0;
+            state.read += message.read;
+            state.rejected += message.rejected;
+            if (state.failures.length < 50) state.failures.push(...message.failures);
+            const rss = process.memoryUsage().rss;
+            if (rss > state.peakRssBytes) state.peakRssBytes = rss;
+            state.elapsedMs = performance.now() - started;
+            onProgress({ ...state, phase: 'importing' });
+            worker.postMessage('ack');
+          } catch (error) {
+            reject(error);
           }
-          if (message.payloads.length) {
-            const result = database.insertGames(message.payloads);
-            state.imported += result.imported;
-            state.duplicates += result.duplicates;
-          }
-          state.read += message.read;
-          state.rejected += message.rejected;
-          if (state.failures.length < 50) state.failures.push(...message.failures);
-          const rss = process.memoryUsage().rss;
-          if (rss > state.peakRssBytes) state.peakRssBytes = rss;
-          state.elapsedMs = performance.now() - started;
-          onProgress({ ...state, phase: 'importing' });
-          worker.postMessage('ack');
         });
       }
     });
+  } catch (error) {
+    failed = true;
+    throw error;
   } finally {
+    accepting = false;
     /*
       A worker that has sent 'done' still listens for acknowledgements, and a
       listening port keeps its thread alive: every import left one idle
@@ -196,6 +246,17 @@ export async function runImport(database, options, onProgress = () => undefined,
       state.indexMs = performance.now() - indexing;
     }
     state.elapsedMs = performance.now() - started;
+    if (updateId)
+      database.finishUpdate(
+        updateId,
+        {
+          ...state,
+          sha256: verifiedDigest,
+          licence: options.licence ?? null,
+          filters: options.filters ?? {},
+        },
+        failed ? 'failed' : state.stopped ? 'stopped' : 'done',
+      );
   }
   database.recordSource({
     file: path.basename(source.file),
@@ -203,7 +264,15 @@ export async function runImport(database, options, onProgress = () => undefined,
     bytes: source.bytes,
     games: state.imported,
     licence: typeof options.licence === 'string' ? options.licence.slice(0, 200) : null,
-    note: typeof options.note === 'string' ? options.note.slice(0, 500) : null,
+    note: [
+      verifiedDigest
+        ? `Verified archive SHA-256 ${verifiedDigest}`
+        : 'No publisher checksum supplied',
+      `Archive accepted-game coverage (includes duplicates): ${JSON.stringify(state.coverage)}; filters ${JSON.stringify(options.filters ?? {})}; ${state.filtered} excluded on headers`,
+      typeof options.note === 'string' ? options.note.slice(0, 200) : null,
+    ]
+      .filter(Boolean)
+      .join('. '),
     importedAt: Date.now(),
     stopped: state.stopped,
   });
@@ -216,15 +285,32 @@ export class ImportJobs {
   #jobs = new Map();
   #next = 1;
 
+  #prune() {
+    const finished = [...this.#jobs].filter(([, job]) =>
+      ['done', 'stopped', 'failed'].includes(job.status.phase),
+    );
+    for (const [id] of finished.slice(0, Math.max(0, finished.length - 20))) this.#jobs.delete(id);
+  }
+
+  list() {
+    this.#prune();
+    return [...this.#jobs].reverse().map(([id, job]) => ({ id, key: job.key, status: job.status }));
+  }
+
   start(key, database, options) {
-    for (const job of this.#jobs.values()) {
-      if (job.key === key && (job.status.phase === 'importing' || job.status.phase === 'starting'))
-        throw new ImportFileError('An import into this collection is already running.');
-    }
+    this.#prune();
+    if (
+      [...this.#jobs.values()].some(
+        (job) => !['done', 'stopped', 'failed'].includes(job.status.phase),
+      )
+    )
+      throw new ImportFileError(
+        'Finish or stop the current large-file import before starting another.',
+      );
     describeSource(options.file);
     const id = String(this.#next++);
     const controller = new AbortController();
-    const job = { key, controller, status: { phase: 'starting' } };
+    const job = { key, controller, status: { phase: 'starting', file: options.file } };
     this.#jobs.set(id, job);
     runImport(database, options, (status) => (job.status = status), controller.signal).catch(
       (error) => {
@@ -236,6 +322,12 @@ export class ImportJobs {
       },
     );
     return id;
+  }
+
+  active(key) {
+    return [...this.#jobs.values()].some(
+      (job) => job.key === key && !['done', 'stopped', 'failed'].includes(job.status.phase),
+    );
   }
 
   status(id) {

@@ -221,31 +221,43 @@ export async function* readGames(file, { accept } = {}) {
  *
  * Same streaming guarantees and the same end-of-game rule as `readGames`.
  */
-export async function* readGameTexts(file) {
+export async function* readGameTexts(file, { accept, onRejected } = {}) {
   const input = bytesOf(file);
   const lines = createInterface({ input, crlfDelay: Infinity });
-
   let block = [];
+  let tags = {};
   let inMoves = false;
-
+  let keep = true;
   try {
     for await (const line of lines) {
       if (!inMoves) {
         if (line.trim().length === 0) continue;
-        block.push(line);
-        if (!TAG.test(line)) inMoves = true;
+        const tag = TAG.exec(line);
+        if (tag) {
+          tags[tag[1]] = tag[2].replace(/\\(["\\])/g, '$1');
+          block.push(line);
+        } else {
+          inMoves = true;
+          keep = !accept || accept(tags);
+          if (keep) block.push(line);
+          else {
+            block = [];
+            onRejected?.();
+          }
+        }
         continue;
       }
       if (line.trim().length === 0) {
-        yield block.join('\n');
+        if (keep) yield block.join('\n');
         block = [];
+        tags = {};
         inMoves = false;
+        keep = true;
         continue;
       }
-      block.push(line);
+      if (keep) block.push(line);
     }
-
-    if (block.length > 0) yield block.join('\n');
+    if (block.length > 0 && keep) yield block.join('\n');
   } finally {
     lines.close();
     input.destroy();

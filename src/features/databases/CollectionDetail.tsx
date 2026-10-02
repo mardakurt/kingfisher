@@ -10,6 +10,7 @@
  */
 
 import { useState } from 'react';
+import { CollectionSourceLedger } from './CollectionSourceLedger';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Copy, Database, Export, Import, Pencil, Trash } from '@/components/icons';
@@ -278,6 +279,7 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
         <Fact label="Location" value={collection.location} />
       </dl>
 
+      <CollectionSourceLedger collectionId={collection.id} />
       <section className="border-b border-line-subtle py-5">
         <h3 className="text-xs font-semibold text-tertiary">Move games</h3>
         <div className="mt-3 flex flex-wrap gap-2">

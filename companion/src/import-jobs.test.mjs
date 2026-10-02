@@ -15,7 +15,9 @@ import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import { GameDatabase } from './database.mjs';
-import { runImport } from './import-jobs.mjs';
+import { createHash } from 'node:crypto';
+import { readGameTexts } from './pgn-stream.mjs';
+import { runImport, loadKit } from './import-jobs.mjs';
 
 const directory = mkdtempSync(path.join(tmpdir(), 'kingfisher-import-jobs-'));
 afterAll(() => rmSync(directory, { recursive: true, force: true }));
@@ -41,4 +43,76 @@ describe('runImport', () => {
     expect(ports()).toBe(before);
     database.close();
   }, 60_000);
+});
+
+it('verifies before writes and records a verified, deduplicated update', async () => {
+  const pgn = '[White "Checksum"]\n[Black "Test"]\n[Result "*"]\n\n1. e4 e5 *';
+  const file = path.join(directory, 'checksum.pgn');
+  writeFileSync(file, pgn);
+  const db = new GameDatabase(path.join(directory, 'checksum.sqlite'));
+  try {
+    await expect(runImport(db, { file, workers: 1, sha256: '0'.repeat(64) })).rejects.toThrow(
+      'checksum mismatch',
+    );
+    expect(db.count()).toBe(0);
+    const sha256 = createHash('sha256').update(pgn).digest('hex');
+    const first = await runImport(db, { file, workers: 1, sha256, licence: 'Test fixture only' });
+    expect(first.imported).toBe(1);
+    const again = await runImport(db, { file, workers: 1, sha256 });
+    expect(again.imported).toBe(0);
+    expect(again.duplicates).toBe(1);
+    expect(db.sources()[0].note).toContain(sha256);
+  } finally {
+    db.close();
+  }
+}, 60000);
+
+it.each(['rows', 'postings'])(
+  'rolls back only new update records after reopening (%s)',
+  async (layout) => {
+    const file = path.join(directory, `updates-${layout}.pgn`);
+    const base = '[White "Original"]\n[Black "Game"]\n[Result "*"]\n\n1. e4 e5 *';
+    const added = '[White "Added"]\n[Black "Game"]\n[Result "*"]\n\n1. d4 d5 *';
+    const dbFile = path.join(directory, `updates-${layout}.sqlite`);
+    const kit = await loadKit();
+    let db = new GameDatabase(dbFile, { layout, kit });
+    try {
+      writeFileSync(file, base);
+      await runImport(db, { file, workers: 1 });
+      writeFileSync(file, base + '\n\n' + added);
+      await runImport(db, { file, workers: 1 });
+      expect(db.count()).toBe(2);
+      const update = db.updates()[0];
+      expect(update.retainedGames).toBe(1);
+      db.close();
+      db = new GameDatabase(dbFile, { kit });
+      expect(db.rollbackUpdate(update.id)).toEqual({ deleted: 1 });
+      expect(db.count()).toBe(1);
+      expect(db.rollbackUpdate(update.id)).toEqual({ deleted: 0 });
+      expect(db.updates()[0].status).toBe('rolled-back');
+    } finally {
+      db.close();
+    }
+  },
+  60000,
+);
+
+it('filters headers without losing selected PGN annotations or variations', async () => {
+  const file = path.join(directory, 'filtered.pgn');
+  writeFileSync(
+    file,
+    '[WhiteElo "1000"]\n\n1. Qh9 *\n\n[WhiteElo "2500"]\n\n1. e4 {Keep this note.} (1. d4) e5 *\n',
+  );
+  let rejected = 0;
+  const texts = [];
+  for await (const text of readGameTexts(file, {
+    accept: (tags) => Number(tags.WhiteElo) >= 2400,
+    onRejected: () => {
+      rejected += 1;
+    },
+  }))
+    texts.push(text);
+  expect(rejected).toBe(1);
+  expect(texts).toHaveLength(1);
+  expect(texts[0]).toContain('{Keep this note.} (1. d4)');
 });

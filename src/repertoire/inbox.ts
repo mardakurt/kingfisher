@@ -28,6 +28,8 @@
  * with the earlier decision shown, not erased.
  */
 
+import { positionKey } from '@/chess/fen';
+import type { ExplorerResult } from '@/database/types';
 import type { GameTree } from '@/chess/tree/types';
 import type { InboxDecisionRecord, StoredEngineEvidenceRecord } from '@/persistence/domain';
 import type { RepertoirePositionRecord } from '@/persistence/domain';
@@ -35,7 +37,8 @@ import type { RepertoirePositionRecord } from '@/persistence/domain';
 import { indexPositions, type RepertoireGap } from './index';
 import { DEFAULT_MINIMUM_PLIES, scanAgainstRepertoire } from './scan';
 
-export type InboxKind = 'own-departure' | 'surprise' | 'conflict' | 'branch' | 'stale-evidence';
+export type InboxKind =
+  'own-departure' | 'surprise' | 'conflict' | 'branch' | 'stale-evidence' | 'source-update';
 
 /** The order the kinds are listed in: your own play first, maintenance last. */
 export const INBOX_KIND_ORDER: readonly InboxKind[] = [
@@ -44,6 +47,7 @@ export const INBOX_KIND_ORDER: readonly InboxKind[] = [
   'conflict',
   'branch',
   'stale-evidence',
+  'source-update',
 ];
 
 export const INBOX_KIND_LABEL: Record<InboxKind, string> = {
@@ -52,6 +56,7 @@ export const INBOX_KIND_LABEL: Record<InboxKind, string> = {
   conflict: 'Two main moves',
   branch: 'A frequent branch without an answer',
   'stale-evidence': 'Old engine evidence',
+  'source-update': 'Recent source games at a prepared position',
 };
 
 export interface InboxGame {
@@ -95,6 +100,10 @@ export interface InboxInput {
   readonly staleAfterDays?: number;
   readonly branchGames?: number;
   readonly minimumPlies?: number;
+  readonly sourceUpdates?: readonly {
+    readonly result: ExplorerResult;
+    readonly sinceYear: number;
+  }[];
 }
 
 export const DEFAULT_STALE_AFTER_DAYS = 365;
@@ -244,6 +253,36 @@ export function buildInbox(input: InboxInput): readonly InboxItem[] {
       count: gap.games,
       depth: gap.depth,
       evidence: digest(String(gap.games)),
+    });
+  }
+
+  for (const update of input.sourceUpdates ?? []) {
+    const key = positionKey(update.result.fen);
+    const position = index.get(key);
+    if (!position || update.result.totalGames === 0) continue;
+    const result = update.result;
+    const moves = [...result.moves].sort((a, b) => a.uci.localeCompare(b.uci));
+    raw.push({
+      id: `source-update|${result.source.id}|${update.sinceYear}|${key}`,
+      kind: 'source-update',
+      positionKey: key,
+      fen: position.fen,
+      title: `${result.totalGames.toLocaleString()} games from ${update.sinceYear} · ${result.source.name}`,
+      detail: `Source defaults with a since-year filter. ${moves.map((move) => `${move.san}: ${move.games}`).join('; ')}${result.truncated ? '; capped move list' : ''}. These are recorded games, not recommendations or games necessarily added since your last check.`,
+      games: [],
+      count: result.totalGames,
+      depth: position.depth,
+      evidence: digest(
+        JSON.stringify({
+          source: result.source.id,
+          games: result.totalGames,
+          white: result.white,
+          draws: result.draws,
+          black: result.black,
+          moves,
+          samples: result.topGames,
+        }),
+      ),
     });
   }
 

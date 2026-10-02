@@ -34,6 +34,12 @@ export interface CompanionPayload {
   readonly pgn: string;
   readonly positions: readonly Record<string, unknown>[];
   readonly line?: string;
+  readonly coverage?: {
+    readonly annotated: number;
+    readonly evaluated: number;
+    readonly dated: number;
+    readonly rated: number;
+  };
 }
 
 function payloadOf(transfer: TransferGame, keepPositions: boolean): CompanionPayload {
@@ -60,6 +66,22 @@ function payloadOf(transfer: TransferGame, keepPositions: boolean): CompanionPay
       plyCount: transfer.positions.length,
       importedAt: summary.importedAt,
     },
+    coverage: transfer.tree
+      ? {
+          annotated: Number(
+            Object.values(transfer.tree.nodes).some(
+              (node) =>
+                !!node.comment?.trim() ||
+                node.nags.length > 0 ||
+                node.shapes.length > 0 ||
+                node.children.length > 1,
+            ),
+          ),
+          evaluated: Number(Object.values(transfer.tree.nodes).some((node) => !!node.evaluation)),
+          dated: Number(!!summary.year),
+          rated: Number(summary.whiteRating !== undefined && summary.blackRating !== undefined),
+        }
+      : undefined,
     pgn: transfer.pgn,
     positions: keepPositions ? (transfer.positions as unknown as Record<string, unknown>[]) : [],
     ...(transfer.tree ? { line: lineIndexForTree(transfer.tree) } : {}),

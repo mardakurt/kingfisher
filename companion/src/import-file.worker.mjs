@@ -11,9 +11,10 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parentPort, workerData } from 'node:worker_threads';
 
+import { importFilter } from './import-filter.mjs';
 import { readGameTexts } from './pgn-stream.mjs';
 
-const { kitFile, kind, file, files, share, shares, keepPositions, batch } = workerData;
+const { kitFile, kind, file, files, share, shares, keepPositions, batch, filters } = workerData;
 const kit = await import(pathToFileURL(kitFile).href);
 const openings = await kit.loadOpeningIndex();
 
@@ -31,6 +32,7 @@ async function send(message) {
   parentPort.postMessage(message);
 }
 
+let filtered = 0;
 if (kind === 'pgn') {
   let index = 0;
   let pending = [];
@@ -42,12 +44,25 @@ if (kind === 'pgn') {
     await send({
       kind: 'batch',
       payloads: prepared.payloads,
+      coverage: prepared.payloads.reduce(
+        (total, payload) => {
+          for (const key of ['annotated', 'evaluated', 'dated', 'rated'])
+            total[key] += payload.coverage?.[key] ?? 0;
+          return total;
+        },
+        { annotated: 0, evaluated: 0, dated: 0, rated: 0 },
+      ),
       rejected: prepared.rejected + Math.max(0, read - prepared.read),
       read,
       failures: [],
     });
   };
-  for await (const text of readGameTexts(file)) {
+  for await (const text of readGameTexts(file, {
+    accept: (tags) => importFilter(tags, filters),
+    onRejected: () => {
+      filtered += 1;
+    },
+  })) {
     const mine = index % shares === share;
     index += 1;
     if (!mine) continue;
@@ -83,6 +98,14 @@ if (kind === 'pgn') {
       await send({
         kind: 'batch',
         payloads: prepared.payloads,
+        coverage: prepared.payloads.reduce(
+          (total, payload) => {
+            for (const key of ['annotated', 'evaluated', 'dated', 'rated'])
+              total[key] += payload.coverage?.[key] ?? 0;
+            return total;
+          },
+          { annotated: 0, evaluated: 0, dated: 0, rated: 0 },
+        ),
         rejected: prepared.failures.length,
         read: to - from + 1,
         failures: prepared.failures.slice(0, 20),
@@ -92,4 +115,4 @@ if (kind === 'pgn') {
     for (const fd of handles) closeSync(fd);
   }
 }
-parentPort.postMessage({ kind: 'done' });
+parentPort.postMessage({ kind: 'done', filtered: share === 0 ? filtered : 0 });

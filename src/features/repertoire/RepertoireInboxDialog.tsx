@@ -12,6 +12,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 
+import { positionKey } from '@/chess/fen';
+import { useDatabaseProviders } from '@/database/use-database-providers';
+import type { ExplorerResult } from '@/database/types';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { openStoredGame } from '@/features/games/open-game';
@@ -47,6 +50,42 @@ export function RepertoireInboxDialog({
   readonly gaps: readonly RepertoireGap[];
   readonly onClose: () => void;
 }) {
+  const providers = useDatabaseProviders();
+  const [sourceId, setSourceId] = useState('');
+  const [sinceYear, setSinceYear] = useState(new Date().getFullYear());
+  const provider = providers.find((candidate) => candidate.id === sourceId);
+  const sourceUpdates = useQuery({
+    queryKey: [
+      'repertoire-source-updates',
+      repertoire.repertoire.id,
+      repertoire.repertoire.updatedAt,
+      sourceId,
+      sinceYear,
+      provider?.cacheVersion,
+    ],
+    enabled: false,
+    retry: false,
+    queryFn: async ({ signal }) => {
+      if (
+        !provider?.capabilities.dateFilter ||
+        !Number.isInteger(sinceYear) ||
+        sinceYear < 1800 ||
+        sinceYear > new Date().getFullYear()
+      )
+        throw new Error('Choose a source with date filtering and a valid year.');
+      const updates: { result: ExplorerResult; sinceYear: number }[] = [];
+      for (const position of repertoire.positions.slice(0, 40)) {
+        const result = await provider.explore(
+          { fen: position.fen, filters: { sinceYear } },
+          signal,
+        );
+        if (result.source.id !== sourceId || positionKey(result.fen) !== position.positionKey)
+          throw new Error('Source returned a different population or position.');
+        updates.push({ result, sinceYear });
+      }
+      return updates;
+    },
+  });
   const profile = useProfile();
   const router = useRouter();
   const notify = useUi((state) => state.notify);
@@ -110,12 +149,22 @@ export function RepertoireInboxDialog({
       color,
       positions: repertoire.positions,
       myGames: evidence.data.myGames,
+      sourceUpdates: sourceUpdates.data,
       gaps,
       evidenceAt: (key) => evidence.data.held.get(key) ?? [],
       decisions: decisions.data,
       now,
     });
-  }, [evidence.data, decisions.data, id, color, repertoire.positions, gaps, now]);
+  }, [
+    evidence.data,
+    decisions.data,
+    id,
+    color,
+    repertoire.positions,
+    gaps,
+    now,
+    sourceUpdates.data,
+  ]);
 
   const decide = async (
     item: InboxItem,
@@ -171,6 +220,51 @@ export function RepertoireInboxDialog({
       width="w-[760px]"
     >
       <div className="flex flex-col gap-4 text-xs" data-repertoire-inbox>
+        <fieldset className="space-y-2">
+          <legend>Check recent source games</legend>
+          <select
+            aria-label="Inbox update source"
+            value={sourceId}
+            onChange={(event) => setSourceId(event.target.value)}
+          >
+            <option value="">Choose a population</option>
+            {providers
+              .filter(
+                (candidate) =>
+                  candidate.capabilities.dateFilter && candidate.id !== 'lichess-player',
+              )
+              .map((candidate) => (
+                <option key={candidate.id} value={candidate.id}>
+                  {candidate.name}
+                </option>
+              ))}
+          </select>
+          <label>
+            Since year{' '}
+            <input
+              type="number"
+              aria-label="Inbox since year"
+              value={sinceYear}
+              onChange={(event) => setSinceYear(Number(event.target.value))}
+            />
+          </label>
+          <Button
+            size="sm"
+            disabled={!provider || sourceUpdates.isFetching}
+            onClick={() => void sourceUpdates.refetch()}
+          >
+            Check source games
+          </Button>
+          <p>
+            Checks at most the first 40 prepared positions in one source. Done, dismiss and snooze
+            remain reversible; changed evidence reopens an item. No repertoire moves are written.
+          </p>
+          {sourceUpdates.isFetching ? (
+            <p role="status">Checking source positions…</p>
+          ) : sourceUpdates.error ? (
+            <p role="alert">{sourceUpdates.error.message}</p>
+          ) : null}
+        </fieldset>
         <p className="text-[11px] leading-relaxed text-tertiary">
           The rules: your games are those with a player named as in Settings → Profile, played with
           this repertoire’s colour

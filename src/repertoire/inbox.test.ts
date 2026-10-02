@@ -193,3 +193,44 @@ describe('the repertoire inbox', () => {
     expect(again).toEqual(once);
   });
 });
+
+it('keeps a source update separate and reopens a decision when source counts change', () => {
+  const result = {
+    fen: asFen(START),
+    source: { id: 'source-a', name: 'Source A' },
+    totalGames: 3,
+    white: 1,
+    draws: 1,
+    black: 1,
+    moves: [],
+  };
+  const first = buildInbox({ ...base, myGames: [], sourceUpdates: [{ result, sinceYear: 2026 }] });
+  const item = first.find((entry) => entry.kind === 'source-update')!;
+  expect(item.title).toContain('Source A');
+  const decision = {
+    id: item.id,
+    repertoireId: 'r1',
+    status: 'dismissed' as const,
+    evidence: item.evidence,
+    decidedAt: NOW,
+    createdAt: NOW,
+    updatedAt: NOW,
+    revision: 0,
+  };
+  expect(
+    buildInbox({
+      ...base,
+      myGames: [],
+      decisions: [decision],
+      sourceUpdates: [{ result, sinceYear: 2026 }],
+    }).find((entry) => entry.id === item.id)?.status,
+  ).toBe('dismissed');
+  const changed = buildInbox({
+    ...base,
+    myGames: [],
+    decisions: [decision],
+    sourceUpdates: [{ result: { ...result, totalGames: 4 }, sinceYear: 2026 }],
+  }).find((entry) => entry.id === item.id)!;
+  expect(changed.status).toBe('open');
+  expect(changed.reopened).toBe(true);
+});

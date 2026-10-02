@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { CATALOGUE, DIGESTS, PLATFORM } from '../../scripts/engine-catalogue.mjs';
 import { AttachError, inspectCollection } from './attach.mjs';
 import { GameDatabase } from './database.mjs';
+import { collectionLocation, reserveCollection } from './collection-location.mjs';
 import { DatabaseMaintenance } from './database-maintenance.mjs';
 import { handshakeUci, validateExecutable } from './custom-engines.mjs';
 import {
@@ -380,7 +381,13 @@ const database = (key) => {
  * game, `{ imported: 1 }`. A person who has removed a collection is told so
  * before anything they author is written where nobody can find it.
  */
+const assertImportIdle = (key) => {
+  if (importJobs.active(key))
+    throw new Error('Stop or finish the active import before changing this collection.');
+};
+
 const writable = (key) => {
+  assertImportIdle(key);
   const entry = databaseRegistry.resolve(key);
   if (!existsSync(entry.path)) {
     throw new Error(
@@ -768,15 +775,27 @@ async function route(url, request, response) {
         .replace(/[^\w. -]/g, '')
         .slice(0, 64) || 'database';
     mkdirSync(DATA_DIR, { recursive: true });
-    // The filename is derived from a sanitised name and always lands in the
-    // companion's own directory; a request cannot choose where it is written.
-    const file = path.join(DATA_DIR, `${name}.kingfisher.sqlite`);
+    // The desktop directory picker may supply an existing destination folder.
+    // Only a new, sanitised collection filename is created there, exclusively.
+    const file = collectionLocation(
+      typeof body.directory === 'string' ? body.directory : DATA_DIR,
+      name,
+    );
+    if (existsSync(file))
+      return json(response, 409, {
+        error: 'A collection with that filename already exists. Attach it or choose another name.',
+      });
     const key = databaseKey(name);
     // Phase 86: `layout: 'postings'` keeps the compact position index — about
     // a twentieth of the disk, no pawn-structure search. Only an empty file
     // can be created that way; GameDatabase refuses to switch one with games.
     const layout = body.layout === 'postings' ? 'postings' : 'rows';
     if (layout === 'postings') await kitReady;
+    if (databaseRegistry.has(key))
+      return json(response, 409, {
+        error: 'That collection name is already registered. Choose another name.',
+      });
+    reserveCollection(file);
     databaseRegistry.register(key, file, { name });
     if (layout === 'postings' && !open.has(key)) {
       open.set(key, new GameDatabase(file, { layout, kit: companionKit }));
@@ -789,8 +808,7 @@ async function route(url, request, response) {
   /*
     Open a collection the user picked in a native file dialog.
 
-    The one route that takes a path rather than a key, and the narrowest it can
-    be: `inspectCollection` opens the file read-only and refuses anything that
+    This attachment boundary accepts only an existing collection path: `inspectCollection` opens the file read-only and refuses anything that
     is not already a Kingfisher collection, so a wrong path costs a sentence
     rather than a schema written into somebody's other database. See
     `attach.mjs`.
@@ -1113,6 +1131,9 @@ async function route(url, request, response) {
       const jobId = importJobs.start(key, writable(key), {
         file: body.path,
         keepPositions: body.keepPositions !== false,
+        maxBytes: body.maxBytes,
+        sha256: body.sha256,
+        filters: { minRating: Number(body.minRating ?? 0), excludeBots: body.excludeBots === true },
         ...(typeof body.licence === 'string' ? { licence: body.licence } : {}),
         ...(typeof body.note === 'string' ? { note: body.note } : {}),
       });
@@ -1122,6 +1143,23 @@ async function route(url, request, response) {
       throw error;
     }
   }
+
+  if (pathname === '/db/updates' && request.method === 'POST') {
+    const body = await readBody(request);
+    return json(response, 200, { updates: database(String(body.key)).updates() });
+  }
+  if (pathname === '/db/rollback-update' && request.method === 'POST') {
+    const body = await readBody(request);
+    const key = String(body.key);
+    if (importJobs.active(key))
+      return json(response, 409, {
+        error: 'Stop the active import before rolling back an update.',
+      });
+    return json(response, 200, writable(key).rollbackUpdate(String(body.updateId)));
+  }
+
+  if (pathname === '/db/import-file-jobs' && request.method === 'GET')
+    return json(response, 200, { jobs: importJobs.list() });
 
   if (pathname === '/db/import-file-status' && request.method === 'POST') {
     const body = await readBody(request);
@@ -1243,6 +1281,7 @@ async function route(url, request, response) {
   if (pathname === '/db/delete' && request.method === 'POST') {
     const body = await readBody(request);
     const key = String(body.key);
+    assertImportIdle(key);
     if (maintenance.busy(key))
       return json(response, 409, { error: 'Wait for collection maintenance to finish.' });
     const registered = databaseRegistry.resolve(key);
@@ -1309,6 +1348,7 @@ async function route(url, request, response) {
   if (pathname === '/db/convert-postings' && request.method === 'POST') {
     const body = await readBody(request);
     const key = String(body.key);
+    assertImportIdle(key);
     if (database(key).layout === 'postings') {
       return json(response, 200, { status: 'completed', result: { alreadyDone: true } });
     }
@@ -1324,6 +1364,7 @@ async function route(url, request, response) {
   if (pathname === '/db/compact' && request.method === 'POST') {
     const body = await readBody(request);
     const key = String(body.key);
+    assertImportIdle(key);
     const preflight = database(key).compactionPreflight();
     if (preflight.sufficient !== true)
       return json(response, 507, {
@@ -1351,6 +1392,7 @@ async function route(url, request, response) {
   if (pathname === '/db/index-claims' && request.method === 'POST') {
     const body = await readBody(request);
     const key = String(body.key);
+    assertImportIdle(key);
     database(key);
     open.get(key)?.close();
     open.delete(key);
@@ -1364,6 +1406,7 @@ async function route(url, request, response) {
   if (pathname === '/db/verify-start' && request.method === 'POST') {
     const body = await readBody(request);
     const key = String(body.key);
+    assertImportIdle(key);
     database(key);
     open.get(key)?.close();
     open.delete(key);

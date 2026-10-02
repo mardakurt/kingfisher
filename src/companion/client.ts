@@ -423,8 +423,9 @@ export class CompanionClient {
   createDatabase(
     name: string,
     layout: 'rows' | 'postings' = 'rows',
+    directory?: string,
   ): Promise<{ key: string; name: string; layout?: 'rows' | 'postings' }> {
-    return this.request('/db/create', { name, layout });
+    return this.request('/db/create', { name, layout, directory });
   }
 
   /** Convert a collection to the posting index. Returns the job; poll `maintenanceStatus`. */
@@ -602,9 +603,40 @@ export class CompanionClient {
       readonly licence?: string;
       readonly note?: string;
       readonly keepPositions?: boolean;
+      readonly maxBytes?: number;
+      readonly minRating?: number;
+      readonly excludeBots?: boolean;
+      readonly sha256?: string;
     } = {},
   ): Promise<{ jobId: string }> {
     return this.request('/db/import-file', { key, path, ...options });
+  }
+
+  collectionUpdates(key: string): Promise<{
+    updates: readonly {
+      id: string;
+      status: string;
+      createdAt: number;
+      retainedGames: number;
+      metadata: { file: string; licence?: string | null; sha256?: string | null };
+    }[];
+  }> {
+    return this.request('/db/updates', { key });
+  }
+
+  rollbackUpdate(key: string, updateId: string): Promise<{ deleted: number }> {
+    return this.request(
+      '/db/rollback-update',
+      { key, updateId },
+      undefined,
+      MAINTENANCE_TIMEOUT_MS,
+    );
+  }
+
+  importFileJobs(): Promise<{
+    jobs: readonly { id: string; key: string; status: CompanionFileImport }[];
+  }> {
+    return this.request('/db/import-file-jobs');
   }
 
   importFileStatus(jobId: string): Promise<CompanionFileImport> {
@@ -790,7 +822,15 @@ export interface CompanionMoveSearchResult {
 }
 
 export interface CompanionFileImport {
-  readonly phase: 'starting' | 'importing' | 'indexing' | 'done' | 'stopped' | 'failed';
+  readonly filtered?: number;
+  readonly coverage?: {
+    readonly annotated: number;
+    readonly evaluated: number;
+    readonly dated: number;
+    readonly rated: number;
+  };
+  readonly phase:
+    'starting' | 'verifying' | 'importing' | 'indexing' | 'done' | 'stopped' | 'failed';
   readonly kind?: 'pgn' | 'chessbase';
   readonly file?: string;
   readonly bytes?: number;

@@ -531,6 +531,11 @@ export async function reduceExplorer(file, limits, recentSince, pack, withHistor
   const history = [];
   for await (const row of rows(file)) {
     const [key, san, uci, result, rating, year, ply, gameId, strength, openable] = row.split('\t');
+    if (!['1-0', '0-1', '1/2-1/2'].includes(result)) {
+      throw new Error(
+        `Invalid outcome in cached reference row: ${result}; rebuild the scan cache.`,
+      );
+    }
     const depth = Number(ply);
     if (depth >= limits.maxPly) continue;
     let entry = positions.get(key);
