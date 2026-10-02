@@ -14,6 +14,8 @@
 import { mkdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { argv } from 'node:process';
+import os from 'node:os';
+import { execFileSync } from 'node:child_process';
 
 import { GameDatabase } from '../companion/src/database.mjs';
 import { loadKit, runImport } from '../companion/src/import-jobs.mjs';
@@ -38,9 +40,18 @@ const args = {
   positions: true,
   layout: 'rows',
   oracle: 50,
+  maxBytes: 10 * 1024 ** 3,
+  minimumGames: 0,
+  independentOracle: false,
+  licence: null,
 };
 for (let i = 2; i < argv.length; i += 1) {
-  if (argv[i] === '--file') args.file = argv[++i];
+  if (argv[i] === '--licence') args.licence = argv[++i];
+  else if (argv[i] === '--max-gib') args.maxBytes = Number(argv[++i]) * 1024 ** 3;
+  else if (argv[i] === '--sha256') args.sha256 = argv[++i];
+  else if (argv[i] === '--min-games') args.minimumGames = Number(argv[++i]);
+  else if (argv[i] === '--independent-oracle') args.independentOracle = true;
+  else if (argv[i] === '--file') args.file = argv[++i];
   else if (argv[i] === '--out') args.out = argv[++i];
   else if (argv[i] === '--workers') args.workers = Number(argv[++i]);
   else if (argv[i] === '--query-only') args.queryOnly = argv[++i];
@@ -58,6 +69,25 @@ for (let i = 2; i < argv.length; i += 1) {
   else if (argv[i] === '--rebuild-hot') args.rebuildHot = true;
 }
 
+if (args.file) args.file = path.resolve(args.file);
+if (!args.queryOnly && (!args.file || !args.out))
+  throw new Error('Choose --file and --out, or --query-only.');
+if (
+  !Number.isSafeInteger(args.minimumGames) ||
+  args.minimumGames < 0 ||
+  !Number.isSafeInteger(args.maxBytes) ||
+  args.maxBytes < 1024 ** 2
+)
+  throw new Error('Invalid corpus minimum or disk budget.');
+if (
+  args.independentOracle &&
+  (!Number.isSafeInteger(args.oracle) ||
+    args.oracle < 1 ||
+    (!args.queryOnly && args.layout !== 'postings'))
+)
+  throw new Error(
+    'Independent PGN replay requires the posting layout and at least one oracle position.',
+  );
 let database;
 let file;
 let stats = null;
@@ -84,9 +114,11 @@ if (args.queryOnly) {
     database,
     {
       file: args.file,
+      maxBytes: args.maxBytes,
+      sha256: args.sha256,
       ...(args.workers ? { workers: args.workers } : {}),
       keepPositions: args.positions,
-      licence: 'Lichess database, CC0',
+      licence: args.licence,
     },
     (state) => {
       if (state.phase === 'indexing' && last >= 0) {
@@ -117,6 +149,16 @@ if (args.queryOnly) {
   );
   console.log(`peak memory (rss)  ${mb(stats.peakRssBytes)}`);
 }
+if (
+  args.independentOracle &&
+  (database.layout !== 'postings' || !Number.isSafeInteger(args.oracle) || args.oracle < 1)
+) {
+  database.close();
+  await closeApp();
+  throw new Error(
+    'Independent PGN replay requires the posting layout and at least one oracle position.',
+  );
+}
 const size = statSync(file).size;
 console.log(
   `database on disk   ${gb(size)} · ${n(database.count())} games · ${Math.round(size / database.count())} bytes a game`,
@@ -132,6 +174,17 @@ if (args.out) {
     path.join(args.out, 'result.json'),
     JSON.stringify(
       {
+        environment: {
+          platform: os.platform(),
+          release: os.release(),
+          cpu: os.cpus()[0]?.model,
+          cores: os.availableParallelism(),
+          ramBytes: os.totalmem(),
+          node: process.version,
+          commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+          dirty: !!execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(),
+        },
+        requestedMinimumGames: args.minimumGames,
         stats,
         size,
         layout: database.layout,
@@ -146,8 +199,16 @@ if (args.out) {
     ),
   );
 }
+const acceptanceFailed =
+  database.count() < args.minimumGames ||
+  oracle?.mismatches > 0 ||
+  equivalence.some((row) => !row.same);
 database.close();
 await closeApp();
+if (acceptanceFailed)
+  throw new Error(
+    'Real-scale acceptance failed: insufficient corpus or oracle mismatch; inspect result.json.',
+  );
 
 /**
  * The explorer at this size against a linear oracle (Phase 86).
@@ -186,11 +247,23 @@ function explorerOracle(db) {
   }
   const counts = new Map([...want].map((hash) => [hash, new Map()]));
   const started = performance.now();
-  const plies = handle.prepare('SELECT plies FROM game_plies');
+  const plies = handle.prepare(
+    args.independentOracle ? 'SELECT pgn FROM game_content' : 'SELECT plies FROM game_plies',
+  );
   let games = 0;
   for (const row of plies.iterate()) {
     games += 1;
-    for (const entry of unpackPlies(row.plies)) {
+    let entries;
+    if (args.independentOracle) {
+      const prepared = kit.preparePgnBatch(row.pgn, null, true);
+      if (prepared.rejected || prepared.payloads.length !== 1)
+        throw new Error('Oracle could not replay a stored game.');
+      entries = prepared.payloads[0].positions.map((position) => ({
+        pos: positionHash(position.positionKey),
+        move: position.moveUci,
+      }));
+    } else entries = unpackPlies(row.plies);
+    for (const entry of entries) {
       const byMove = counts.get(entry.pos);
       if (byMove) byMove.set(entry.move, (byMove.get(entry.move) ?? 0) + 1);
     }
@@ -201,7 +274,9 @@ function explorerOracle(db) {
   for (const [hash, byMove] of counts) {
     const key = keysOf.get(hash);
     const answer = db.explore(key, 500, {});
-    const expected = [...byMove].map(([move, n]) => `${decodeMove(move)}:${n}`).sort();
+    const expected = [...byMove]
+      .map(([move, n]) => `${args.independentOracle ? move : decodeMove(move)}:${n}`)
+      .sort();
     const actual = answer.moves.map((m) => `${m.uci}:${m.games}`).sort();
     const sum = [...byMove.values()].reduce((a, b) => a + b, 0);
     if (sum >= 64) hot += 1;
@@ -210,6 +285,7 @@ function explorerOracle(db) {
     }
   }
   const result = {
+    independentPgnReplay: args.independentOracle,
     positions: counts.size,
     hotPositions: hot,
     gamesRead: games,
