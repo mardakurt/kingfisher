@@ -55,6 +55,18 @@ const value = (name) => {
     : null;
 };
 const quick = argv.includes('--quick');
+// Longer acceptance runs replace the shorter walk, rather than repeating it.
+const walkActions = Number(value('walk-actions') ?? 200);
+const faultActions = Number(value('fault-actions') ?? 120);
+for (const [name, count, minimum] of [
+  ['walk-actions', walkActions, 200],
+  ['fault-actions', faultActions, 120],
+]) {
+  if (!Number.isInteger(count) || count < minimum || count > 10000) {
+    console.error(`--${name} must be an integer from ${minimum} to 10000.`);
+    exit(1);
+  }
+}
 
 // --- the target ---------------------------------------------------------------
 
@@ -148,18 +160,18 @@ run('suspend: every process stopped for 20 s, then resumed', node, [
   '--packaged',
 ]);
 if (!quick) {
-  run('walk: 200 seeded actions with invariants (seed 46)', node, [
+  run(`walk: ${walkActions} seeded actions with invariants (seed 46)`, node, [
     script('desktop-walk.mjs'),
     '--packaged',
     '--seed=46',
-    '--actions=200',
+    `--actions=${walkActions}`,
     '--quiet',
   ]);
-  run('walk: 120 seeded actions with faults injected (seed 7)', node, [
+  run(`walk: ${faultActions} seeded actions with faults injected (seed 7)`, node, [
     script('desktop-walk.mjs'),
     '--packaged',
     '--seed=7',
-    '--actions=120',
+    `--actions=${faultActions}`,
     '--faults',
     '--quiet',
   ]);
