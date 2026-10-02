@@ -223,5 +223,44 @@ and passed after the change. A real-browser regression forces the observed
 overlap independently of viewport/font differences, with only the clipboard
 boundary denied: the original timed out because notice text intercepted the
 board click, while the correction plays e2-e4 and then dismisses the notice
-(3.1 seconds). The package must be rebuilt; prior build 1024 results do not
+(3.1 seconds). The corrected package was rebuilt as stable build 1025 from
+`f6f705297e6df29b5af4597ace70ea802e299349`; prior build 1024 results do not
 certify the correction. Marketing version remains 1.4.1, still unpublished.
+
+## Corrected build 1025: current release evidence
+
+All five software increments are implemented and pushed. The version bump
+followed their implementation. The remaining corpus and independent comparison
+checks are acceptance work, not claimed software completions.
+
+After the notice correction, `npm test` passed 372 files / 3,963 tests in
+57.48 seconds with no skips. Typecheck, lint, formatting, documentation
+(359/359), production build and diff checks passed. The fresh full Chrome
+suite passed **454/454 in 29.9 minutes**, with zero retries. Firefox and
+WebKit were not certified by this run. The benchmark passed all assertions,
+including its synthetic 100,000-game HTTP SQLite import (97.484 seconds,
+1,026 games/s). Concurrent browser/build activity makes this unsuitable as
+an isolated before/after performance comparison. Its disposable database and
+companion were removed.
+
+The stable build 1025 application is Developer ID signed, Apple-notarized
+and stapled. Its packaged boot verified the renderer, web server, companion,
+engine catalogue and Sparkle 2.10.0 before generating the archives. The
+DMG submission `59065a1f-0dd7-4621-b9f9-6e17bdf9bfef` remains In Progress
+at Apple as of 20:26 UTC. The submit wrapper exited without a verdict;
+`notarytool info` confirms the existing submission, so it was not resubmitted.
+App acceptance does not establish DMG acceptance. Publication remains held.
+
+The same-binary extended certification has passed smoke 17/17, window chrome
+109/109, restart 7/7, native engines 25/25 and suspend/resume 14/14. Its
+1,000-action walk and 300-action fault walk remain in progress. The new
+30-minute soak uses the previously failing seed 19447; it also remains in
+progress. Both run with independent profiles to avoid another sequential
+30-minute wait. This concurrent load is recorded, and their eventual memory
+observations will not be described as isolated application measurements.
+
+Commit `8669949` changes only the certification harness: strict
+`--walk-actions=1000 --fault-actions=300` arguments run the required extended
+walks directly inside certification. Invalid counts fail before launching;
+the mutation-independent negative check refused 199 normal actions. The
+packaged runtime remains build 1025 from `f6f7052`.
