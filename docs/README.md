@@ -283,6 +283,8 @@ with [`AGENTS.md`](../AGENTS.md).
 - [`reports/2026-09-29-interface-continuation.md`](reports/2026-09-29-interface-continuation.md)
   — the remaining shell-pass gates, the ChessBase-reference comparison, the
   shared-interface improvements, and the reasons for keeping Electron.
+- [`reports/phase-89-independent-audit.md`](reports/phase-89-independent-audit.md) —
+  independent corrections, regression evidence and recovered-file inventory.
 - [`reports/phase-89-handover.md`](reports/phase-89-handover.md) — the
   collection-backed Opening Report audited, and two false claims found in it: a
   player's own archive taking the role that decides whether the report calls it

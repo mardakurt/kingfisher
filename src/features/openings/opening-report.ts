@@ -566,7 +566,7 @@ function historySections(input: OpeningReportInput): ReportSection[] {
             .map(([year, tally]) => ({
               primary: String(year),
               secondary: scores(tally),
-              criterion: `share of ${population.name}'s dated games here: ${percent(total > 0 ? tally.games / total : 0)}`,
+              criterion: `share of ${population.name}'s dated games ${sampled ? 'in this sample' : 'here'}: ${percent(total > 0 ? tally.games / total : 0)}`,
             }))
         : [],
       emptyReason: history?.byYear.size
@@ -636,7 +636,9 @@ function historySections(input: OpeningReportInput): ReportSection[] {
             population.sample
             ? sampled
               ? `${population.name} has no dated game in this sample at this position.`
-              : `${population.name} has no games at this position.`
+              : population.sample.games > 0
+                ? `${population.name} has no dated game at this position.`
+                : `${population.name} has no games at this position.`
             : `${population.name} records no dated game at this position.`,
     });
   }

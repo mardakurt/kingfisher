@@ -127,6 +127,9 @@ describe('the Opening Report’s history, per population', () => {
     });
     const find = (id: string) => sampled.sections.find((entry) => entry.id === id)!;
     expect(find('popularity:sqlite:mine').provenance).toContain('bounded sample of 2,000');
+    expect(find('popularity:sqlite:mine').entries[0]!.criterion).toContain(
+      'dated games in this sample',
+    );
     expect(find('popularity:sqlite:mine').provenance).toContain('7 sampled games had no date');
     expect(find('elo:sqlite:mine').provenance).toContain('19 sampled games state no rating');
 
@@ -154,5 +157,25 @@ describe('the Opening Report’s history, per population', () => {
     expect(find('elo:sqlite:mine').provenance).not.toContain('no result');
     expect(find('pioneers:sqlite:mine').provenance).toContain('not necessarily the first');
     expect(find('pioneers:sqlite:mine').entries[0]!.criterion).toBe('earliest in this sample');
+  });
+});
+
+describe('undated collection games', () => {
+  it('distinguishes missing dates from a collection with no games', () => {
+    const result = buildOpeningReport({
+      fen: FEN,
+      histories: [
+        {
+          id: 'sqlite:undated',
+          name: 'Undated archive',
+          bands: [0],
+          history: { key: 'k', byYear: new Map(), byBand: new Map(), first: [] },
+          sample: { games: 3, hasMore: false, undated: 3, unrated: 3 },
+        },
+      ],
+    });
+    expect(result.sections.find((s) => s.id === 'pioneers:sqlite:undated')?.emptyReason).toBe(
+      'Undated archive has no dated game at this position.',
+    );
   });
 });

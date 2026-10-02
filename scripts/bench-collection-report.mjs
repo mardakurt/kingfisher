@@ -133,59 +133,63 @@ async function measure(work) {
 async function main() {
   const directory = mkdtempSync(path.join(tmpdir(), 'kingfisher-report-bench-'));
   const file = path.join(directory, 'games.sqlite');
-  const kit = await loadApp(['/src/companion-kit/import-kit.ts']);
-  const { generateGames } = await import('./generate-pgn.mjs');
+  let database;
+  try {
+    const kit = await loadApp(['/src/companion-kit/import-kit.ts']);
+    const { generateGames } = await import('./generate-pgn.mjs');
 
-  console.log(`\nKingfisher collection Opening Report benchmark — ${COUNT.toLocaleString()} games`);
-  console.log(`node ${version} · ${platform}-${arch}`);
-  console.log(
-    `${cpus()[0]?.model ?? 'unknown cpu'} · ${(totalmem() / 1024 ** 3).toFixed(0)} GB RAM`,
-  );
-  console.log(`${platform} ${release()} · layout ${POSTINGS ? 'postings' : 'rows'}`);
-  console.log(`collection: ${file}\n`);
+    console.log(
+      `\nKingfisher collection Opening Report benchmark — ${COUNT.toLocaleString()} games`,
+    );
+    console.log(`node ${version} · ${platform}-${arch}`);
+    console.log(
+      `${cpus()[0]?.model ?? 'unknown cpu'} · ${(totalmem() / 1024 ** 3).toFixed(0)} GB RAM`,
+    );
+    console.log(`${platform} ${release()} · layout ${POSTINGS ? 'postings' : 'rows'}`);
+    console.log(`collection: ${file}\n`);
 
-  const database = new GameDatabase(file, POSTINGS ? { layout: 'postings' } : {});
-  database.useKit(kit);
-  database.beginBulk();
+    database = new GameDatabase(file, POSTINGS ? { layout: 'postings' } : {});
+    database.useKit(kit);
+    database.beginBulk();
 
-  const pgn = generateGames(COUNT);
-  const pgnBytes = Buffer.byteLength(pgn, 'utf8');
-  const parseStarted = performance.now();
-  const prepared = kit.preparePgnBatch(pgn, null, true, Date.UTC(2026, 0, 1));
-  const parseMs = performance.now() - parseStarted;
+    const pgn = generateGames(COUNT);
+    const pgnBytes = Buffer.byteLength(pgn, 'utf8');
+    const parseStarted = performance.now();
+    const prepared = kit.preparePgnBatch(pgn, null, true, Date.UTC(2026, 0, 1));
+    const parseMs = performance.now() - parseStarted;
 
-  let imported = 0;
-  for (let at = 0; at < prepared.payloads.length; at += BATCH) {
-    imported += database.insertGames(prepared.payloads.slice(at, at + BATCH)).imported;
-  }
-  database.endBulk();
-  const importMs = performance.now() - parseStarted;
+    let imported = 0;
+    for (let at = 0; at < prepared.payloads.length; at += BATCH) {
+      imported += database.insertGames(prepared.payloads.slice(at, at + BATCH)).imported;
+    }
+    database.endBulk();
+    const importMs = performance.now() - parseStarted;
 
-  const onDisk = statSync(file).size;
-  const positions = database.count();
-  void positions;
+    const onDisk = statSync(file).size;
+    const positions = database.count();
+    void positions;
 
-  console.log(
-    `parsed and indexed ${imported.toLocaleString()} games in ${(importMs / 1000).toFixed(1)} s`,
-  );
-  console.log(`  of which preparing took ${(parseMs / 1000).toFixed(1)} s`);
-  console.log(`  ${prepared.rejected.toLocaleString()} rejected by the parser\n`);
+    console.log(
+      `parsed and indexed ${imported.toLocaleString()} games in ${(importMs / 1000).toFixed(1)} s`,
+    );
+    console.log(`  of which preparing took ${(parseMs / 1000).toFixed(1)} s`);
+    console.log(`  ${prepared.rejected.toLocaleString()} rejected by the parser\n`);
 
-  console.log('storage');
-  console.log(`  collection on disk        ${mb(onDisk)}`);
-  console.log(
-    `  per game                  ${(onDisk / Math.max(1, imported) / 1024).toFixed(1)} kB`,
-  );
-  console.log(
-    `  PGN that produced it      ${mb(pgnBytes)} (${(pgnBytes / Math.max(1, imported) / 1024).toFixed(1)} kB per game)`,
-  );
-  const MILLION = 1_000_000;
-  console.log(
-    `  arithmetic for a million  ${mb((onDisk / Math.max(1, imported)) * MILLION)} — a projection, not a measurement`,
-  );
-  console.log('');
+    console.log('storage');
+    console.log(`  collection on disk        ${mb(onDisk)}`);
+    console.log(
+      `  per game                  ${(onDisk / Math.max(1, imported) / 1024).toFixed(1)} kB`,
+    );
+    console.log(
+      `  PGN that produced it      ${mb(pgnBytes)} (${(pgnBytes / Math.max(1, imported) / 1024).toFixed(1)} kB per game)`,
+    );
+    const MILLION = 1_000_000;
+    console.log(
+      `  arithmetic for a million  ${mb((onDisk / Math.max(1, imported)) * MILLION)} — a projection, not a measurement`,
+    );
+    console.log('');
 
-  /*
+    /*
     The same discovery for both layouts, so the two runs are comparable. The
     rows layout also indexes the starting position — which every game has
     passed through, and is therefore the one position whose reach is known
@@ -193,59 +197,60 @@ async function main() {
     layout does not carry it, so it is added only where it exists rather than
     timed against nothing.
   */
-  const probes = [
-    ...(POSTINGS ? [] : [['the starting position', START]]),
-    ...commonestPositions(prepared.payloads, 4).filter(([, key]) => key !== START),
-  ];
+    const probes = [
+      ...(POSTINGS ? [] : [['the starting position', START]]),
+      ...commonestPositions(prepared.payloads, 4).filter(([, key]) => key !== START),
+    ];
 
-  console.log(`the Opening Report's own read — target p95 < ${TARGET_P95_MS} ms`);
-  let worstP95 = 0;
-  for (const [label, key, reach] of probes) {
-    const history = database.positionHistory(key);
-    if (history.sampledGames === 0) {
-      throw new Error(`${label} reaches no game in this collection; the probe is wrong`);
+    console.log(`the Opening Report's own read — target p95 < ${TARGET_P95_MS} ms`);
+    let worstP95 = 0;
+    for (const [label, key, reach] of probes) {
+      const history = database.positionHistory(key);
+      if (history.sampledGames === 0) {
+        throw new Error(`${label} reaches no game in this collection; the probe is wrong`);
+      }
+      const timing = await measure(() => database.positionHistory(key));
+      worstP95 = Math.max(worstP95, timing.p95);
+      console.log(
+        `  ${label.padEnd(24)} ${ms(timing.median).padStart(9)} median  ` +
+          `${ms(timing.p95).padStart(9)} p95  ${ms(timing.worst).padStart(9)} worst  ` +
+          `(${history.sampledGames.toLocaleString()} games${history.hasMore ? ' sampled, more present' : ''})`,
+      );
     }
-    const timing = await measure(() => database.positionHistory(key));
-    worstP95 = Math.max(worstP95, timing.p95);
-    console.log(
-      `  ${label.padEnd(24)} ${ms(timing.median).padStart(9)} median  ` +
-        `${ms(timing.p95).padStart(9)} p95  ${ms(timing.worst).padStart(9)} worst  ` +
-        `(${history.sampledGames.toLocaleString()} games${history.hasMore ? ' sampled, more present' : ''})`,
-    );
-  }
-  console.log('');
-
-  console.log("the explorer's read at the same positions");
-  let worstExplore = 0;
-  for (const [label, key] of probes) {
-    const timing = await measure(() => database.explore(key, 24, {}));
-    worstExplore = Math.max(worstExplore, timing.p95);
-    console.log(
-      `  ${label.padEnd(24)} ${ms(timing.median).padStart(9)} median  ` +
-        `${ms(timing.p95).padStart(9)} p95  ${ms(timing.worst).padStart(9)} worst`,
-    );
-  }
-  console.log('');
-
-  const verdict = worstP95 <= TARGET_P95_MS ? 'meets' : 'MISSES';
-  console.log(
-    `verdict: the report's worst p95 ${ms(worstP95)} ${verdict} the ${TARGET_P95_MS} ms target`,
-  );
-  console.log(`         the explorer's worst p95 ${ms(worstExplore)}`);
-  if (imported < MILLION) {
     console.log('');
-    console.log(
-      `Read these as a lower bound. ${imported.toLocaleString()} games is not the million the\n` +
-        'assessment asks for, and the projection above is division, not evidence. The honest\n' +
-        'next step is to run this against a collection the maintainer already owns.',
-    );
-  }
 
-  database.close();
-  if (KEEP) console.log(`\nkept: ${file}`);
-  else {
-    rmSync(directory, { recursive: true, force: true });
-    console.log(`\nremoved ${file}`);
+    console.log("the explorer's read at the same positions");
+    let worstExplore = 0;
+    for (const [label, key] of probes) {
+      const timing = await measure(() => database.explore(key, 24, {}));
+      worstExplore = Math.max(worstExplore, timing.p95);
+      console.log(
+        `  ${label.padEnd(24)} ${ms(timing.median).padStart(9)} median  ` +
+          `${ms(timing.p95).padStart(9)} p95  ${ms(timing.worst).padStart(9)} worst`,
+      );
+    }
+    console.log('');
+
+    const verdict = worstP95 <= TARGET_P95_MS ? 'meets' : 'MISSES';
+    console.log(
+      `verdict: the report's worst p95 ${ms(worstP95)} ${verdict} the ${TARGET_P95_MS} ms target`,
+    );
+    console.log(`         the explorer's worst p95 ${ms(worstExplore)}`);
+    if (imported < MILLION) {
+      console.log('');
+      console.log(
+        `Read these as a lower bound. ${imported.toLocaleString()} games is not the million the\n` +
+          'assessment asks for, and the projection above is division, not evidence. The honest\n' +
+          'next step is to run this against a collection the maintainer already owns.',
+      );
+    }
+  } finally {
+    database?.close();
+    if (KEEP) console.log(`\nkept: ${file}`);
+    else {
+      rmSync(directory, { recursive: true, force: true });
+      console.log(`\nremoved ${file}`);
+    }
   }
 }
 

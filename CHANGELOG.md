@@ -6,6 +6,11 @@ real users notice.
 
 ## Unreleased (web)
 
+- Opening Reports keep an unavailable selected collection visible instead of
+  silently using another database for plans. Games missing dates are described
+  as undated, rather than as absent; capped year percentages name the sample
+  denominator explicitly.
+
 - **Opening Reports can read a selected companion collection.** At a position,
   choose a local SQLite collection to see its games by year and rating class,
   then open one of the earliest games shown. Common positions use a clearly

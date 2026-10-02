@@ -1,3 +1,8 @@
+**Unpublished audit corrections (2026-10-02).** The collection-backed Opening
+Report and its follow-up corrections are ahead of the public Mac build 1007.
+The fixes affect both browser and Mac application code. No new Mac release has
+been published or certified during this audit.
+
 # Platform parity — the web application and the macOS application
 
 **Published revision check (2026-10-01, 1.4.0).** The public Mac download is

@@ -325,6 +325,23 @@ test('the plan sections count a real collection, and cite how many games they re
   await report(page).waitFor();
   await expect(report(page).getByLabel('Report collection')).toHaveValue('');
 
+  // A saved archive can disappear while another collection remains registered.
+  // Its plans must not be silently substituted with that other collection.
+  await page.evaluate(() => {
+    const stored = JSON.parse(localStorage.getItem('kingfisher.preferences')!);
+    stored.state.reportCollectionId = 'sqlite:missing-archive';
+    localStorage.setItem('kingfisher.preferences', JSON.stringify(stored));
+  });
+  await page.reload();
+  await page.locator(READY).waitFor();
+  await selectTool(page, page.locator('[data-workspace-dock]').first(), 'Opening Report');
+  await expect(report(page).getByLabel('Report collection')).toHaveValue('sqlite:missing-archive');
+  await expect(report(page).getByRole('status')).toContainText(
+    'selected collection is unavailable',
+  );
+  await expect(section(page, 'destinations')).toHaveCount(0);
+  await report(page).getByLabel('Report collection').selectOption('');
+
   await page.goto('/databases');
   await page.locator(READY).waitFor();
   await page.getByRole('button', { name: /Plan evidence E2E/ }).click();
@@ -384,4 +401,23 @@ test('popularity by year, Elo classes and first games come from the built-in pac
   const first = section(page, 'pioneers:kingfisher-starter');
   await expect(first).toContainText('First games — Kingfisher Starter Reference');
   await expect(first.locator('li').first()).toContainText('earliest in this population');
+});
+
+test('an unavailable saved report collection stays explicit', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'kingfisher.preferences',
+      JSON.stringify({
+        state: { reportCollectionId: 'sqlite:missing-archive' },
+        version: 7,
+      }),
+    );
+  });
+  await openReport(page);
+  await expect(report(page).getByLabel('Report collection')).toHaveValue('sqlite:missing-archive');
+  await expect(report(page).getByRole('status')).toContainText(
+    'selected collection is unavailable',
+  );
+  await report(page).getByLabel('Report collection').selectOption('');
+  await expect(report(page).getByRole('status')).toHaveCount(0);
 });

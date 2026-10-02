@@ -191,8 +191,10 @@ export function OpeningReportPanel() {
   const resolvedSource = useExplorerSource(explorerSourceId);
   const preferred = resolvedSource.kind === 'ready' ? resolvedSource.provider : undefined;
   // While the chosen source could still register, nothing answers in its place.
-  const continuationSource = selectedCollection?.continuations
-    ? selectedCollection
+  const continuationSource = selectedCollectionId
+    ? selectedCollection?.continuations
+      ? selectedCollection
+      : undefined
     : resolvedSource.kind === 'waiting'
       ? undefined
       : preferred?.continuations
@@ -410,18 +412,21 @@ export function OpeningReportPanel() {
       <PanelHeader>Opening Report</PanelHeader>
       <PanelBody>
         <div className="flex flex-col gap-4" data-opening-report>
-          {collections.length > 0 && (
+          {(collections.length > 0 || selectedCollectionId) && (
             <label className="text-xs text-secondary">
               Report collection
               <select
                 aria-label="Report collection"
-                value={selectedCollection?.id ?? ''}
+                value={selectedCollectionId}
                 onChange={(event) =>
                   setReportCollectionId('reportCollectionId', event.target.value)
                 }
                 className="mt-1 block w-full rounded border border-line bg-surface-inset p-2"
               >
                 <option value="">Reference packs only</option>
+                {selectedCollectionId && !selectedCollection && (
+                  <option value={selectedCollectionId}>Selected collection unavailable</option>
+                )}
                 {collections.map((provider) => (
                   <option key={provider.id} value={provider.id}>
                     {provider.name}
@@ -429,6 +434,12 @@ export function OpeningReportPanel() {
                 ))}
               </select>
             </label>
+          )}
+          {selectedCollectionId && !selectedCollection && (
+            <p role="status" className="text-xs text-secondary">
+              The selected collection is unavailable. Connect its companion or choose another
+              collection.
+            </p>
           )}
           {selectedCollection && collectionHistory.isPending && (
             <p role="status" className="text-xs text-secondary">

@@ -289,7 +289,9 @@ counts the same thing the report's denominator counts.
 
 ## 7. What this session did not do
 
-- No data was added, imported or generated. Nothing was downloaded. The only
+- No permanent reference data was added. The benchmarks generated synthetic
+  collections in temporary directories and removed them after successful runs.
+  Nothing was downloaded. The only
   disk movement was build output: the repository's `.next` cache is 5.9 GB and
   `desktop/dist` holds 929 MB of 1.0.0–1.2.1 DMGs, both pre-existing and
   git-ignored. Flagged, not deleted — those are the maintainer's artefacts.

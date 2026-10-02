@@ -353,7 +353,7 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     control: 'features/openings/OpeningReportPanel.tsx',
     consumer: 'features/openings/OpeningReportPanel.tsx',
     effect:
-      'The report reads its year, Elo and earliest-game sections from that collection instead of from reference packs, and keeps reading it after a reload.',
+      'The report reads its year, Elo and earliest-game sections from that collection alongside reference packs, and keeps the choice after a reload. An unavailable collection is stated explicitly.',
     indexedAs: null,
     previewable: true,
     verifiedBy: 'e2e/opening-report.spec.ts',
