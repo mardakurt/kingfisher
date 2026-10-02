@@ -247,15 +247,18 @@ The stable build 1025 application is Developer ID signed, Apple-notarized
 and stapled. Its packaged boot verified the renderer, web server, companion,
 engine catalogue and Sparkle 2.10.0 before generating the archives. The
 DMG submission `59065a1f-0dd7-4621-b9f9-6e17bdf9bfef` remains In Progress
-at Apple as of 20:26 UTC. The submit wrapper exited without a verdict;
+at Apple as of 20:45 UTC. The submit wrapper exited without a verdict;
 `notarytool info` confirms the existing submission, so it was not resubmitted.
 App acceptance does not establish DMG acceptance. Publication remains held.
 
 The same-binary extended certification has passed smoke 17/17, window chrome
 109/109, restart 7/7, native engines 25/25 and suspend/resume 14/14. Its
-1,000-action walk and 300-action fault walk remain in progress. The new
-30-minute soak uses the previously failing seed 19447; it also remains in
-progress. Both run with independent profiles to avoid another sequential
+1,000-action seed 46 walk passed in 1,231 seconds with no findings or console
+errors. The 300-action seed 7 fault walk passed in 352 seconds with no findings
+and two console errors during injected failures. The new 30-minute
+soak used the previously failing seed 19447 and passed 781 actions in
+1,808 seconds, with no findings or console errors and zero surviving
+descendant processes on quit. Both run with independent profiles to avoid another sequential
 30-minute wait. This concurrent load is recorded, and their eventual memory
 observations will not be described as isolated application measurements.
 
@@ -264,3 +267,49 @@ Commit `8669949` changes only the certification harness: strict
 walks directly inside certification. Invalid counts fail before launching;
 the mutation-independent negative check refused 199 normal actions. The
 packaged runtime remains build 1025 from `f6f7052`.
+
+The corrected package's resource suite passed all three tests in 3.9 minutes.
+Ten navigation cycles ended with one worker, one observer, 15 window listeners,
+one interval and estimated JS heap 141.9 MB. Four repeated research-chain
+passes retained five review prompts, one worker, three observers, 16 listeners
+and two intervals. These are bounded resource checks, not a flat-RSS claim;
+the production cache-injection test does not expose the browser development hook.
+
+All three real optional packs installed in a disposable profile and answered
+offline after restart: Elite OTB (407,538 games, 377 ms), Recent Theory
+(44,200 games, 396 ms), High-Rated Online (305,169 games, 96 ms). Times include
+UI selection. Theory Book return navigation passed. The profile was removed.
+A fresh isolated 1.4.0 build 1007 → 1.4.1 build 1025 upgrade passed 7/7,
+preserving the authored study, preferences, reference metadata and profile
+identity; the installed application and owner's profile were not replaced.
+
+The corrected runtime CI `37056702368` and harness CI `37057620013` passed.
+Deployment status for documentation commit `f507013` reports
+`up to date (f6f7052; the 2 commit(s) since changed nothing the web build reads,
+so Vercel skipped them)`. A real in-app browser loaded the canonical Analysis
+page: the board, notation, engine and playout surfaces rendered. This is a
+live-page check, not another full browser suite.
+
+Final local certification of corrected build 1025 passed **10/10 stages**,
+including both extended walks, DMG layout/identity/signature verification,
+zero-skip scan and 372 files / 3,963 tests in 55 seconds. The 30-minute soak,
+resource suite, real-pack/offline field check and isolated upgrade also passed.
+
+`desktop:trust:verify` exited 1, **NOT GREEN**. The application passed all
+29 code-object signature checks, the sealed-bundle verification, stapled ticket
+and Gatekeeper's Notarized Developer ID assessment. The DMG failed its ticket
+and Gatekeeper checks because its separate Apple submission remains In Progress.
+The accepted application is not used to conceal that failed release gate.
+
+The public descriptor remains 1.4.0 build 1007. GitHub 1.4.1 is still a draft
+holding the superseded build 1024 assets; no corrected build 1025 public download
+or Sparkle public-update success is claimed. After Apple acceptance, the existing
+submission's digest must be bound to this DMG, then the ticket stapled, trust
+rechecked, the quarantined GUI launch completed, feeds generated, draft assets
+replaced, release published, real public Sparkle update verified and the public
+descriptor/deployment/download bytes checked. These remain pending release work.
+
+Only the two task-owned superseded build 1024 staging/quarantine directories
+were removed (approximately 1.3 GiB combined). Logs, regression evidence,
+walk reports and the corrected 787 MiB build 1025 candidate remain available.
+The current run never allocated a new 10M corpus on the internal SSD.
