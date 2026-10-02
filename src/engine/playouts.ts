@@ -117,14 +117,40 @@ export async function playOut(
   search: (fen: Fen, signal?: AbortSignal) => Promise<readonly PlayoutSearchLine[]>,
   signal?: AbortSignal,
   onProgress?: (finished: number, plies: number) => void,
+  checkpoint?: {
+    readonly completed: readonly Playout[];
+    readonly save: (completed: readonly Playout[]) => Promise<void>;
+  },
 ): Promise<PlayoutReport> {
-  const random = seeded(options.seed);
+  if (
+    ![
+      options.playouts,
+      options.msPerMove,
+      options.multiPv,
+      options.marginCp,
+      options.maxPlies,
+      options.seed,
+    ].every(Number.isSafeInteger) ||
+    options.playouts < 1 ||
+    options.playouts > 100 ||
+    options.msPerMove < 1 ||
+    options.multiPv < 1 ||
+    options.multiPv > 5 ||
+    options.marginCp < 0 ||
+    options.maxPlies < 1 ||
+    options.maxPlies > 1000
+  )
+    throw new Error('Invalid playout budget or seed.');
   const first = Position.fromFen(start);
   if (!first.ok) throw new Error(`The start position is not playable: ${first.error.message}`);
-  const playouts: Playout[] = [];
+  const playouts: Playout[] = [...(checkpoint?.completed ?? [])];
+  if (playouts.length > options.playouts)
+    throw new Error('Checkpoint exceeds the requested game budget.');
   let stopped = false;
 
-  outer: for (let game = 0; game < options.playouts; game += 1) {
+  outer: for (let game = playouts.length; game < options.playouts; game += 1) {
+    // Each game has its own random stream, so restarting at a game boundary is reproducible.
+    const random = seeded((options.seed + game) >>> 0);
     let position = first.value;
     const moves: Uci[] = [];
     const seen = new Map<string, number>([[position.hash(), 1]]);
@@ -174,6 +200,7 @@ export async function playOut(
       seen.set(position.hash(), (seen.get(position.hash()) ?? 0) + 1);
       onProgress?.(playouts.length, moves.length);
     }
+    await checkpoint?.save([...playouts]);
     onProgress?.(playouts.length, 0);
   }
 

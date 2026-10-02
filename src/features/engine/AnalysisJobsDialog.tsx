@@ -11,6 +11,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { fromDeepJob, fromQueueJob, jobsView, type AnalysisJobView } from '@/engine/jobs';
 import { getRepositories } from '@/persistence/repositories';
@@ -37,10 +38,19 @@ export function AnalysisJobsDialog({ onClose }: { readonly onClose: () => void }
         repositories.analysisQueue.list(),
         repositories.deepAnalysis.list(),
       ]);
-      return jobsView([
-        ...queue.map((job) => fromQueueJob(job, { now })),
-        ...deep.map((job) => fromDeepJob(job, { activeHere: job.id === activeDeep })),
-      ]);
+      return {
+        evidence: {
+          format: 'kingfisher-analysis-lab',
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          queue,
+          deep,
+        },
+        views: jobsView([
+          ...queue.map((job) => fromQueueJob(job, { now })),
+          ...deep.map((job) => fromDeepJob(job, { activeHere: job.id === activeDeep })),
+        ]),
+      };
     },
   });
 
@@ -53,6 +63,25 @@ export function AnalysisJobsDialog({ onClose }: { readonly onClose: () => void }
       width="w-[680px]"
     >
       <div className="text-xs" data-analysis-jobs>
+        {jobs.data ? (
+          <Button
+            size="sm"
+            onClick={() => {
+              const url = URL.createObjectURL(
+                new Blob([JSON.stringify(jobs.data.evidence, null, 2)], {
+                  type: 'application/json',
+                }),
+              );
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = 'kingfisher-analysis-lab.json';
+              link.click();
+              setTimeout(() => URL.revokeObjectURL(url), 1000);
+            }}
+          >
+            Export job budgets and checkpoints
+          </Button>
+        ) : null}
         {jobs.isPending ? (
           <p role="status">Reading the jobs…</p>
         ) : jobs.isError ? (
@@ -60,14 +89,14 @@ export function AnalysisJobsDialog({ onClose }: { readonly onClose: () => void }
             The jobs could not be read:{' '}
             {jobs.error instanceof Error ? jobs.error.message : 'unknown error'}
           </p>
-        ) : (jobs.data ?? []).length === 0 ? (
+        ) : (jobs.data?.views ?? []).length === 0 ? (
           <p className="text-secondary">
             No analysis jobs. Queue games from the Library, or start a deep analysis from the Engine
             panel.
           </p>
         ) : (
           <ul className="flex flex-col gap-2">
-            {(jobs.data ?? []).map((job) => (
+            {(jobs.data?.views ?? []).map((job) => (
               <li
                 key={`${job.kind}:${job.id}`}
                 data-analysis-job={job.state}

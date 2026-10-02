@@ -11,6 +11,8 @@
 import { create } from 'zustand';
 
 import type { Fen } from '@/chess/types';
+import { experimentTree, type PlayoutExperiment } from '@/engine/playout-experiment';
+import { getRepositories } from '@/persistence/repositories';
 import { playOut, type PlayoutOptions, type PlayoutReport } from '@/engine/playouts';
 import { engineDefinition, engineProviderById } from '@/engine/registry';
 import type { EngineSession } from '@/engine/types';
@@ -26,7 +28,13 @@ interface PlayoutState {
   plies: number;
   report: PlayoutReport | null;
   error: string | null;
-  start(fen: Fen, engineId: string, options: PlayoutOptions): Promise<void>;
+  experiment: PlayoutExperiment | null;
+  start(
+    fen: Fen,
+    engineId: string,
+    options: PlayoutOptions,
+    resume?: PlayoutExperiment,
+  ): Promise<void>;
   stop(): void;
   clear(): void;
 }
@@ -36,6 +44,7 @@ let session: EngineSession | null = null;
 
 export const usePlayouts = create<PlayoutState>((set, get) => ({
   status: 'idle',
+  experiment: null,
   startFen: null,
   engineName: null,
   finished: 0,
@@ -43,7 +52,7 @@ export const usePlayouts = create<PlayoutState>((set, get) => ({
   report: null,
   error: null,
 
-  start: async (fen, engineId, options) => {
+  start: async (fen, engineId, options, resume) => {
     if (get().status === 'running') return;
     controller = new AbortController();
     const signal = controller.signal;
@@ -54,6 +63,7 @@ export const usePlayouts = create<PlayoutState>((set, get) => ({
       finished: 0,
       plies: 0,
       report: null,
+      experiment: null,
       error: null,
     });
     useEngine.getState().stop('primary');
@@ -68,6 +78,35 @@ export const usePlayouts = create<PlayoutState>((set, get) => ({
       const name = session.identity.name || get().engineName || engineId;
       set({ engineName: name });
       const active = session;
+      if (
+        resume &&
+        (resume.identity.name !== active.identity.name ||
+          resume.identity.version !== active.identity.version ||
+          resume.identity.author !== active.identity.author)
+      )
+        throw new Error(
+          'The engine identity differs from the saved experiment. Start a new experiment.',
+        );
+      const repositories = await getRepositories();
+      let experiment: PlayoutExperiment = resume ?? {
+        format: 'kingfisher-playout-experiment',
+        version: 1,
+        fen,
+        engineId,
+        identity: active.identity,
+        options,
+        parameters: { threads: 1, hashMb: 32 },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        completed: [],
+      };
+      const study = await repositories.studies.create({ title: `Playout experiment · ${name}` });
+      let chapter = await repositories.studies.createChapter({
+        studyId: study.id,
+        title: resume ? 'Resumed experiment' : 'Experiment checkpoint',
+        tree: experimentTree(experiment),
+      });
+      set({ experiment });
       const report = await playOut(
         fen,
         name,
@@ -90,6 +129,17 @@ export const usePlayouts = create<PlayoutState>((set, get) => ({
         },
         signal,
         (finished, plies) => set({ finished, plies }),
+        {
+          completed: experiment.completed,
+          save: async (completed) => {
+            experiment = { ...experiment, completed, updatedAt: new Date().toISOString() };
+            chapter = await repositories.studies.saveChapter({
+              ...chapter,
+              tree: experimentTree(experiment),
+            });
+            set({ experiment });
+          },
+        },
       );
       set({ status: 'done', report });
     } catch (error) {
@@ -104,7 +154,15 @@ export const usePlayouts = create<PlayoutState>((set, get) => ({
   stop: () => controller?.abort(),
 
   clear: () => {
-    controller?.abort();
-    set({ status: 'idle', startFen: null, finished: 0, plies: 0, report: null, error: null });
+    if (get().status === 'running') return;
+    set({
+      status: 'idle',
+      startFen: null,
+      finished: 0,
+      plies: 0,
+      report: null,
+      experiment: null,
+      error: null,
+    });
   },
 }));

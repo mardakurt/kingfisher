@@ -5,6 +5,7 @@
  */
 
 import { expect, test, type Page } from '@playwright/test';
+import type { AppRepositories } from '../src/persistence/types';
 
 async function ready(page: Page) {
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();
@@ -52,4 +53,51 @@ test('playouts report how the games ended, with the engine and the time named', 
   await expect(again.locator('[data-playouts-report]')).toContainText(
     /: White won 0, drawn 10, Black won 0\./,
   );
+});
+
+test('an interrupted browser experiment resumes from its durable chapter after reload', async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  await page.goto(`/analysis?fen=${encodeURIComponent(DRAWN)}`);
+  await ready(page);
+  await page.getByRole('tab', { name: 'Engine', exact: true }).click();
+  const section = page.getByRole('region', { name: 'Playouts' });
+  await section.getByRole('button', { name: 'Play it out…' }).click();
+  await section.getByLabel('Games').selectOption('10');
+  await section.getByLabel('Per move').selectOption('50');
+  await section.getByRole('button', { name: 'Start 10 playouts' }).click();
+  await expect(section.locator('[data-playouts-progress]')).toContainText(/game [2-9],/, {
+    timeout: 60_000,
+  });
+  await section.getByRole('button', { name: /^Stop ·/ }).click();
+  await expect(section).toHaveAttribute('data-playouts', 'done');
+  const checkpoint = await page.evaluate(async () => {
+    const app = (globalThis as unknown as { __kingfisher: AppRepositories }).__kingfisher;
+    const studies = await app.studies.list();
+    const study = studies.find((row) => row.title.startsWith('Playout experiment'));
+    if (!study) throw new Error('No saved experiment');
+    const saved = await app.studies.get(study.id);
+    const chapter = saved?.chapters[0];
+    if (!chapter) throw new Error('No checkpoint chapter');
+    const raw = chapter.tree.headers.KingfisherExperiment;
+    if (!raw) throw new Error('No experiment evidence');
+    const record = JSON.parse(raw);
+    return { study: study.id, chapter: chapter.id, finished: record.completed.length };
+  });
+  expect(checkpoint.finished).toBeGreaterThanOrEqual(1);
+  expect(checkpoint.finished).toBeLessThan(10);
+  await page.goto(`/studies?study=${checkpoint.study}&chapter=${checkpoint.chapter}`);
+  await page.reload();
+  await ready(page);
+  await page.getByRole('tab', { name: 'Engine', exact: true }).click();
+  const resumed = page.getByRole('region', { name: 'Playouts' });
+  await resumed.getByRole('button', { name: 'Resume saved experiment' }).click();
+  await expect(resumed).toHaveAttribute('data-playouts', 'done', { timeout: 120_000 });
+  await expect(resumed.locator('[data-playouts-report]')).toContainText(
+    'White won 0, drawn 10, Black won 0.',
+  );
+  const download = page.waitForEvent('download');
+  await resumed.getByRole('button', { name: 'Export experiment evidence' }).click();
+  expect((await download).suggestedFilename()).toBe('kingfisher-playout-experiment.json');
 });
