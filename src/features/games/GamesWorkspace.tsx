@@ -60,6 +60,7 @@ import {
   type LibrarySource,
 } from './library-source';
 import { BatchDepartureDialog } from './BatchDepartureDialog';
+import { CrosstableDialog } from './CrosstableDialog';
 import { mergeSelectedGames } from './merge-selected';
 import { openInNewTab } from '@/features/tabs/tab-actions';
 import { useAnalysis } from '@/stores/analysis-store';
@@ -159,6 +160,7 @@ export function GamesWorkspace() {
   const [page, setPage] = useState(0);
   /** The row whose game the preview shows. */
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [tournamentOf, setTournamentOf] = useState<GameSummary | null>(null);
   /** The row to bring into view once, after a return restored the preview. */
   const restoreScrollTo = useRef<string | null>(null);
   const wide = useMediaQuery('(min-width: 1024px)');
@@ -758,6 +760,17 @@ export function GamesWorkspace() {
       {departureIds ? (
         <BatchDepartureDialog ids={departureIds} onClose={() => setDepartureIds(null)} />
       ) : null}
+      {tournamentOf ? (
+        <CrosstableDialog
+          source={source}
+          game={tournamentOf}
+          onClose={() => setTournamentOf(null)}
+          onOpenGame={(game) => {
+            setTournamentOf(null);
+            void open(game, '/analysis');
+          }}
+        />
+      ) : null}
 
       <div className="relative flex min-h-0 flex-1 border-t border-line-subtle">
         <div className="min-h-0 min-w-0 flex-1 overflow-auto" data-library-list>
@@ -1055,6 +1068,7 @@ export function GamesWorkspace() {
               onOpen={(game, ply) => void open(game, '/analysis', ply)}
               onReview={(game, ply) => void open(game, '/review', ply)}
               onQueue={local ? (game) => openAnalysisQueue([game.id]) : undefined}
+              onTournament={setTournamentOf}
             />
           </aside>
         ) : null}
@@ -1475,9 +1489,12 @@ function GamePreview({
   onOpen,
   onReview,
   onQueue,
+  onTournament,
 }: {
   readonly source: LibrarySource;
   readonly game: GameSummary | null;
+  /** The event's cross-table, for a game that names one. */
+  readonly onTournament: (game: GameSummary) => void;
   /** `ply` is the move the preview was stepped to; absent when it was not. */
   readonly onOpen: (game: GameSummary, ply?: number) => void;
   readonly onReview: (game: GameSummary, ply?: number) => void;
@@ -1618,6 +1635,11 @@ function GamePreview({
         </Button>
         <Button onClick={() => onReview(game, chosenPly)}>Review</Button>
         {onQueue ? <Button onClick={() => onQueue(game)}>Analyse</Button> : null}
+        {game.event?.trim() && game.event.trim() !== '?' ? (
+          <Button onClick={() => onTournament(game)} data-library-tournament>
+            Tournament
+          </Button>
+        ) : null}
       </div>
     </div>
   );
