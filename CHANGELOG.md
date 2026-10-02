@@ -4,7 +4,21 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
-## Unreleased (web)
+## 1.4.1 — 2026-10-02
+
+- Preparation survey answers save as portable study questions with dated evidence.
+- Large imports support external storage, compact indexes, rating filters,
+  checksums, disk safeguards, annotation coverage and incremental rollback.
+- Recent source games can be checked from the repertoire inbox; playout
+  experiments checkpoint, resume and export evidence. Analysis job budgets
+  and checkpoints are exportable. Added reproducible scale and independent
+  ChessBase acceptance tooling.
+
+- **Opening surveys from one named source.** Generate a bounded variation tree
+  of recorded practice, with legal moves, game-count comments and explicit
+  depth/branch/query limits. Copy PGN; stop a run without hiding partial output.
+- **Opening Report export.** Copy Markdown with the position, snapshot time,
+  source labels, sample denominators and unavailable-evidence explanations.
 
 - Opening Reports keep an unavailable selected collection visible instead of
   silently using another database for plans. Games missing dates are described

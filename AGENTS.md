@@ -232,7 +232,9 @@ returns `null` in a browser. Five rules hold, and each has cost something:
   `npm run desktop:restart` is the check, and the reason it exists is that
   nothing in twenty-one phases had ever quit the application and opened it
   again.
-- **Native file access goes through one boundary.** Everything readable was
+- **Native file access goes through one boundary.** New collection creation may
+  use a directory explicitly chosen in the native picker; filenames are
+  sanitised and created exclusively, never overwritten. Everything readable was
   chosen in a dialog or dropped on the window. There is no `readFile(path)` on
   the bridge, and `/db/attach` — the one route that names a path — opens the
   file read-only and refuses anything that is not already a Kingfisher
@@ -515,7 +517,7 @@ number (`git rev-list --count HEAD`), commit, dirty flag and channel, in
 them. `KINGFISHER_DESKTOP_CHANNEL` is `dev` (default), `preview` or
 `stable`; a publishable channel refuses a dirty tree.
 
-- **The current marketing version is 1.4.0.** The public Mac descriptor
+- **The source version is 1.4.1 (release preparation).** The public Mac descriptor
   names the signed/notarized 1.4.0 build 1007. Bump only for a real release.
   Bump the marketing version only for a real release.
   Never create a version to freshen a filename.

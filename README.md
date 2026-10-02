@@ -3,7 +3,7 @@
 A local-first chess research workstation for serious players.
 
 > **Public release · 1.4.0** (macOS, Developer ID signed and notarised)
-> Source · 1.4.0. Research remains opt-in under Layout.
+> Source · 1.4.1 (Mac publication pending). Research remains opt-in under Layout.
 > No account. No cookies. No subscription.
 
 |                                                                           |                                                                                            |
@@ -246,11 +246,18 @@ the page says so. See [`THIRD_PARTY_DATA.md`](THIRD_PARTY_DATA.md).
 
 ---
 
+## Opening research handoffs
+
+In Analysis, open Opening Report and choose **Opening survey** to build a
+source-labelled variation tree of recorded practice and copy its PGN.
+**Copy report** exports Markdown with provenance and sample limits. See the
+[comparison and roadmap](docs/product/chessbase-roadmap-2026-10-02.md).
+
 ## How it got here
 
 The sections below are the record of what each phase set out to fix, kept
 because the reasons are still the reasons. They are history, not a status line:
-the source and public Mac download are **Kingfisher 1.4.0**. Current release status is in
+the source is **Kingfisher 1.4.1**; the public Mac download remains **1.4.0**. Current release status is in
 [`docs/product/platform-parity.md`](docs/product/platform-parity.md), and
 what changed is in [`CHANGELOG.md`](CHANGELOG.md); the 1.0.0 notes are in
 [`docs/release/1.0.0.md`](docs/release/1.0.0.md).
@@ -963,3 +970,11 @@ redistributed here; `chess.js` is BSD-2-Clause. If this project is ever
 distributed as a binary bundling Stockfish, the GPL obligations apply to that
 bundle and need a deliberate decision. See
 [`docs/adr/0004-engine-architecture.md`](docs/adr/0004-engine-architecture.md).
+
+Large collections can be created on a chosen external drive using compact
+position indexes, a disk limit, rating selection and archive checksum
+verification. Incremental imports have a rollback ledger; playout experiments
+checkpoint into portable studies. See [large database operation](docs/operations/large-databases.md)
+and [independent comparison checks](docs/operations/independent-chessbase-acceptance.md).
+These facilities do not establish a new completed 10M benchmark or expert
+annotation corpus.

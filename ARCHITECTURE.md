@@ -1,5 +1,15 @@
 # Architecture
 
+## Opening research exports
+
+`theory/opening-survey.ts` receives one provider query boundary and builds an
+immutable legal tree, bounded by depth, width and forty queries in the UI.
+Queries are cached by canonical position for one job; source and position
+identity are checked before attaching evidence. The Opening Report dialog owns
+its transient job, aborts on unmount and does not write the analysis document.
+PGN carries counts and limits; Markdown exports reuse the report sections.
+No persistence schema or second board renderer is introduced.
+
 ## What this is optimising for
 
 Analysis's Research readiness dialog reads the existing engine slot, save/conflict
@@ -2374,3 +2384,32 @@ browser-only because production deliberately exposes no query-client test hook.
 Resource counters treat repeated close/terminate/disconnect calls as idempotent.
 `scripts/desktop-field.mjs` installs all real optional packs through the UI and
 checks restart, source-specific offline answers and Theory Book navigation.
+
+### Follow-up research increments (2026-10-02)
+
+Selected survey answers are pruned immutably by `theory/survey-handoff.ts` and
+saved as existing study chapters; questions, evidence comments and experiment
+checkpoints travel through the existing portable chapter store. Playouts use a
+per-game seeded stream and await chapter checkpoint writes between games.
+A saved experiment's moves/outcomes are replay-validated before resumption.
+
+The companion can create a new compact collection in a directory chosen by the
+desktop picker. Exclusive creation prevents overwrite; `collection-location.mjs`
+checks collection/journal bytes and filesystem reserve. The main database has a
+SQLite page limit. PGN header filters precede parsing; checksums precede import.
+Incremental updates use `collection_updates` and `collection_update_games`; the
+new-game ledger write shares the insert transaction. Rollback pages through
+those IDs and retains pre-existing duplicate records. These are SQLite corpus
+metadata, not another browser-authored store. Old collections gain the tables
+through additive `CREATE TABLE IF NOT EXISTS`; no existing source is overwritten.
+
+The playout experiment orchestrator lives in `src/stores/playout-store.ts`;
+features render its state, while the store wires engine sessions and study
+checkpoint persistence. The former feature-local store was moved without
+changing its execution semantics.
+
+Large-file job execution and its bounded active/recent history belong to the
+companion (`ImportJobs`). The authenticated discovery endpoint lets a renderer
+recover a job after remount or reload. Only one file job runs in each companion;
+mutating or closing that collection during import is refused. Process restart
+still requires reimporting the archive, with committed records deduplicated.

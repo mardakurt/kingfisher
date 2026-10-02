@@ -353,3 +353,13 @@ The Starter catalog, manifest and build definition now describe **broadcast**
 coverage, including online events. The archive is not an exclusively OTB
 population: the fixtures include Chessable Masters. No records, counts or chunk
 digests were changed by this wording correction.
+
+## User-selected large archives (2026-10-02)
+
+The large-file import dialog links the existing Lichess standard rated database
+(CC0, https://database.lichess.org/#standard_games) as an optional source.
+It downloads nothing automatically and introduces no bundled corpus. The
+publisher's checksum may be supplied for verification before import. Computer
+evaluations in those PGNs retain their source; they are not expert annotations.
+User-selected licensed PGN/CBH files remain local; a stated licence is recorded,
+not independently certified as permission to redistribute the source.

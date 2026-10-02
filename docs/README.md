@@ -24,6 +24,10 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ### The public product
 
+- [`release/1.4.1.md`](release/1.4.1.md) — source release preparation; public Mac remains 1.4.0.
+- [`product/chessbase-roadmap-2026-10-02.md`](product/chessbase-roadmap-2026-10-02.md) — current comparison, implemented survey and proposed next increments.
+- [`reports/2026-10-02-chessbase-research-1.4.1.md`](reports/2026-10-02-chessbase-research-1.4.1.md) — validation and public-release limitations.
+
 - [`../README.md`](../README.md) — the project README: what Kingfisher is,
   where to get it, what is and is not true of the desktop build.
 - [`../SECURITY.md`](../SECURITY.md) — the security policy: the controls in
@@ -411,3 +415,6 @@ when the product changes, or moved to Records with its date. A document that
 describes a past state is not rewritten to match the present; its title and
 date should make that obvious. If a current file goes stale, fix the file. Do
 not add a "last updated" line; `git log` already says.
+
+- [Large databases and external storage](operations/large-databases.md)
+- [Independent ChessBase acceptance](operations/independent-chessbase-acceptance.md)

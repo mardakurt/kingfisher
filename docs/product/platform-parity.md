@@ -1,3 +1,8 @@
+**Source 1.4.1 preparation (2026-10-02).** Source-labelled opening surveys
+and Markdown report export are shared browser/Mac renderer changes. The public
+Mac descriptor remains 1.4.0 build 1007; it does not contain these additions.
+No 1.4.1 package publication is claimed by the source version bump.
+
 **Unpublished audit corrections (2026-10-02).** The collection-backed Opening
 Report and its follow-up corrections are ahead of the public Mac build 1007.
 The fixes affect both browser and Mac application code. No new Mac release has
@@ -684,3 +689,8 @@ native capability and loses nothing the web has.
 
 [`web-desktop-parity.md`](web-desktop-parity.md) is the Phase 45 version
 of this table, kept as a record.
+
+The follow-up also changes survey preparation, playout checkpoint/resume,
+analysis exports and the repertoire inbox in shared source. External-directory
+collection creation, checksum/disk safeguards and import rollback require the
+updated companion. The published 1.4.0 Mac bundle does not contain these changes.

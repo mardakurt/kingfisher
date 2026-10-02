@@ -21,7 +21,7 @@ to follow.
 | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Kingfisher is a local-first chess research workstation.                                                        | Landing hero, README lede, install guide           | `src/persistence/`, the `local-first` section of the landing, the security policy.                                                                                                                                                                                       |
 | The current public macOS release is Kingfisher 1.4.0.                                                          | Landing download card, README, install guide       | `src/release/macos-download.json` names the exact public release build, SHA-256 and trust state. The descriptor changes only after publication and byte verification.                                                                                                    |
-| The web source is Kingfisher 1.4.0.                                                                            | Security page, SECURITY.md                         | `package.json` names the source version deployed from master. It may be ahead of the public macOS download during release preparation.                                                                                                                                   |
+| The web source is Kingfisher 1.4.1.                                                                            | Security page, SECURITY.md                         | `package.json` names the source version deployed from master. It may be ahead of the public macOS download during release preparation.                                                                                                                                   |
 | The macOS build needs macOS 13 (Ventura) or later.                                                             | Landing download card, install page, install guide | `desktop/src/platform-floor.mjs` — Electron 44's own floor, read from its plist by `platform-floor.test.mjs`; the descriptor's `minimumMacOS`; `docs:check` compares the documents to it. **Not** macOS 11, which the 1.1.0 release page and bundle stated.              |
 | The supported desktop platform is Apple Silicon.                                                               | Landing download card, install guide, README       | `npm run desktop:smoke` is run on darwin-arm64; `vercel.json` does not deploy a desktop artefact.                                                                                                                                                                        |
 | The supported desktop architecture is arm64.                                                                   | Install guide, landing download card               | `desktop/electron-builder.yml` builds `arm64` only; `desktop/src/builder-config.test.mjs` pins it; the descriptor records `arm64`.                                                                                                                                       |
@@ -126,3 +126,18 @@ The install page's damaged-download troubleshooting follows the descriptor-backe
 first-launch instructions: verify the hash, re-download mismatched bytes, and
 report a failure with verified bytes. It does not recommend a right-click
 workaround for the notarised release (`src/app/install/InstallPage.test.tsx`).
+
+Opening surveys in source 1.4.1 are bounded, source-labelled recorded practice.
+PGN export preserves game counts and limits; it is not a best-move or complete
+theory claim. Opening Report Markdown retains each section’s provenance and
+unavailable evidence. The public Mac remains 1.4.0 until a new verified release.
+
+Follow-up preparation saves selected survey paths and questions into portable
+chapters. Large imports can write new compact collections in user-chosen
+folders, apply PGN header filters and verify supplied checksums. Incremental
+imports log new IDs transactionally for rollback; source ledgers state observed
+annotation coverage without asserting expert authorship. Recent-source inbox
+checks cover at most 40 positions. Playout seeds/checkpoints are exported with
+reported engine identity and requested parameters; a seed cannot make
+wall-clock engine searches bit-for-bit reproducible. A new 10M run, independent
+ChessBase acceptance and thousands of expert annotations remain unverified.
