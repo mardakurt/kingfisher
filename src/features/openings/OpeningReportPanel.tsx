@@ -39,6 +39,9 @@ import { useExplorerSource } from '@/features/explorer/useExplorerSource';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { Button } from '@/components/ui/Button';
+import { OpeningSurveyDialog } from './OpeningSurveyDialog';
+import { openingReportMarkdown } from './opening-report-export';
 import { PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { positionKey } from '@/chess/fen';
 import { useRepertoires, useRepertoire } from '@/features/persistence/queries';
@@ -85,6 +88,7 @@ function roleOf(id: string, index: number, own = false): BranchPopulation['role'
 }
 
 export function OpeningReportPanel() {
+  const [surveyOpen, setSurveyOpen] = useState(false);
   const router = useRouter();
   const notify = useUi((state) => state.notify);
   const { tree, currentId } = useChessWorkspace();
@@ -412,6 +416,34 @@ export function OpeningReportPanel() {
       <PanelHeader>Opening Report</PanelHeader>
       <PanelBody>
         <div className="flex flex-col gap-4" data-opening-report>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="subtle" onClick={() => setSurveyOpen(true)}>
+              Opening survey
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                void navigator.clipboard.writeText(openingReportMarkdown(report)).then(
+                  () => notify({ tone: 'success', message: 'Opening report copied as Markdown.' }),
+                  () =>
+                    notify({
+                      tone: 'error',
+                      message: 'The clipboard is not available in this context.',
+                    }),
+                );
+              }}
+            >
+              Copy report
+            </Button>
+          </div>
+          {surveyOpen && (
+            <OpeningSurveyDialog
+              key={fen}
+              fen={fen}
+              sourceId={explorerSourceId}
+              onClose={() => setSurveyOpen(false)}
+            />
+          )}
           {(collections.length > 0 || selectedCollectionId) && (
             <label className="text-xs text-secondary">
               Report collection

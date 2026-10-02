@@ -421,3 +421,68 @@ test('an unavailable saved report collection stays explicit', async ({ page }) =
   await report(page).getByLabel('Report collection').selectOption('');
   await expect(report(page).getByRole('status')).toHaveCount(0);
 });
+
+test('opening survey uses an installed population and exports variations without changing the board', async ({
+  page,
+}) => {
+  await openReport(page);
+  await play(page, 'e2', 'e4');
+  const identityBefore = await section(page, 'identity').innerText();
+  const notation = page.locator('[data-move-tree]').first();
+  await expect(notation).toContainText('e4');
+  const notationBefore = await notation.innerText();
+  await page.getByRole('button', { name: 'Opening survey', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Opening survey', exact: true });
+  await expect(dialog.getByRole('option', { name: /Lichess by player/ })).toHaveAttribute(
+    'disabled',
+    '',
+  );
+  await dialog.getByLabel('Survey source').selectOption('kingfisher-starter');
+  await dialog.getByLabel('Survey depth').fill('2');
+  await dialog.getByLabel('Survey branches').fill('2');
+  await dialog.getByRole('button', { name: 'Generate survey', exact: true }).click();
+  const pgn = dialog.getByLabel('Survey PGN');
+  await expect(pgn).toHaveValue(/Recorded practice/);
+  const text = await pgn.inputValue();
+  expect(text).toContain('kingfisher-starter');
+  expect(text).toContain('of');
+  expect(text).toContain('does not mean best');
+  expect(text).toContain('[FEN "');
+  expect(text).toContain('Status: complete');
+  expect(text).toMatch(/\(1\.\.\./);
+  await dialog.getByLabel('Survey study title').fill('Survey preparation E2E');
+  await dialog.getByRole('checkbox').first().check();
+  await dialog.getByRole('button', { name: 'Save preparation chapter' }).click();
+  await expect(dialog.getByRole('status').filter({ hasText: 'Saved in Studies' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(section(page, 'identity')).toHaveText(identityBefore, { useInnerText: true });
+  await expect(notation).toHaveText(notationBefore, { useInnerText: true });
+  await page.goto('/studies');
+  await page.locator(READY).waitFor();
+  await expect(page.getByText('Survey preparation E2E', { exact: true }).first()).toBeVisible();
+  await expect(page.locator('[data-question-marker]')).toHaveCount(1);
+  await page.reload();
+  await page.locator(READY).waitFor();
+  await expect(page.locator('[data-question-marker]')).toHaveCount(1);
+});
+
+test('copy report exports the current position and visible provenance', async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await openReport(page);
+  await play(page, 'e2', 'e4');
+  await play(page, 'c7', 'c5');
+  await expect(section(page, 'identity')).toContainText('Sicilian Defense');
+  await page.getByRole('button', { name: 'Copy report', exact: true }).click();
+  await expect
+    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .toContain('Sicilian Defense');
+  const text = await page.evaluate(() => navigator.clipboard.readText());
+  expect(text).toContain('lichess-org/chess-openings');
+  expect(text).toContain('CC0-1.0');
+  expect(text).toContain('Snapshot:');
+  expect(text).toContain('Position:');
+  expect(text).toContain('Each population is separate');
+});
