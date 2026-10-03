@@ -52,6 +52,7 @@ import { openInNewTab } from '@/features/tabs/tab-actions';
 import { useRouter } from 'next/navigation';
 
 import { DepartureSection } from './DepartureSection';
+import { RatingClassesSection } from './RatingClassesSection';
 import { SourceFallback, SourcePicker } from './SourcePicker';
 import { SourceComparison } from './SourceComparison';
 import { useExplorerSource } from './useExplorerSource';
@@ -139,9 +140,21 @@ export function ExplorerPanel() {
   const speedFilter = provider?.capabilities.speedFilter ?? false;
   const speedFacetEntry = SPEED_FACETS.find((entry) => entry.id === speedFacet) ?? SPEED_FACETS[0];
 
+  /*
+    A filter goes to the source only when the source can apply it. A pack
+    keeps one count per move, so "Min Elo 2700" sent to it came back as the
+    same numbers with nothing on screen saying the filter had been ignored —
+    and the cache key changed, so it even looked like a fresh answer.
+  */
+  const ratingFilter = provider?.capabilities.ratingFilter ?? false;
+  const dateFilter = provider?.capabilities.dateFilter ?? false;
+  const ignoredFilters = [
+    !ratingFilter && prefs.explorerMinRating ? `Min Elo ${prefs.explorerMinRating}` : null,
+    !dateFilter && prefs.explorerSinceYear ? `since ${prefs.explorerSinceYear}` : null,
+  ].filter((entry): entry is string => entry !== null);
   const filters = {
-    ...(prefs.explorerMinRating ? { minRating: prefs.explorerMinRating } : {}),
-    ...(prefs.explorerSinceYear ? { sinceYear: prefs.explorerSinceYear } : {}),
+    ...(ratingFilter && prefs.explorerMinRating ? { minRating: prefs.explorerMinRating } : {}),
+    ...(dateFilter && prefs.explorerSinceYear ? { sinceYear: prefs.explorerSinceYear } : {}),
     ...(speedFilter && speedFacetEntry.speeds ? { speeds: speedFacetEntry.speeds } : {}),
     ...(playerFilter && player.trim() ? { player: player.trim(), playerColor } : {}),
   };
@@ -433,6 +446,26 @@ export function ExplorerPanel() {
         ) : null}
       </div>
 
+      {ignoredFilters.length > 0 ? (
+        <p
+          className="shrink-0 border-b border-line-subtle px-2.5 py-1.5 text-[10px] text-caution"
+          data-explorer-ignored-filters
+        >
+          {ignoredFilters.join(' and ')} not applied: {provider?.name} cannot filter that way. The
+          figures are for all its games.{' '}
+          <button
+            type="button"
+            className="underline underline-offset-2"
+            onClick={() => {
+              if (!ratingFilter) prefs.set('explorerMinRating', null);
+              if (!dateFilter) prefs.set('explorerSinceYear', null);
+            }}
+          >
+            Clear
+          </button>
+        </p>
+      ) : null}
+
       {filtersOpen ? (
         <div className="shrink-0 space-y-1.5 border-b border-line-subtle bg-surface-2 px-2.5 py-2">
           <div className="flex items-end gap-2">
@@ -440,6 +473,7 @@ export function ExplorerPanel() {
               Min Elo
               <input
                 value={prefs.explorerMinRating ?? ''}
+                disabled={!ratingFilter}
                 inputMode="numeric"
                 onChange={(event) =>
                   prefs.set(
@@ -447,13 +481,14 @@ export function ExplorerPanel() {
                     Number(event.target.value.replace(/\D/g, '')) || null,
                   )
                 }
-                className="mt-0.5 block h-6 w-[70px] rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[10.5px] text-primary outline-none focus:border-accent/60"
+                className="mt-0.5 block h-6 w-[70px] rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[10.5px] text-primary outline-none focus:border-accent/60 disabled:opacity-50"
               />
             </label>
             <label className="text-[10px] text-tertiary">
               Since year
               <input
                 value={prefs.explorerSinceYear ?? ''}
+                disabled={!dateFilter}
                 inputMode="numeric"
                 onChange={(event) =>
                   prefs.set(
@@ -461,7 +496,7 @@ export function ExplorerPanel() {
                     Number(event.target.value.replace(/\D/g, '').slice(0, 4)) || null,
                   )
                 }
-                className="mt-0.5 block h-6 w-[70px] rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[10.5px] text-primary outline-none focus:border-accent/60"
+                className="mt-0.5 block h-6 w-[70px] rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[10.5px] text-primary outline-none focus:border-accent/60 disabled:opacity-50"
               />
             </label>
             <Button
@@ -475,6 +510,20 @@ export function ExplorerPanel() {
               Clear
             </Button>
           </div>
+          {!ratingFilter || !dateFilter ? (
+            <p className="text-[10px] text-tertiary" data-explorer-filter-limits>
+              {provider?.name} stores one count per move, so it cannot be filtered
+              {!ratingFilter && !dateFilter
+                ? ' by rating or by year'
+                : !ratingFilter
+                  ? ' by rating'
+                  : ' by year'}
+              .
+              {packReader(provider?.id ?? '')?.hasHistory
+                ? ' Its games by rating class and year are under the move table.'
+                : ''}
+            </p>
+          ) : null}
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-tertiary">Compare recent</span>
             <Segmented
@@ -625,6 +674,16 @@ export function ExplorerPanel() {
             </div>
 
             {brief}
+
+            {provider && packReader(provider.id)?.hasHistory && query.data ? (
+              <RatingClassesSection
+                reader={packReader(provider.id)!}
+                sourceName={provider.name}
+                fen={node.fen}
+                moves={query.data.moves}
+                onPlay={playMove}
+              />
+            ) : null}
 
             {compared.length >= 2 ? <Comparison entries={compared} /> : null}
 

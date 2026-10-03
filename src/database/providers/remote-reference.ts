@@ -216,9 +216,15 @@ export class RemoteReferenceProvider implements ChessDatabaseProvider {
     // provider; the catalog's "high rated online" warning is
     // for the lichess provider, which IS categorised by
     // speed, and the explorer UI shows the appropriate copy.
+    /*
+      Phase 90 (1.4.3): rating and date were declared true here and
+      `explore()` never read either, so Min Elo 2700 on a streamed pack
+      returned every game's counts as if filtered. A pack stores one aggregate
+      per move; it cannot filter by either, installed or streamed.
+    */
     this.capabilities = {
-      ratingFilter: true,
-      dateFilter: true,
+      ratingFilter: false,
+      dateFilter: false,
       playerFilter: false,
       speedFilter: false,
       topGames: true,
