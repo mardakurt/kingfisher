@@ -119,6 +119,13 @@ export const SETTINGS_INDEX: readonly SettingsEntry[] = [
     keywords: ['coordinates', 'files', 'ranks', 'labels', 'a1'],
   },
   {
+    id: 'piece-notation',
+    label: 'Piece notation',
+    section: 'board',
+    description: 'Write moves with piece letters (Nf3) or figurines (♘f3).',
+    keywords: ['figurine', 'notation', 'algebraic', 'san', 'symbols', 'letters', 'pieces'],
+  },
+  {
     id: 'evaluation-bar',
     label: 'Evaluation bar',
     section: 'board',

@@ -1,7 +1,7 @@
 /**
  * What every user-visible setting is supposed to do, and who does it.
  *
- * Kingfisher has forty-two preferences across twenty consumer modules,
+ * Kingfisher has forty-four preferences across twenty-two consumer modules,
  * which is more than anybody can hold in their head — and Phase 17 opened with a
  * reported bug where a setting persisted correctly, had two runtime consumers,
  * and still changed nothing a user could see. "It is wired up" turned out not
@@ -116,6 +116,18 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     indexedAs: 'coordinates',
     previewable: true,
     verifiedBy: 'e2e/appearance.spec.ts',
+  },
+  {
+    key: 'pieceNotation',
+    label: 'Piece notation',
+    surface: 'settings',
+    control: 'features/shell/SettingsDialog.tsx',
+    consumer: 'features/movetree/use-san-display.tsx',
+    effect:
+      'Moves in the notation and the Explorer are written with figurines (♘f3, exd8=♕) instead of piece letters (Nf3, exd8=Q); a copied or exported PGN keeps the letters.',
+    indexedAs: 'piece-notation',
+    previewable: true,
+    verifiedBy: 'e2e/piece-notation.spec.ts',
   },
   {
     key: 'animationSpeed',
@@ -387,7 +399,7 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     control: 'features/shell/SettingsDialog.tsx',
     consumer: 'features/player/PlayerPortrait.tsx',
     effect:
-      "A titled player's Wikimedia Commons photograph, with its credit, on the player page and the preparation card. Off, nothing is requested from Wikimedia and the initials are shown.",
+      "A titled player's Wikimedia Commons photograph, with its credit, on the player page, the preparation card and an opened game's header. Off, nothing is requested from Wikimedia and the initials are shown.",
     indexedAs: 'player-photos',
     previewable: true,
     verifiedBy: 'e2e/player-photo.spec.ts',

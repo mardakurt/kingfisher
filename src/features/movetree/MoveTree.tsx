@@ -1,5 +1,6 @@
 'use client';
 
+import { useSanDisplay } from './use-san-display';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { nagInfo, nagSymbol } from '@/chess/annotations';
@@ -478,6 +479,7 @@ function MoveToken({
   onContextMenu,
   showEvaluation,
 }: MoveTokenProps) {
+  const display = useSanDisplay();
   const move = node.move;
   if (!move) return null;
 
@@ -532,7 +534,7 @@ function MoveToken({
           (quality === 5 || quality === 6) && !current && 'text-caution',
         )}
       >
-        {move.san}
+        {display(move.san)}
         {quality !== undefined && (
           <span
             className="ml-px font-semibold"

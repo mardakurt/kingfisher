@@ -15,6 +15,7 @@
  * whether it is masters, the user's own archive, or one opponent's games.
  */
 
+import { useSanDisplay } from '@/features/movetree/use-san-display';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 
@@ -1027,6 +1028,7 @@ function Row({
   readonly players?: readonly MovePlayer[];
   readonly showFrequentPlayers: boolean;
 }) {
+  const display = useSanDisplay();
   const trend = trendOf(entry);
   /*
     Honest trend reporting. A move with only a handful of games gets a small-
@@ -1071,7 +1073,7 @@ function Row({
           className="font-medium text-primary hover:text-accent-ink"
           onClick={onPlay}
         >
-          {entry.san}
+          {display(entry.san)}
         </button>
         {entry.database.frequentPlayers?.length ? (
           <span

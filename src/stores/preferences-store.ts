@@ -106,6 +106,11 @@ export interface Preferences {
    */
   showPlayerPhotos: boolean;
   /**
+   * How moves are drawn: SAN letters (`Nf3`) or figurines (`♘f3`), as
+   * ChessBase and printed books show them. Display only; PGN stays letters.
+   */
+  pieceNotation: 'letters' | 'figurines';
+  /**
    * Which half of the Openings route was last used.
    *
    * Persisted because a mode that resets on every reload is a mode the user
@@ -230,6 +235,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   explorerSinceYear: null,
   explorerBoardArrows: false,
   showPlayerPhotos: true,
+  pieceNotation: 'letters',
   boardPriority: DEFAULT_BOARD_PRIORITY,
   hiddenEngineIds: [],
   openingsMode: 'library',

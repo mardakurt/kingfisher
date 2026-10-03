@@ -426,6 +426,20 @@ function BoardSection() {
         />
       </Row>
 
+      <Row
+        label="Piece notation"
+        hint="Nf3, or the knight drawn in your piece set, in the notation and the Explorer. PGN files keep letters either way."
+      >
+        <Segmented
+          items={[
+            { id: 'letters', label: 'Letters' },
+            { id: 'figurines', label: 'Figurines' },
+          ]}
+          value={prefs.pieceNotation}
+          onChange={(value) => prefs.set('pieceNotation', value as 'letters' | 'figurines')}
+        />
+      </Row>
+
       <Row label="Evaluation bar">
         <Toggle
           label="Show evaluation bar"
