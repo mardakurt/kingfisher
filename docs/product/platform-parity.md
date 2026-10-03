@@ -10,6 +10,14 @@ been published or certified during this audit.
 
 # Platform parity — the web application and the macOS application
 
+**Published revision check (2026-10-03, 1.4.1).** The public Mac download is
+1.4.1 build 1025 from `f6f705297e6df29b5af4597ace70ea802e299349`, stable,
+Developer ID signed, with the application and the DMG each notarised and
+stapled. It contains the opening survey, preparation chapters, large-import,
+update-rollback and playout-checkpoint work and the notice correction. The
+tournament table and the Puzzles section were added to the source after that
+revision and reach the web first; they are not in build 1025.
+
 **Published revision check (2026-10-01, 1.4.0).** The public Mac download is
 1.4.0 build 1007 from `a88c130bd5a211608ef0c097a8b801adbd0b2b45`, stable and
 clean at packaging. It includes the shared Research layout, readiness,

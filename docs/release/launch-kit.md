@@ -1,6 +1,6 @@
-# Launch kit — Kingfisher 1.4.0
+# Launch kit — Kingfisher 1.4.1
 
-Draft copy for the current public release: Kingfisher 1.4.0 on the web and
+Draft copy for the current public release: Kingfisher 1.4.1 on the web and
 macOS (Apple Silicon, macOS 13 or later, Developer ID signed and notarised).
 This kit contains no user counts, endorsements or claims of complete ChessBase
 parity. Check [`marketing-facts.md`](../product/marketing-facts.md) before posting.
@@ -16,11 +16,12 @@ page-view and performance analytics do not run in the Mac application.
 
 ## Release announcement draft
 
-> Kingfisher 1.4.0 adds an opt-in Research layout to Analysis: a full-height
-> board, notation, a named reference population and compact engine candidates.
-> Research readiness checks the selected engine with a real search and separates
-> saved work, drafts, conflicts and backup status. Keyboard resizing and modal
-> focus preserve the working position and unfinished editing forms.
+> Kingfisher 1.4.1 turns opening research into preparation you keep. The
+> Opening Report can survey one named source to a chosen depth and width, and
+> the answers you pick become a study chapter with training questions and the
+> dated source counts beside them. Large PGN imports can go to an external
+> drive with a size limit, verify the archive's SHA-256 first and be rolled
+> back update by update. Playout experiments checkpoint, resume and export.
 >
 > Stockfish 18 runs in the browser. The Apple Silicon application offers real
 > native Stockfish, Stormphrax, Viridithas, Halogen, PlentyChess and Lc0 engines,
@@ -31,7 +32,7 @@ page-view and performance analytics do not run in the Mac application.
 > events. Other installed or remote sources retain separate counts, licences
 > and provenance. No combined statistic is presented as a single population.
 >
-> `Kingfisher-1.4.0-arm64.dmg` is Developer ID signed and notarised by Apple.
+> `Kingfisher-1.4.1-arm64.dmg` is Developer ID signed and notarised by Apple.
 > Sparkle checks quietly at launch; Check for Updates opens its native interface.
 > Download and installation require a user action. Work remains in the profile.
 >

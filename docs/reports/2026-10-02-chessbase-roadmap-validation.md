@@ -313,3 +313,30 @@ Only the two task-owned superseded build 1024 staging/quarantine directories
 were removed (approximately 1.3 GiB combined). Logs, regression evidence,
 walk reports and the corrected 787 MiB build 1025 candidate remain available.
 The current run never allocated a new 10M corpus on the internal SSD.
+
+## Publication, 2026-10-03
+
+The first DMG submission `59065a1f-0dd7-4621-b9f9-6e17bdf9bfef` was still
+"In Progress" at 06:21 UTC, more than ten hours after it was made. The same
+build 1025 DMG bytes were resubmitted as `727d719b-fa96-4c2a-a18b-3b7ff31b44c2`
+and Apple returned **Accepted** within minutes. The earlier submission was not
+cancelled and is not relied on.
+
+| Step                                                                  | Result                                                                                                                                                   |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `xcrun stapler staple` / `validate` on the DMG                        | worked; `spctl -t open`: accepted, source=Notarized Developer ID                                                                                         |
+| `desktop:trust:verify` (out dir `/tmp/kingfisher-release-1.4.1-1025`) | **GREEN**: 29 code objects, sealed bundle, both tickets, Gatekeeper for app and DMG                                                                      |
+| `verify-dmg.mjs --version 1.4.1` on the stapled DMG                   | verified                                                                                                                                                 |
+| `release:mac:appcast -- --zip …`                                      | appcast 1.4.1, sparkle:version 1025, 192,231,457 bytes, EdDSA-signed with the keychain key                                                               |
+| `release:mac:publish v1.4.1`                                          | the draft's superseded build-1024 assets replaced with build 1025 (the draft had never been public)                                                      |
+| `gh release edit v1.4.1 --draft=false --latest`                       | published 2026-10-03T06:28:57Z; tag `v1.4.1` → `f6f7052`                                                                                                 |
+| `gh release download v1.4.1` and digest comparison                    | DMG `065a83c1…3e428ba6a` 192,490,273 B, ZIP `a1199154…a5e93`, appcast, latest-mac.yml: all match SHA256SUMS                                              |
+| `/releases/latest/download/appcast.xml`                               | redirects to `v1.4.1`                                                                                                                                    |
+| `desktop:update:real --public-feed` from 1.4.0 build 1007             | **PASS 19/19**: Sparkle offered 1.4.1 from the public feed, installed, relaunched on the test profile, kept the authored study, no surviving descendants |
+
+The 1.4.0 application used for the update was copied from the 1.4.0 release
+output into a temporary directory; the installed `/Applications/Kingfisher.app`
+was not touched. `src/release/macos-download.json` now names build 1025 with the
+public bytes' digest and size. Not done: a human double-click of the quarantined
+DMG download (Gatekeeper's first-open sheet needs the owner), and
+`desktop:public:verify -- --landing --full`, which waits for the landing deploy.

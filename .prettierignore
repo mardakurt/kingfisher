@@ -11,6 +11,9 @@ desktop/dist
 # Generated roster; one line per person, digest-checked by players:roster:check
 public/data/players/titled-players.json
 
+# Generated puzzle shards and manifest; digests checked by puzzles:check
+public/data/puzzles/
+
 # Generated test evidence, tool state, caches and local build inputs
 # (release evidence is recorded output — a worksheet as the app wrote it — and
 # is kept byte for byte, not reformatted)

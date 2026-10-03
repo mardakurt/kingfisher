@@ -2,8 +2,8 @@
 
 A local-first chess research workstation for serious players.
 
-> **Public release · 1.4.0** (macOS, Developer ID signed and notarised)
-> Source · 1.4.1 (Mac publication pending). Research remains opt-in under Layout.
+> **Public release · 1.4.1** (macOS, Developer ID signed and notarised)
+> Research remains opt-in under Layout.
 > No account. No cookies. No subscription.
 
 |                                                                           |                                                                                            |
@@ -257,7 +257,7 @@ source-labelled variation tree of recorded practice and copy its PGN.
 
 The sections below are the record of what each phase set out to fix, kept
 because the reasons are still the reasons. They are history, not a status line:
-the source is **Kingfisher 1.4.1**; the public Mac download remains **1.4.0**. Current release status is in
+the source and the public Mac download are both **Kingfisher 1.4.1**. Current release status is in
 [`docs/product/platform-parity.md`](docs/product/platform-parity.md), and
 what changed is in [`CHANGELOG.md`](CHANGELOG.md); the 1.0.0 notes are in
 [`docs/release/1.0.0.md`](docs/release/1.0.0.md).
