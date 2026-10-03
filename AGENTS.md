@@ -401,7 +401,7 @@ source of truth for the URLs the application prints is
   previous host was retired the same day. Do not touch the
   `publicUrl.studio` default again without a persistence / migration
   plan.
-- **macOS stable DMG:** `Kingfisher-1.4.3-arm64.dmg`, build 1055,
+- **macOS stable DMG:** `Kingfisher-1.4.4-arm64.dmg`, build 1069,
   signed with Developer ID Application and notarised. The public descriptor
   `src/release/macos-download.json` selects the release; the landing and
   install guide consume it. Verify its bytes before changing its claims.
@@ -517,7 +517,7 @@ number (`git rev-list --count HEAD`), commit, dirty flag and channel, in
 them. `KINGFISHER_DESKTOP_CHANNEL` is `dev` (default), `preview` or
 `stable`; a publishable channel refuses a dirty tree.
 
-- **The source version is 1.4.3.** The public Mac descriptor names the
+- **The source version is 1.4.4.** The public Mac descriptor names the
   build that has been published and byte-verified; it changes only after that.
   Bump the marketing version only for a real release.
   Never create a version to freshen a filename.
