@@ -1,5 +1,6 @@
 /** electron-builder afterSign: boot the signed, notarised app before any DMG/ZIP is made. */
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { launchKingfisher, waitForReady } from '../../scripts/desktop-lib/launch.mjs';
 import { assertSparkleBundle } from '../src/sparkle-bundle.mjs';
@@ -70,4 +71,20 @@ export default async function verifyPackageBoot(context) {
     const closed = await launched.close();
     assert.equal(closed.survivors.length, 0, 'Package boot left child processes running');
   }
+  // Running the server must never change sealed resources. In Next 16.3,
+  // filesystem cache promotion could pass notarization, then break the
+  // signature during this boot and archive invalid bytes afterwards.
+  execFileSync(
+    'codesign',
+    [
+      '--verify',
+      '--deep',
+      '--strict',
+      path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`),
+    ],
+    {
+      stdio: 'pipe',
+    },
+  );
+  console.log('Post-boot code signature verified: the packaged application remains immutable.');
 }

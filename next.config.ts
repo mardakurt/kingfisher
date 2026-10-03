@@ -82,6 +82,10 @@ const nextConfig: NextConfig = {
       })(),
   },
   ...(desktop ? { output: 'standalone' as const } : {}),
+  // Next 16.3 promotes prerendered responses into a runtime route cache.
+  // A signed desktop bundle is immutable, including after its first boot.
+  // Keep runtime caching in memory; the web deployment retains its defaults.
+  ...(desktop ? { experimental: { isrFlushToDisk: false } } : {}),
   async redirects() {
     /*
       `/studio` is the address of the application, as a person would say it

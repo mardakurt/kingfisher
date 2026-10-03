@@ -22,6 +22,15 @@ My games' Explorer aggregation counts frequent movers by distinct game in the
 filtered population; optional player-frequency fields are absent where a
 provider lacks that evidence.
 
+## Immutable packaged web server
+
+Desktop builds disable Next.js ISR disk writes (`experimental.isrFlushToDisk`)
+so runtime route-cache promotion cannot alter sealed application resources.
+The built-in bounded memory cache and immutable prerendered seeds remain
+available. Hosted builds retain their defaults. The after-sign boot gate
+verifies the full code signature after closing the launched application,
+before electron-builder produces its archives.
+
 ## Opening research exports
 
 `theory/opening-survey.ts` receives one provider query boundary and builds an

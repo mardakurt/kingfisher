@@ -20,6 +20,8 @@ real users notice.
   browser prompts. Naming now uses the shared accessible dialog.
 - Next.js and its ESLint package updated to 16.3.8; desktop brace-expansion
   updates from both Dependabot PRs merged.
+- Fixed the hosted video CSP and prevented Next.js runtime route caches from
+  modifying the signed Mac bundle; packaging now verifies its signature after boot.
 
 ## 1.4.4 — 2026-10-03
 

@@ -98,7 +98,9 @@ Signing and notarisation happen inside `desktop:dist`, in this order:
    `build.mjs`; a `dev` build without them is signed and not notarised.
 4. `build.mjs` launches the stapled `.app` through the shared harness
    launcher and checks the bridge, the web server, the companion and the
-   managed-engine catalogue. A boot failure means no archive.
+   managed-engine catalogue. After closing it, the gate verifies the full
+   code signature again: runtime caches must not change sealed resources.
+   A boot or post-boot signature failure means no archive.
 5. The DMG and the update ZIP are archived from those exact bytes. The DMG
    is signed with the same identity (`dmg.sign: true`).
 
