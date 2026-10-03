@@ -107,13 +107,18 @@ if (missing.length) {
   );
 }
 
-/* Build SHA256SUMS for the artifacts. */
+/*
+  Build SHA256SUMS for the artifacts, in the format `shasum -a 256 -c` reads:
+  digest, two spaces, filename, nothing after. Through 1.4.4 each line carried
+  a third column (the byte count), so the documented check printed "FAILED
+  open or read" for every file of every release — a verification step that
+  could only ever fail. Sizes are in kingfisher-release-manifest.json.
+*/
 const sums = [];
 for (const name of expected) {
   const path = join(distDir, name);
   const hash = createHash('sha256').update(readFileSync(path)).digest('hex');
-  const bytes = readFileSync(path).byteLength;
-  sums.push(`${hash}  ${name}  ${bytes}`);
+  sums.push(`${hash}  ${name}`);
 }
 const sumPath = join(distDir, 'SHA256SUMS');
 writeFileSync(sumPath, sums.join('\n') + '\n');
