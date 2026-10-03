@@ -46,6 +46,7 @@ import { AnnotatedSetsPanel } from './AnnotatedSetsPanel';
 import { CollectionDetail } from './CollectionDetail';
 import { formatBytes } from './CollectionList';
 import { LargeFileImportDialog } from './LargeFileImportDialog';
+import { DownloadGamesDialog } from './DownloadGamesDialog';
 import { DuplicatesPanel } from './DuplicatesPanel';
 import { MultiSearchPanel } from './MultiSearchPanel';
 import { ReferenceCatalogPanel } from './ReferenceCatalogPanel';
@@ -79,6 +80,7 @@ export function DatabasesWorkspace() {
   const [enCroissantOpen, setEnCroissantOpen] = useState(false);
   const [chessBaseOpen, setChessBaseOpen] = useState(false);
   const [largeOpen, setLargeOpen] = useState(false);
+  const [downloadOpen, setDownloadOpen] = useState(false);
   const chessBaseRunning = useChessBaseImport((state) => state.running);
   const enCroissantRunning = useEnCroissantImport((state) => state.running);
   const setImportOpen = useUi((state) => state.setImportOpen);
@@ -161,6 +163,7 @@ export function DatabasesWorkspace() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {largeOpen ? <LargeFileImportDialog onClose={() => setLargeOpen(false)} /> : null}
+      {downloadOpen ? <DownloadGamesDialog onClose={() => setDownloadOpen(false)} /> : null}
       {chessBaseOpen ? (
         <ChessBaseImportDialog open onClose={() => setChessBaseOpen(false)} />
       ) : null}
@@ -204,6 +207,9 @@ export function DatabasesWorkspace() {
           </Button>
           <Button size="sm" onClick={() => setLargeOpen(true)}>
             Import a large file…
+          </Button>
+          <Button size="sm" onClick={() => setDownloadOpen(true)} data-download-online>
+            Download online games…
           </Button>
         </div>
       </div>

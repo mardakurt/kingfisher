@@ -116,8 +116,10 @@ export function PrivacyPage(): JSX.Element {
             </li>
             <li>
               you ask for games from a Lichess username via{' '}
-              <em>Settings → Accounts → Add an account → Lichess</em>. The username and the games it
-              returned are recorded in your local collection; nothing else is sent.
+              <em>Settings → Accounts → Add an account → Lichess</em>, or via{' '}
+              <em>Databases → Download online games</em>. The username and the games it returned are
+              recorded in your local collection; nothing else is sent. A download keeps no record of
+              the account.
             </li>
             <li>
               you query the Lichess-hosted Explorer or tablebase. Each call is the literal question
@@ -135,9 +137,10 @@ export function PrivacyPage(): JSX.Element {
         </li>
         <li>
           <strong>Chess.com</strong> (<code>api.chess.com</code>), used only when you ask for games
-          from a Chess.com username via <em>Settings → Accounts → Add an account → Chess.com</em>.
-          The username and the games it returned are recorded in your local collection. Chess.com
-          never sees a Kingfisher identifier or any other identifier of yours.
+          from a Chess.com username via <em>Settings → Accounts → Add an account → Chess.com</em> or{' '}
+          <em>Databases → Download online games</em>. The username and the games it returned are
+          recorded in your local collection. Chess.com never sees a Kingfisher identifier or any
+          other identifier of yours.
         </li>
         <li>
           <strong>The public data mirror</strong> at{' '}

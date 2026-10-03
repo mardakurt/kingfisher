@@ -29,6 +29,12 @@ export interface LichessFetchOptions {
   /** Optional; raises the rate allowance, never required for public games. */
   readonly token?: string;
   readonly max?: number;
+  /**
+   * Newest games first. An account sync wants oldest first (see below); a
+   * one-off download of "their last 200 games" wants the newest, or `max`
+   * keeps the oldest 200 of the period instead.
+   */
+  readonly newestFirst?: boolean;
   readonly signal?: AbortSignal;
   /** Test seam. Production uses the global `fetch`. */
   readonly fetchImpl?: typeof fetch;
@@ -66,7 +72,7 @@ export async function fetchLichessGamesPgn(
     newest game actually imported leaves no hole — with `dateDesc` an
     interrupted run would leave a gap that no later `since` could reach.
   */
-  url.searchParams.set('sort', 'dateAsc');
+  url.searchParams.set('sort', options.newestFirst ? 'dateDesc' : 'dateAsc');
   url.searchParams.set('tags', 'true');
   url.searchParams.set('moves', 'true');
   url.searchParams.set('opening', 'true');
