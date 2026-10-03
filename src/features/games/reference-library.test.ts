@@ -130,6 +130,19 @@ describe('a reference pack in the Library', () => {
 });
 
 describe('what a pack lists of a player', () => {
+  it('names a person once, however many spellings the pack merged', async () => {
+    const r = reader();
+    const capped: ReferenceLibraryReader = {
+      ...r,
+      allPlayers: async () =>
+        (await r.allPlayers()).map((p) =>
+          p.id === 'carlsen, magnus' ? { ...p, name: 'Carlsen, Magnus', games: 705 } : p,
+        ),
+    };
+    const short = await referenceCoverage(capped, { text: 'magnus' });
+    expect(short).toEqual([{ name: 'Carlsen, Magnus', listed: 4, played: 705 }]);
+  });
+
   it('says when a player has more games than the pack lists', async () => {
     const r = reader();
     const capped: ReferenceLibraryReader = {

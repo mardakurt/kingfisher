@@ -62,6 +62,28 @@ export function packGameSummary(game: PackGame): GameSummary {
   };
 }
 
+/**
+ * The people whose names contain the text, most games first — one row per
+ * person: a pack keeps a row for each spelling it merged, and "Carlsen" must
+ * not read as three Carlsens.
+ */
+function playersNamed<T extends Pick<PackPlayer, 'id' | 'name'>>(
+  players: readonly T[],
+  text: string,
+): readonly T[] {
+  const needle = text.trim().toLowerCase();
+  if (!needle) return [];
+  const seen = new Set<string>();
+  const found: T[] = [];
+  for (const player of players) {
+    if (!player.name.toLowerCase().includes(needle) || seen.has(player.id)) continue;
+    seen.add(player.id);
+    found.push(player);
+    if (found.length === TEXT_PLAYER_LIMIT) break;
+  }
+  return found;
+}
+
 /** Whether a query names someone a pack can list games for, wholly or in part. */
 export const namesAPlayer = (query: GameSearchQuery): boolean =>
   Boolean(playerKey(query.player) || playerKey(query.opponent) || query.text?.trim());
@@ -144,10 +166,7 @@ export async function referenceMatches(
       to their games as it is anywhere, so an event matching it is not lost
       from games already chosen — but a game is chosen only by a player.
     */
-    const needle = query.text.trim().toLowerCase();
-    const players = (await reader.allPlayers())
-      .filter((entry) => entry.name.toLowerCase().includes(needle))
-      .slice(0, TEXT_PLAYER_LIMIT);
+    const players = playersNamed(await reader.allPlayers(), query.text);
     candidates = (
       await Promise.all(
         players.map(async (entry) => reader.games(await reader.playerGames(entry.key))),
@@ -220,16 +239,7 @@ export async function referenceCoverage(
       const spellings = new Set([playerKey(name), ...nameOrders(name).map(playerKey)]);
       return players.find((player) => spellings.has(player.key));
     });
-  const chosen =
-    named.length > 0
-      ? named
-      : query.text?.trim()
-        ? players
-            .filter((player) =>
-              player.name.toLowerCase().includes(query.text!.trim().toLowerCase()),
-            )
-            .slice(0, TEXT_PLAYER_LIMIT)
-        : [];
+  const chosen = named.length > 0 ? named : playersNamed(players, query.text ?? '');
   const short: ReferenceCoverage[] = [];
   for (const player of chosen) {
     if (!player) continue;
