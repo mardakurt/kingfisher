@@ -84,6 +84,18 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
     return () => observer.disconnect();
   }, []);
 
+  /*
+    The section you are on, in view. At 1440 × 900 the list overflows, and on
+    Databases, Similar games or the Library the highlighted row sat below the
+    fold — the one row that says where you are was the one you could not see.
+    `nearest` leaves a row that is already visible exactly where it is.
+  */
+  useEffect(() => {
+    listRef.current
+      ?.querySelector('[data-nav-section][aria-current="page"]')
+      ?.scrollIntoView({ block: 'nearest' });
+  }, [pathname]);
+
   return (
     <nav
       className={cn(
@@ -223,7 +235,8 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
                             display without the list scrolling, which the 40px
                             rows of Phase 53 no longer did once the list grew.
                           */
-                          'relative flex items-center rounded-[var(--radius-control)] text-[13px] transition-colors',
+                          // scroll-my-8: brought into view clear of the 28px overflow fade.
+                          'relative flex scroll-my-8 items-center rounded-[var(--radius-control)] text-[13px] transition-colors',
                           compact ? 'h-10 justify-center px-1' : 'h-[30px] gap-2.5 px-2.5',
                           active
                             ? 'bg-black/[0.075] font-medium text-primary active:bg-black/[0.11] dark:bg-white/[0.1] dark:active:bg-white/[0.14]'

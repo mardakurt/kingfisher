@@ -96,6 +96,10 @@ test.describe('sidebar overflow', () => {
     page,
   }) => {
     await page.goto('/analysis');
+    // Scroll once the page is the application, as a person would: on
+    // hydration the sidebar brings the current section into view, and a
+    // scroll made into the server's HTML before that is undone by it.
+    await page.locator('html[data-kingfisher-ready="true"]').waitFor();
     const list = page.locator('nav[aria-label="Sections"] ul').first();
     await list.evaluate((el) => el.scrollTo(0, el.scrollHeight));
     for (const id of ['endgame', 'games', 'scoresheet', 'similar', 'databases'] as const) {
@@ -115,4 +119,34 @@ test.describe('sidebar overflow', () => {
       expect(hittable, `${id} must be inside the sidebar and hit-testable`).toBe(true);
     }
   });
+});
+
+test('the section you are on is in view, even below the fold', async ({ page }) => {
+  /*
+    At 1440 × 900 the list overflows, and Databases — the last row — sat below
+    the fold while it was the page you were on: the one row that says where
+    you are was the one you could not see.
+  */
+  await page.setViewportSize({ width: 1440, height: 900 });
+  for (const route of ['/databases', '/similar', '/analysis']) {
+    await page.goto(route);
+    await page.locator('html[data-kingfisher-ready="true"]').waitFor();
+    const active = page.locator(
+      'nav[aria-label="Sections"] [data-nav-section][aria-current="page"]',
+    );
+    await expect(active).toBeVisible();
+    await expect
+      .poll(
+        () =>
+          active.evaluate((el) => {
+            // The scrolling list is the nav's first <ul>; each group has its own
+            // inner <ul>, which always contains its rows.
+            const list = el.closest('nav')!.querySelector('ul')!.getBoundingClientRect();
+            const row = el.getBoundingClientRect();
+            return row.top >= list.top - 1 && row.bottom <= list.bottom + 1;
+          }),
+        { message: `${route}: the active row is outside the visible list` },
+      )
+      .toBe(true);
+  }
 });
