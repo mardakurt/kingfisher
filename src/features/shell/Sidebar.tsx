@@ -9,11 +9,12 @@ import {
   Close,
   Feedback,
   Moon,
+  Plus,
   Settings,
   Sun,
 } from '@/components/icons';
 import { IconButton } from '@/components/ui/Button';
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 
 import { cn } from '@/lib/cn';
 import { StoragePersistenceStatus } from '@/persistence/StoragePersistenceStatus';
@@ -24,6 +25,7 @@ import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
 import { BrandMark } from './BrandMark';
 import { TitleBarSafeCorner } from './TitleBarSafeArea';
 import { NAV_GROUPS, sectionsInGroup } from './navigation';
+import { SidebarDatabases } from './SidebarDatabases';
 
 import { TITLEBAR_BAND_CLASS } from '@/features/workspace/breakpoints';
 
@@ -201,7 +203,12 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
                   const Icon = section.icon;
 
                   return (
-                    <li key={section.id}>
+                    <li
+                      key={section.id}
+                      className={
+                        section.id === 'databases' ? 'group/databases relative' : undefined
+                      }
+                    >
                       <Link
                         href={section.href}
                         title={compact ? `${section.label} — ${section.hint}` : section.hint}
@@ -235,6 +242,28 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
                         />
                         <span className={cn('truncate', compact && 'hidden')}>{section.label}</span>
                       </Link>
+                      {/*
+                        Each database under the Databases row, with its count, as
+                        ChessBase's sidebar lists them. Not in the 72px rail,
+                        where a name has no room. Its own Suspense boundary
+                        because it reads `?db=`, and every page renders this.
+                      */}
+                      {section.id === 'databases' && !compact ? (
+                        <>
+                          <Link
+                            href="/databases?new=1"
+                            onClick={onClose}
+                            aria-label="New database"
+                            title="New database"
+                            className="absolute top-[5px] right-1.5 flex size-5 items-center justify-center rounded-[var(--radius-control)] text-tertiary opacity-0 transition-opacity group-hover/databases:opacity-100 hover:bg-black/[0.05] hover:text-primary focus-visible:opacity-100 dark:hover:bg-white/[0.08]"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </Link>
+                          <Suspense fallback={null}>
+                            <SidebarDatabases onNavigate={onClose} />
+                          </Suspense>
+                        </>
+                      ) : null}
                     </li>
                   );
                 })}

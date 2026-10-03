@@ -19,9 +19,10 @@
 
 import { useTabField } from '@/features/tabs/tab-fields';
 import dynamic from 'next/dynamic';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useChessBaseImport } from '@/stores/chessbase-import-store';
 import { useEnCroissantImport } from '@/stores/en-croissant-import-store';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -100,11 +101,26 @@ export function DatabasesWorkspace() {
   const referenceProviderId = usePreferences((state) => state.explorerSourceId);
   const companion = useCompanionStatus();
 
+  const router = useRouter();
+  /*
+    The open database is in the address, `?db=<id>`, as the Library's is.
+    It was component state, so nothing could point at a database: the sidebar
+    could not list them, Back from a database left the page instead of
+    returning to the grid, and a reload or a workspace tab forgot which one
+    was open.
+  */
+  const address = useSearchParams();
+  const openId = address.get('db');
+  /** `?new=1`: the sidebar's "New database", which asks for a name here. */
+  const wantsNew = address.get('new') === '1';
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [checked, setChecked] = useState<ReadonlySet<string>>(new Set());
   const [tab, setTab] = useState<CentreTab>('collection');
-  /** Whether a collection is open, rather than the grid of all of them. */
-  const [drilled, setDrilled] = useState(false);
+  const openDatabase = (id: string | null) => {
+    if (id) setFocusedId(id);
+    setTab('collection');
+    router.push(id ? `/databases?db=${encodeURIComponent(id)}` : '/databases');
+  };
   const [filter, setFilter] = useTabField('filter', '');
   const [transfer, setTransfer] = useState<TransferRequest | null>(null);
   const [creating, setCreating] = useState<null | { query?: GameSearchQuery; sourceId?: string }>(
@@ -118,7 +134,35 @@ export function DatabasesWorkspace() {
   });
 
   const list = useMemo(() => collections.data ?? [], [collections.data]);
-  const focused = list.find((entry) => entry.id === focusedId) ?? list[0] ?? null;
+  const opened = openId ? (list.find((entry) => entry.id === openId) ?? null) : null;
+  /** Whether a collection is open, rather than the grid of all of them. */
+  const drilled = opened !== null;
+  const focused = opened ?? list.find((entry) => entry.id === focusedId) ?? list[0] ?? null;
+  /*
+    A database deleted while open, or an address naming one that is gone,
+    returns to the grid rather than keeping a `?db=` that names nothing. Only
+    once nothing is still arriving: a list read before the companion client is
+    configured holds no SQLite database yet. (Not observed on a reload in the
+    browser suite, where the list's own status call already includes them;
+    the guard costs nothing and the redirect it prevents would lose the
+    person's place.)
+  */
+  const missing =
+    openId !== null &&
+    collections.isSuccess &&
+    !collections.isFetching &&
+    companion.fetchStatus === 'idle' &&
+    opened === null;
+  useEffect(() => {
+    if (missing) router.replace('/databases');
+  }, [missing, router]);
+  useEffect(() => {
+    if (!wantsNew) return;
+    // The address is the request; the prompt is the answer to it, once.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCreating({});
+    router.replace('/databases');
+  }, [wantsNew, router]);
   const selected = list.filter((entry) => checked.has(entry.id));
   const shown = filter.trim()
     ? list.filter((entry) => entry.name.toLowerCase().includes(filter.trim().toLowerCase()))
@@ -231,13 +275,7 @@ export function DatabasesWorkspace() {
             className="flex shrink-0 flex-wrap gap-1 border-b border-line-subtle px-3 py-1.5 sm:px-4"
             aria-label="Database tools"
           >
-            <TabButton
-              active={tab === 'collection' && !drilled}
-              onClick={() => {
-                setTab('collection');
-                setDrilled(false);
-              }}
-            >
+            <TabButton active={tab === 'collection' && !drilled} onClick={() => openDatabase(null)}>
               All databases
             </TabButton>
             {drilled && focused ? (
@@ -296,10 +334,7 @@ export function DatabasesWorkspace() {
                 filtering={filter.trim().length > 0}
                 focusedId={focused?.id ?? null}
                 checked={checked}
-                onOpen={(id) => {
-                  setFocusedId(id);
-                  setDrilled(true);
-                }}
+                onOpen={(id) => openDatabase(id)}
                 onToggle={(id) =>
                   setChecked((current) => {
                     const next = new Set(current);
