@@ -25,6 +25,8 @@ import { useMemo, useState } from 'react';
 import { Fragment } from 'react';
 import { LEGENDS_BY_KEY, legendYears } from '@/reference/legends';
 import { loadTitledRoster } from '@/reference/titled-players';
+
+import { PlayerPhotoCredit, PlayerPortrait } from './PlayerPortrait';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 
@@ -918,7 +920,7 @@ function RosterFacts({ playerKey }: { readonly playerKey: string }) {
   const rows: readonly (readonly [string, string])[] = legend
     ? [
         ['Title', legend.title],
-        ['Lived', legendYears(legend)],
+        legend.died ? ['Lived', legendYears(legend)] : ['Born', String(legend.born)],
         ...(legend.reign ? ([['World champion', legend.reign]] as const) : []),
         ...(legend.fideId ? ([['FIDE ID', legend.fideId]] as const) : []),
       ]
@@ -950,14 +952,18 @@ function RosterFacts({ playerKey }: { readonly playerKey: string }) {
       <h2 className="text-[10px] font-semibold text-tertiary">
         {legend ? 'Historical roster' : 'Titled player'}
       </h2>
-      <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-        {rows.map(([label, value]) => (
-          <Fragment key={label}>
-            <dt className="text-tertiary">{label}</dt>
-            <dd className="text-secondary">{value}</dd>
-          </Fragment>
-        ))}
-      </dl>
+      <div className="mt-2 flex items-start gap-4">
+        <PlayerPortrait name={legend ? legend.name : titled.data!.name} />
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+          {rows.map(([label, value]) => (
+            <Fragment key={label}>
+              <dt className="text-tertiary">{label}</dt>
+              <dd className="text-secondary">{value}</dd>
+            </Fragment>
+          ))}
+        </dl>
+      </div>
+      <PlayerPhotoCredit name={legend ? legend.name : titled.data!.name} />
       {legend ? (
         <p className="mt-2 text-xs leading-relaxed text-secondary">{legend.note}</p>
       ) : (
