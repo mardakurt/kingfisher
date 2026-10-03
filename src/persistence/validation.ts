@@ -425,6 +425,7 @@ export const isSourceSetRecord = (value: unknown): value is SourceSetRecord =>
   object(value) &&
   text(value.id) &&
   text(value.name) &&
+  (value.kind === undefined || value.kind === 'folder') &&
   Array.isArray(value.collectionIds) &&
   value.collectionIds.every(text) &&
   finite(value.createdAt) &&

@@ -37,7 +37,11 @@ export function SourceSetsPanel({ collections, checked, onApply }: SourceSetsPan
   const sets = useQuery({
     queryKey: ['source-sets'],
     retry: false,
-    queryFn: async () => (await getRepositories()).sourceSets.list(),
+    // Folders share the store; they organise the grid and are not search sets.
+    queryFn: async () =>
+      (await getRepositories()).sourceSets
+        .list()
+        .then((all) => all.filter((entry) => entry.kind !== 'folder')),
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['source-sets'] });

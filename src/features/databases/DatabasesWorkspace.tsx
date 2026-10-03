@@ -24,7 +24,17 @@ import { useEnCroissantImport } from '@/stores/en-croissant-import-store';
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { Database, Dossier, Import, Library, Plus, Search, Settings } from '@/components/icons';
+import {
+  Database,
+  Dossier,
+  Folder,
+  Import,
+  Library,
+  Plus,
+  Search,
+  Settings,
+} from '@/components/icons';
+import { ContextMenu } from '@/components/ui/Menu';
 import { SearchField } from '@/components/ui/Controls';
 import { PageHeader } from '@/features/shell/PageHeader';
 import type { CollectionFacts } from '@/database/collections/types';
@@ -47,6 +57,7 @@ import { CollectionDetail } from './CollectionDetail';
 import { formatBytes } from './CollectionList';
 import { LargeFileImportDialog } from './LargeFileImportDialog';
 import { DownloadGamesDialog } from './DownloadGamesDialog';
+import { moveIntoFolder, placeCollections } from './database-folders';
 import { DuplicatesPanel } from './DuplicatesPanel';
 import { MultiSearchPanel } from './MultiSearchPanel';
 import { ReferenceCatalogPanel } from './ReferenceCatalogPanel';
@@ -282,6 +293,7 @@ export function DatabasesWorkspace() {
               <DatabaseGrid
                 collections={shown}
                 total={list.length}
+                filtering={filter.trim().length > 0}
                 focusedId={focused?.id ?? null}
                 checked={checked}
                 onOpen={(id) => {
@@ -625,6 +637,12 @@ function StatusDot({ state, className }: { state: ProviderHealthState; className
   );
 }
 
+const TILE =
+  'flex w-full flex-col items-center gap-2 rounded-[var(--radius-panel)] px-2 pt-4 pb-3 text-center transition-colors';
+const TILE_ICON =
+  'flex size-16 items-center justify-center rounded-[var(--radius-panel)] shadow-[0_1px_2px_rgb(0_0_0/0.12),inset_0_0_0_0.5px_rgb(0_0_0/0.08)]';
+const DRAG_TYPE = 'application/x-kingfisher-collection';
+
 /**
  * Every collection as a tile, the way a Mac shows a folder of documents.
  *
@@ -632,10 +650,15 @@ function StatusDot({ state, className }: { state: ProviderHealthState; className
  * they live; a click opens it. The checkbox in its corner is the multi-select
  * the cross-collection search and duplicate finder work from — visible, not a
  * modifier-click nobody would discover.
+ *
+ * Folders (ChessBase's New Folder) hold tiles, not games: dragging a tile onto
+ * a folder, or "Move to folder" in the tile's menu, changes only where it is
+ * shown (`database-folders.ts`). A search looks through every folder.
  */
 function DatabaseGrid({
   collections,
   total,
+  filtering,
   focusedId,
   checked,
   onOpen,
@@ -646,6 +669,8 @@ function DatabaseGrid({
 }: {
   readonly collections: readonly CollectionFacts[];
   readonly total: number;
+  /** A search is narrowing the list: show the matches wherever they are filed. */
+  readonly filtering: boolean;
   readonly focusedId: string | null;
   readonly checked: ReadonlySet<string>;
   readonly onOpen: (id: string) => void;
@@ -654,11 +679,107 @@ function DatabaseGrid({
   readonly onReferenceSources: () => void;
   readonly sets: React.ReactNode;
 }) {
+  const notify = useUi((state) => state.notify);
+  const queryClient = useQueryClient();
+  const folders = useQuery({
+    queryKey: ['source-sets', 'folders'],
+    retry: false,
+    queryFn: async () =>
+      (await getRepositories()).sourceSets
+        .list()
+        .then((all) => all.filter((entry) => entry.kind === 'folder')),
+  });
+  const folderList = useMemo(() => folders.data ?? [], [folders.data]);
+  const [openFolderId, setOpenFolderId] = useTabField<string | null>('databases.folder', null);
+  const openFolder = folderList.find((entry) => entry.id === openFolderId) ?? null;
+  const [naming, setNaming] = useState<'new' | 'rename' | null>(null);
+  const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
+
+  const placement = useMemo(
+    () => placeCollections(collections, folderList),
+    [collections, folderList],
+  );
+  const visible = filtering
+    ? collections
+    : openFolder
+      ? (placement.inside.get(openFolder.id) ?? [])
+      : placement.loose;
+
+  const refreshFolders = () => queryClient.invalidateQueries({ queryKey: ['source-sets'] });
+  const move = async (collectionId: string, target: string | null) => {
+    try {
+      const repositories = await getRepositories();
+      for (const change of moveIntoFolder(folderList, collectionId, target)) {
+        await repositories.sourceSets.update(change.id, { collectionIds: change.collectionIds });
+      }
+      await refreshFolders();
+    } catch (error) {
+      notify({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'The collection could not be moved.',
+      });
+    }
+  };
+
+  const menuFor = menu ? collections.find((entry) => entry.id === menu.id) : undefined;
+  const menuHome = menu
+    ? folderList.find((entry) => entry.collectionIds.includes(menu.id))
+    : undefined;
+
   return (
     <div className="px-5 py-5 md:px-7" data-database-grid>
-      <div className="flex items-baseline gap-2">
-        <h2 className="text-[15px] font-semibold text-primary">All databases</h2>
-        <span className="text-xs text-tertiary tabular">{total}</span>
+      <div className="flex flex-wrap items-center gap-2">
+        {openFolder && !filtering ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setOpenFolderId(null)}
+              className="text-[15px] font-semibold text-tertiary hover:text-primary"
+            >
+              All databases
+            </button>
+            <span aria-hidden className="text-tertiary">
+              ›
+            </span>
+            <h2 className="text-[15px] font-semibold text-primary" data-open-folder>
+              {openFolder.name}
+            </h2>
+            <span className="text-xs text-tertiary tabular">{visible.length}</span>
+            <Button size="sm" variant="subtle" onClick={() => setNaming('rename')}>
+              Rename
+            </Button>
+            <Button
+              size="sm"
+              variant="subtle"
+              onClick={() => {
+                const name = openFolder.name;
+                void getRepositories()
+                  .then((repositories) => repositories.sourceSets.delete(openFolder.id))
+                  .then(async () => {
+                    setOpenFolderId(null);
+                    await refreshFolders();
+                    notify({
+                      tone: 'success',
+                      message: `Folder “${name}” removed. Its databases are back in All databases.`,
+                    });
+                  });
+              }}
+            >
+              Remove folder
+            </Button>
+          </>
+        ) : (
+          <>
+            <h2 className="text-[15px] font-semibold text-primary">All databases</h2>
+            <span className="text-xs text-tertiary tabular">{total}</span>
+            {filtering ? null : (
+              <Button size="sm" variant="subtle" icon={<Folder />} onClick={() => setNaming('new')}>
+                New folder
+              </Button>
+            )}
+          </>
+        )}
         {checked.size > 0 ? (
           <button
             type="button"
@@ -673,23 +794,76 @@ function DatabaseGrid({
         className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3"
         aria-label="Collections"
       >
-        {collections.map((collection) => {
+        {!filtering && !openFolder
+          ? folderList.map((folder) => {
+              const count = placement.inside.get(folder.id)?.length ?? 0;
+              return (
+                <li key={folder.id} data-folder-tile={folder.name}>
+                  <button
+                    type="button"
+                    onClick={() => setOpenFolderId(folder.id)}
+                    onDragOver={(event) => {
+                      if (!event.dataTransfer.types.includes(DRAG_TYPE)) return;
+                      event.preventDefault();
+                      setDropTarget(folder.id);
+                    }}
+                    onDragLeave={() => setDropTarget(null)}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      setDropTarget(null);
+                      const id = event.dataTransfer.getData(DRAG_TYPE);
+                      if (id) void move(id, folder.id);
+                    }}
+                    className={cn(
+                      TILE,
+                      dropTarget === folder.id
+                        ? 'bg-accent-muted ring-2 ring-accent'
+                        : 'hover:bg-surface-2',
+                    )}
+                  >
+                    <span
+                      aria-hidden
+                      className={cn(
+                        TILE_ICON,
+                        'bg-gradient-to-b from-[#7dd3c0] to-[#3aa58f] text-white',
+                      )}
+                    >
+                      <Folder className="h-7 w-7" />
+                    </span>
+                    <span className="line-clamp-2 text-[12.5px] leading-tight font-medium text-primary">
+                      {folder.name}
+                    </span>
+                    <span className="-mt-1 text-[11px] text-tertiary tabular">
+                      {plural(count, 'database')}
+                    </span>
+                  </button>
+                </li>
+              );
+            })
+          : null}
+        {visible.map((collection) => {
           const isChecked = checked.has(collection.id);
           return (
             <li key={collection.id} className="group relative">
               <button
                 type="button"
+                draggable
+                onDragStart={(event) => {
+                  event.dataTransfer.setData(DRAG_TYPE, collection.id);
+                  event.dataTransfer.effectAllowed = 'move';
+                }}
                 onClick={() => onOpen(collection.id)}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  setMenu({ id: collection.id, x: event.clientX, y: event.clientY });
+                }}
                 aria-current={collection.id === focusedId}
-                className={cn(
-                  'flex w-full flex-col items-center gap-2 rounded-[var(--radius-panel)] px-2 pt-4 pb-3 text-center transition-colors',
-                  isChecked ? 'bg-accent-muted' : 'hover:bg-surface-2',
-                )}
+                className={cn(TILE, isChecked ? 'bg-accent-muted' : 'hover:bg-surface-2')}
               >
                 <span
                   aria-hidden
                   className={cn(
-                    'flex size-16 items-center justify-center rounded-[var(--radius-panel)] shadow-[0_1px_2px_rgb(0_0_0/0.12),inset_0_0_0_0.5px_rgb(0_0_0/0.08)]',
+                    TILE_ICON,
                     collection.kind === 'sqlite'
                       ? 'bg-gradient-to-b from-[#6f7785] to-[#4b525d] text-white'
                       : 'bg-gradient-to-b from-[#4f8ff0] to-[#2563d4] text-white',
@@ -729,9 +903,23 @@ function DatabaseGrid({
                   className="accent-[var(--accent)]"
                 />
               </label>
+              {/* The keyboard's way to a folder, which a drag is not. */}
+              <button
+                type="button"
+                aria-label="Move to folder"
+                title={`Move ${collection.name} to a folder`}
+                data-move-to-folder={collection.id}
+                onClick={(event) => {
+                  const box = event.currentTarget.getBoundingClientRect();
+                  setMenu({ id: collection.id, x: box.left, y: box.bottom + 4 });
+                }}
+                className="absolute top-1.5 right-1.5 flex size-6 items-center justify-center rounded-[var(--radius-control)] text-tertiary opacity-0 transition-opacity group-hover:opacity-100 hover:bg-surface-3 hover:text-primary focus:opacity-100 [&>svg]:size-[14px]"
+              >
+                <Folder />
+              </button>
               {collection.reference ? (
                 <span
-                  className="absolute top-2 right-2 rounded-[var(--radius-board)] bg-accent px-1 text-[9px] font-semibold text-accent-contrast"
+                  className="absolute top-2 right-9 rounded-[var(--radius-board)] bg-accent px-1 text-[9px] font-semibold text-accent-contrast"
                   title="The explorer's default source"
                 >
                   Ref
@@ -740,26 +928,34 @@ function DatabaseGrid({
             </li>
           );
         })}
-        <li>
-          <button
-            type="button"
-            aria-label="Open the reference catalogue: packs and live services"
-            onClick={onReferenceSources}
-            className="flex w-full flex-col items-center gap-2 rounded-[var(--radius-panel)] px-2 pt-4 pb-3 text-center transition-colors hover:bg-surface-2"
-          >
-            <span
-              aria-hidden
-              className="flex size-16 items-center justify-center rounded-[var(--radius-panel)] bg-gradient-to-b from-[#f5c451] to-[#e0a21c] text-white shadow-[0_1px_2px_rgb(0_0_0/0.12)]"
+        {openFolder && !filtering ? null : (
+          <li>
+            <button
+              type="button"
+              aria-label="Open the reference catalogue: packs and live services"
+              onClick={onReferenceSources}
+              className={cn(TILE, 'hover:bg-surface-2')}
             >
-              <Dossier className="h-7 w-7" />
-            </span>
-            <span className="text-[12.5px] leading-tight font-medium text-primary">
-              Reference sources
-            </span>
-            <span className="-mt-1 text-[11px] text-tertiary">Packs and live services</span>
-          </button>
-        </li>
+              <span
+                aria-hidden
+                className="flex size-16 items-center justify-center rounded-[var(--radius-panel)] bg-gradient-to-b from-[#f5c451] to-[#e0a21c] text-white shadow-[0_1px_2px_rgb(0_0_0/0.12)]"
+              >
+                <Dossier className="h-7 w-7" />
+              </span>
+              <span className="text-[12.5px] leading-tight font-medium text-primary">
+                Reference sources
+              </span>
+              <span className="-mt-1 text-[11px] text-tertiary">Packs and live services</span>
+            </button>
+          </li>
+        )}
       </ul>
+      {openFolder && !filtering && visible.length === 0 ? (
+        <p className="mt-4 text-xs text-tertiary" data-empty-folder>
+          This folder is empty. Drag a database onto it in All databases, or choose Move to folder
+          on its tile.
+        </p>
+      ) : null}
       {collections.length === 0 && total > 0 ? (
         <p className="mt-4 text-xs text-tertiary">No collection matches the search.</p>
       ) : null}
@@ -768,6 +964,76 @@ function DatabaseGrid({
           No collections. Import a PGN to start one, or pair the companion for SQLite collections.
         </p>
       ) : null}
+      {menu && menuFor ? (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          onClose={() => setMenu(null)}
+          sections={[
+            {
+              id: 'folders',
+              items: [
+                ...folderList.map((folder) => ({
+                  id: `to-${folder.id}`,
+                  label: `Move to “${folder.name}”${menuHome?.id === folder.id ? ' ✓' : ''}`,
+                  icon: <Folder />,
+                  disabled: menuHome?.id === folder.id,
+                  run: () => void move(menuFor.id, folder.id),
+                })),
+                ...(menuHome
+                  ? [
+                      {
+                        id: 'out',
+                        label: `Take out of “${menuHome.name}”`,
+                        run: () => void move(menuFor.id, null),
+                      },
+                    ]
+                  : []),
+                {
+                  id: 'new-folder',
+                  label: 'New folder…',
+                  icon: <Plus />,
+                  run: () => setNaming('new'),
+                },
+              ],
+            },
+          ]}
+        />
+      ) : null}
+      <PromptDialog
+        key={naming ?? 'closed'}
+        open={naming !== null}
+        title={naming === 'rename' ? 'Rename folder' : 'New folder'}
+        description="A folder groups database tiles. No games move."
+        label="Name"
+        placeholder="Openings"
+        initialValue={naming === 'rename' ? (openFolder?.name ?? '') : ''}
+        confirmLabel={naming === 'rename' ? 'Rename' : 'Create folder'}
+        onCancel={() => setNaming(null)}
+        onSubmit={async (name) => {
+          const repositories = await getRepositories();
+          if (naming === 'rename' && openFolder) {
+            await repositories.sourceSets.update(openFolder.id, { name });
+          } else {
+            // From a tile's menu, the new folder takes that tile with it.
+            const created = await repositories.sourceSets.create({
+              name,
+              kind: 'folder',
+              collectionIds: [],
+            });
+            if (menu) {
+              for (const change of moveIntoFolder([...folderList, created], menu.id, created.id)) {
+                await repositories.sourceSets.update(change.id, {
+                  collectionIds: change.collectionIds,
+                });
+              }
+              setMenu(null);
+            }
+          }
+          setNaming(null);
+          await refreshFolders();
+        }}
+      />
       <div className="mt-6 max-w-[520px]">{sets}</div>
     </div>
   );

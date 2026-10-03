@@ -15,6 +15,7 @@ import { assertValid, isSourceSetRecord } from '../validation';
 
 export interface SourceSetInput {
   readonly name: string;
+  readonly kind?: 'folder';
   readonly collectionIds: readonly string[];
   readonly filters?: SourceSetRecord['filters'];
 }
@@ -44,10 +45,14 @@ export class LocalSourceSetRepository implements SourceSetRepository {
 
   async create(input: SourceSetInput, now = Date.now()): Promise<SourceSetRecord> {
     const name = input.name.trim();
-    if (!name) throw new Error('A source set needs a name.');
+    if (!name)
+      throw new Error(
+        input.kind === 'folder' ? 'A folder needs a name.' : 'A source set needs a name.',
+      );
     const record: SourceSetRecord = {
-      id: stableId('source-set'),
+      id: stableId(input.kind === 'folder' ? 'folder' : 'source-set'),
       name,
+      ...(input.kind ? { kind: input.kind } : {}),
       // Deduplicated on the way in: a set listing one collection twice would
       // search it twice and count its games twice.
       collectionIds: [...new Set(input.collectionIds)],

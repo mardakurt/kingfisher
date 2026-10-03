@@ -1149,6 +1149,13 @@ export interface LinkedAccountRecord {
 export interface SourceSetRecord {
   readonly id: string;
   readonly name: string;
+  /**
+   * Absent: a set, ticked collections to search together. `folder`: the
+   * Databases grid shows the collections inside it rather than at the top
+   * level (ChessBase's New Folder). Both are a name and a list of ids, which
+   * is why they share a store; a collection is in at most one folder.
+   */
+  readonly kind?: 'folder';
   readonly collectionIds: readonly string[];
   /** Filters applied to every source in the set, in the game search vocabulary. */
   readonly filters?: {

@@ -241,6 +241,12 @@ export const Players = (p: IconProps) => (
  * two adjacent sections indistinguishable in the collapsed rail. A folder is
  * the right metaphor anyway: an opening file is a dossier, not a tree.
  */
+export const Folder = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M3.5 7.5a1.5 1.5 0 0 1 1.5-1.5h3.6a1.5 1.5 0 0 1 1.2.6l1 1.4H19a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 19 20H5a1.5 1.5 0 0 1-1.5-1.5z" />
+  </Icon>
+);
+
 export const Dossier = (p: IconProps) => (
   <Icon {...p}>
     <path d="M3.5 7.5a1.5 1.5 0 0 1 1.5-1.5h3.6a1.5 1.5 0 0 1 1.2.6l1 1.4H19a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 19 20H5a1.5 1.5 0 0 1-1.5-1.5z" />
