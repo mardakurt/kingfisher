@@ -25,7 +25,18 @@ export interface DatabaseGameRef {
   readonly blackRating?: number;
   readonly result: GameResult;
   readonly year?: number;
+  /** As the source dates it: `YYYY.MM.DD`, possibly with `??`, or `YYYY-MM`. */
+  readonly date?: string;
   readonly event?: string;
+  readonly eco?: string;
+  /** Length of the game in half-moves, when the source knows it. */
+  readonly plies?: number;
+  /**
+   * The move this game played at the position asked about — ChessBase's
+   * "Move" column. Absent when the source does not say, or when the game
+   * reached the position by another order and the source cannot tell.
+   */
+  readonly san?: San;
   /** Where the full game can be opened, when the provider offers one. */
   readonly url?: string;
 }

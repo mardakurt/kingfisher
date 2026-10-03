@@ -1,7 +1,8 @@
-import { expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import { positionKey } from '@/chess/fen';
 import { parsePgn } from '@/chess/pgn';
 import { decodeGameLine } from './pack';
-import { packGamePgn } from './provider';
+import { moveAtPosition, packGamePgn } from './provider';
 
 it('opens a real broadcast game whose event contains a quotation mark', () => {
   // First twelve plies of Lorenc–Burdalev, 15 May 2026, Elite broadcast pack.
@@ -16,4 +17,22 @@ it('opens a real broadcast game whose event contains a quotation mark', () => {
     expect(parsed.games[0]!.tree.headers.Source).toBe('Elite OTB Reference');
     expect(Object.keys(parsed.games[0]!.tree.nodes)).toHaveLength(13);
   }
+});
+
+describe('moveAtPosition', () => {
+  // The Queen's Gambit Declined after 1.d4 d5 2.c4 e6, White to move.
+  const QGD = positionKey('rnbqkbnr/ppp2ppp/4p3/3p4/2PP4/8/PP2PPPP/RNBQKBNR w KQkq - 0 3');
+
+  it('names the move a game played at the position, and the ply it was played at', () => {
+    expect(moveAtPosition('d4 d5 c4 e6 Nc3 Nf6'.split(' '), QGD)).toEqual({ san: 'Nc3', ply: 4 });
+  });
+
+  it('finds it in a game that reached the position by another order', () => {
+    expect(moveAtPosition('c4 e6 d4 d5 Nf3 Nf6'.split(' '), QGD)).toEqual({ san: 'Nf3', ply: 4 });
+  });
+
+  it('says nothing for a game that never reaches it, or ends there', () => {
+    expect(moveAtPosition('d4 d5 c4 c6 Nf3'.split(' '), QGD)).toBeNull();
+    expect(moveAtPosition('d4 d5 c4 e6'.split(' '), QGD)).toBeNull();
+  });
 });

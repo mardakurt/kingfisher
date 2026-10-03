@@ -745,8 +745,13 @@ export function ExplorerPanel() {
             {(query.data?.topGames?.length ?? 0) > 0 ? (
               <section className="border-t border-line-subtle">
                 <div className="flex items-center gap-2 px-2.5 py-2">
+                  {/*
+                    "Top games", as ChessBase calls them: the strongest games
+                    the source holds here. Not "Model games", which in
+                    Kingfisher are the games a player chose to keep.
+                  */}
                   <h3 className="text-[10px] font-semibold text-tertiary">
-                    {provider?.id === 'lichess-player' ? 'Recent games' : 'Model games'}
+                    {provider?.id === 'lichess-player' ? 'Recent games' : 'Top games'}
                   </h3>
                   {/*
                     The listed games folded into one tree, as the Library's
@@ -793,19 +798,42 @@ export function ExplorerPanel() {
                 </div>
                 <div className="divide-y divide-line-subtle">
                   {query.data?.topGames?.slice(0, 8).map((game) => {
+                    const rated = (name: string, rating?: number) =>
+                      rating ? `${name} (${rating})` : name;
                     const content = (
                       <>
-                        <span className="truncate text-xs text-primary">
-                          {game.white} – {game.black}
+                        {/* The move this game played here, as ChessBase's first column. */}
+                        <span
+                          className="w-10 shrink-0 truncate text-xs font-semibold text-primary tabular"
+                          data-top-game-move
+                        >
+                          {game.san ?? ''}
                         </span>
-                        <span className="text-xs text-secondary tabular">{game.result}</span>
-                        <span className="truncate text-[10px] text-tertiary">
-                          {[game.event, game.year].filter(Boolean).join(' · ')}
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-baseline gap-2">
+                            <span className="min-w-0 flex-1 truncate text-xs text-primary">
+                              {rated(game.white, game.whiteRating)} –{' '}
+                              {rated(game.black, game.blackRating)}
+                            </span>
+                            <span className="shrink-0 text-xs text-secondary tabular">
+                              {game.result}
+                            </span>
+                          </span>
+                          <span className="block truncate text-[10px] text-tertiary tabular">
+                            {[
+                              game.date?.replace(/\.\?\?/g, '') ?? game.year,
+                              game.eco,
+                              game.plies ? `${Math.ceil(game.plies / 2)} moves` : null,
+                              game.event,
+                            ]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </span>
                         </span>
                       </>
                     );
                     const className =
-                      'grid w-full grid-cols-[minmax(0,1fr)_auto] gap-2 px-2.5 py-2 text-left hover:bg-surface-2';
+                      'flex w-full items-start gap-2 px-2.5 py-2 text-left hover:bg-surface-2';
                     /*
                       Three cases, and the middle one used to be missing.
 
@@ -829,10 +857,26 @@ export function ExplorerPanel() {
                         onClick={async () => {
                           try {
                             const title = `${game.white} – ${game.black}`;
+                            // At the position being explored, as ChessBase opens a top game.
+                            const here = positionKey(node.fen);
                             if (packReader(provider.id)) {
-                              await openReferenceGame(provider.id, provider.name, game.id, title);
+                              await openReferenceGame(
+                                provider.id,
+                                provider.name,
+                                game.id,
+                                title,
+                                undefined,
+                                here,
+                              );
                             } else {
-                              await openOnlineGame(provider, game.id, title);
+                              await openOnlineGame(
+                                provider,
+                                game.id,
+                                title,
+                                undefined,
+                                undefined,
+                                here,
+                              );
                             }
                           } catch (error) {
                             notify({

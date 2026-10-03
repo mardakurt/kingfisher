@@ -52,6 +52,8 @@ interface LichessPlayer {
 
 interface LichessGame {
   readonly id?: string;
+  /** The move this game played at the position (top and recent games). */
+  readonly uci?: string;
   readonly winner?: 'white' | 'black' | null;
   readonly white?: LichessPlayer;
   readonly black?: LichessPlayer;
@@ -442,7 +444,12 @@ export class LichessExplorerProvider implements ChessDatabaseProvider {
       black: payload.black,
       moves,
       ...(opening ? { opening } : {}),
-      topGames: (payload.topGames ?? payload.recentGames ?? []).map(toGameRef),
+      topGames: (payload.topGames ?? payload.recentGames ?? []).map((game) => {
+        const ref = toGameRef(game);
+        // The move list of the same answer names the game's move in SAN.
+        const san = game.uci ? moves.find((move) => move.uci === game.uci)?.san : undefined;
+        return san ? { ...ref, san } : ref;
+      }),
     };
   }
 }
@@ -481,6 +488,7 @@ function toGameRef(game: LichessGame): DatabaseGameRef {
     ...(game.black?.rating ? { blackRating: game.black.rating } : {}),
     result,
     ...(game.year ? { year: game.year } : {}),
+    ...(game.month && /^\d{4}-\d{2}$/.test(game.month) ? { date: game.month } : {}),
     ...(game.id ? { url: `https://lichess.org/${game.id}` } : {}),
   };
 }

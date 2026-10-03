@@ -23,6 +23,7 @@
  * data is not decoration.
  */
 
+import { nodeAtPosition } from '@/chess/tree/find';
 import { parsePgn } from '@/chess/pgn';
 import { DatabaseError, type ChessDatabaseProvider } from '@/database/types';
 import { getRepositories } from '@/persistence/repositories';
@@ -49,6 +50,8 @@ export async function openOnlineGame(
   /** Where the game goes: the board by default, or a new tab. */
   open: (input: OpenDocumentInput) => unknown = (input) =>
     useAnalysis.getState().openDocument(input),
+  /** Open at the first main-line position with this canonical key, as a pack game can. */
+  at?: string,
 ): Promise<void> {
   if (typeof provider.game !== 'function') {
     throw new OnlineGameUnavailableError(`${provider.name} does not serve whole games.`);
@@ -95,8 +98,10 @@ export async function openOnlineGame(
     viewer = undefined;
   }
 
+  const currentId = at ? nodeAtPosition(parsed.tree, at) : null;
   await open({
     tree: parsed.tree,
+    ...(currentId ? { currentId } : {}),
     ...(viewer ? { orientation: viewer } : {}),
     document: {
       kind: 'reference-game',

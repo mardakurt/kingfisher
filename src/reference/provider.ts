@@ -15,6 +15,7 @@
  */
 
 import { positionKey } from '@/chess/fen';
+import { Position } from '@/chess/position';
 import type { San, Uci } from '@/chess/types';
 import {
   performanceRating,
@@ -115,7 +116,7 @@ export class ReferencePackProvider implements ChessDatabaseProvider {
       draws: entry.moves.reduce((sum, move) => sum + move.draws, 0),
       black: entry.moves.reduce((sum, move) => sum + move.black, 0),
       moves,
-      ...(games.length > 0 ? { topGames: games.map(gameRef) } : {}),
+      ...(games.length > 0 ? { topGames: games.map((game) => gameRef(game, key)) } : {}),
       truncated: entry.moves.length > moves.length,
     };
   }
@@ -137,17 +138,49 @@ export class ReferencePackProvider implements ChessDatabaseProvider {
   }
 }
 
-export const gameRef = (game: PackGame): DatabaseGameRef => ({
-  id: game.id,
-  white: game.white,
-  black: game.black,
-  ...(game.whiteElo > 0 ? { whiteRating: game.whiteElo } : {}),
-  ...(game.blackElo > 0 ? { blackRating: game.blackElo } : {}),
-  result: (game.result as GameResult) ?? '*',
-  ...(game.year > 0 ? { year: game.year } : {}),
-  ...(game.event ? { event: game.event } : {}),
-  ...(game.url ? { url: game.url } : {}),
-});
+/**
+ * The move a pack game played at a position, found by replaying its moves
+ * through Kingfisher's rules until the position appears — so a game that
+ * reached it by another order still says what it played there. Null when the
+ * game never reaches it on its main line (or a move does not replay), which
+ * is reported as not known rather than guessed.
+ */
+export function moveAtPosition(
+  moves: readonly string[],
+  key: string,
+): { readonly san: San; readonly ply: number } | null {
+  let position = Position.initial();
+  for (let ply = 0; ply < moves.length; ply += 1) {
+    if (positionKey(position.fen) === key) {
+      const played = position.advanceSan(moves[ply] as string);
+      return played.ok ? { san: played.value.move.san, ply } : null;
+    }
+    const next = position.advanceSan(moves[ply] as string);
+    if (!next.ok) return null;
+    position = next.value.next;
+  }
+  return null;
+}
+
+export const gameRef = (game: PackGame, key?: string): DatabaseGameRef => {
+  const moves = game.moves.split(' ').filter(Boolean);
+  const played = key ? moveAtPosition(moves, key) : null;
+  return {
+    id: game.id,
+    white: game.white,
+    black: game.black,
+    ...(game.whiteElo > 0 ? { whiteRating: game.whiteElo } : {}),
+    ...(game.blackElo > 0 ? { blackRating: game.blackElo } : {}),
+    result: (game.result as GameResult) ?? '*',
+    ...(game.year > 0 ? { year: game.year } : {}),
+    ...(game.date ? { date: game.date } : {}),
+    ...(game.event ? { event: game.event } : {}),
+    ...(game.eco && game.eco !== '?' ? { eco: game.eco } : {}),
+    ...(moves.length > 0 ? { plies: moves.length } : {}),
+    ...(played ? { san: played.san } : {}),
+    ...(game.url ? { url: game.url } : {}),
+  };
+};
 
 /**
  * A pack game as PGN, so it enters Kingfisher through the same import path as

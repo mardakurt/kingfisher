@@ -125,10 +125,12 @@ describe('LichessExplorerProvider authentication', () => {
       recentGames: [
         {
           id: 'abcd1234',
+          uci: 'e2e4',
           winner: 'white',
           white: { name: 'Player' },
           black: { name: 'Opponent' },
           year: 2026,
+          month: '2026-03',
         },
       ],
     });
@@ -148,7 +150,7 @@ describe('LichessExplorerProvider authentication', () => {
       averageRating: 2100,
       opening: { eco: 'B00' },
     });
-    expect(result.topGames?.[0]?.id).toBe('abcd1234');
+    expect(result.topGames?.[0]).toMatchObject({ id: 'abcd1234', san: 'e4', date: '2026-03' });
   });
 });
 
