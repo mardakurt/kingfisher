@@ -23,6 +23,8 @@ test('glyphs, comments and deletion from the bar under the notation', async ({ p
   const bar = page.getByRole('toolbar', { name: 'Annotate the current move' });
   const notation = page.locator('[data-move-tree]');
   await expect(bar).toBeVisible();
+  // In the Notation header when the notation is stacked above the tools: no height spent.
+  await expect(bar).toHaveAttribute('data-annotation-bar', 'header');
   // The start position is not a move.
   await expect(bar.getByRole('button', { name: 'Good move' })).toBeDisabled();
 
@@ -41,7 +43,8 @@ test('glyphs, comments and deletion from the bar under the notation', async ({ p
   // A quality glyph replaces the other; a judgement of the position sits beside it.
   await bar.getByRole('button', { name: 'Interesting move' }).click();
   await expect(good).toHaveAttribute('aria-pressed', 'false');
-  await bar.getByRole('button', { name: 'White is slightly better' }).click();
+  await bar.getByRole('button', { name: 'Judge the position' }).click();
+  await page.getByRole('menuitem', { name: /White is slightly better/ }).click();
   await expect(notation).toContainText('Nf3!?');
   await expect(notation).toContainText('⩲');
 
@@ -57,7 +60,8 @@ test('glyphs, comments and deletion from the bar under the notation', async ({ p
 
   // Back to 1...e5, then delete from there: only 1.e4 is left.
   await page.keyboard.press('ArrowLeft');
-  await bar.getByRole('button', { name: 'Delete from this move' }).click();
+  await bar.getByRole('button', { name: 'Edit the move list' }).click();
+  await page.getByRole('menuitem', { name: /Delete from this move/ }).click();
   await expect(notation).toContainText('e4');
   await expect(notation).not.toContainText('e5');
   await expect(notation).not.toContainText('Nf3');

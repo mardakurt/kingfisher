@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { Panel, PanelHeader } from '@/components/ui/Panel';
-import { AnnotationBar } from '@/features/movetree/AnnotationBar';
+import { AnnotationBar, useAnnotationBarInHeader } from '@/features/movetree/AnnotationBar';
 import { MoveTree } from '@/features/movetree/MoveTree';
 import { useChessWorkspace } from '@/features/workspace/ChessWorkspaceContext';
 import { cn } from '@/lib/cn';
@@ -49,6 +49,8 @@ export function MoveTreePanel({
   const goTo = useAnalysis((state) => state.goTo);
   const setMoveMenu = useUi((state) => state.setMoveMenu);
   const setCommentingNodeId = useUi((state) => state.setCommentingNodeId);
+  // The stacked Notation section shows the bar in its header instead.
+  const barInHeader = useAnnotationBarInHeader();
 
   return (
     <Panel className={cn('h-full', className)}>
@@ -74,7 +76,7 @@ export function MoveTreePanel({
           {...(marks.data ? { ecoMarks: marks.data } : {})}
         />
       </div>
-      <AnnotationBar />
+      {barInHeader ? null : <AnnotationBar />}
     </Panel>
   );
 }
