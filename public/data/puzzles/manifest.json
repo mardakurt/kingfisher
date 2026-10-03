@@ -1,0 +1,293 @@
+{
+  "name": "Kingfisher tactics puzzles",
+  "source": "Lichess puzzle database",
+  "url": "https://database.lichess.org/lichess_db_puzzle.csv.zst",
+  "licence": "CC0-1.0",
+  "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "sourceLastModified": "Fri, 02 Oct 2026 08:51:45 GMT",
+  "archiveSha256": "76335bfa7d7c4a7f93c1366d81549e53951ebb79dd43d34904cab8f22d962f8d",
+  "archiveDigestNote": "Computed by this build; the publisher does not post a digest for this file.",
+  "builtAt": "2026-10-02",
+  "filter": {
+    "maxDeviation": 90,
+    "minPopularity": 80,
+    "minPlays": 300,
+    "minRating": 400,
+    "maxRating": 3099,
+    "perBand": 1000,
+    "selection": "smallest sha1(PuzzleId) within each 100-point band"
+  },
+  "totals": {
+    "sourceRows": 6157341,
+    "eligible": 2884979,
+    "shipped": 24587,
+    "rejectedByRules": 0
+  },
+  "rejections": [],
+  "themes": {
+    "endgame": 12462,
+    "middlegame": 11040,
+    "short": 10389,
+    "crushing": 10165,
+    "mate": 7202,
+    "long": 7124,
+    "advantage": 7056,
+    "oneMove": 3623,
+    "mateIn1": 3619,
+    "master": 3348,
+    "veryLong": 3289,
+    "fork": 2882,
+    "mateIn2": 2649,
+    "kingsideAttack": 2258,
+    "sacrifice": 2207,
+    "defensiveMove": 1971,
+    "advancedPawn": 1805,
+    "pin": 1603,
+    "quietMove": 1567,
+    "rookEndgame": 1422,
+    "pawnEndgame": 1227,
+    "discoveredAttack": 1201,
+    "deflection": 1111,
+    "opening": 1085,
+    "hangingPiece": 1034,
+    "attraction": 978,
+    "exposedKing": 966,
+    "mateIn3": 721,
+    "backRankMate": 721,
+    "promotion": 666,
+    "skewer": 523,
+    "discoveredCheck": 480,
+    "bishopEndgame": 470,
+    "queensideAttack": 403,
+    "clearance": 392,
+    "zugzwang": 382,
+    "intermezzo": 294,
+    "masterVsMaster": 289,
+    "queenEndgame": 278,
+    "knightEndgame": 275,
+    "pillsburysMate": 269,
+    "trappedPiece": 260,
+    "operaMate": 223,
+    "attackingF2F7": 217,
+    "mateIn4": 171,
+    "capturingDefender": 162,
+    "queenRookEndgame": 149,
+    "doubleCheck": 140,
+    "epauletteMate": 111,
+    "interference": 98,
+    "smotheredMate": 93,
+    "xRayAttack": 79,
+    "anastasiaMate": 57,
+    "enPassant": 50,
+    "arabianMate": 48,
+    "mateIn5": 42,
+    "collinearMove": 41,
+    "swallowstailMate": 37,
+    "hookMate": 37,
+    "triangleMate": 35,
+    "cornerMate": 32,
+    "morphysMate": 31,
+    "blindSwineMate": 30,
+    "bodenMate": 28,
+    "dovetailMate": 25,
+    "doubleBishopMate": 23,
+    "killBoxMate": 16,
+    "superGM": 12,
+    "castling": 11,
+    "underPromotion": 8,
+    "vukovicMate": 7,
+    "balestraMate": 5,
+    "equality": 2
+  },
+  "bands": [
+    {
+      "band": 400,
+      "file": "r0400.json",
+      "count": 1000,
+      "bytes": 172542,
+      "sha256": "e6ade78f8177473a03c9a98afcf86ff2f2f95e295dacdd2a34af646f1fe96e0d"
+    },
+    {
+      "band": 500,
+      "file": "r0500.json",
+      "count": 1000,
+      "bytes": 179682,
+      "sha256": "99ac9894ff91a4cff623ff1beba71e65ce632760f8167d94ac36273cee0b9fae"
+    },
+    {
+      "band": 600,
+      "file": "r0600.json",
+      "count": 1000,
+      "bytes": 174389,
+      "sha256": "bd569910b5f448cd823da52aa044a188b2e61dadceb65be7e6653bed9151347d"
+    },
+    {
+      "band": 700,
+      "file": "r0700.json",
+      "count": 1000,
+      "bytes": 174331,
+      "sha256": "08651652ba9b33a814ddb19fdb007d81a2436df5c73576d2bf03535d4d7e4c67"
+    },
+    {
+      "band": 800,
+      "file": "r0800.json",
+      "count": 1000,
+      "bytes": 173629,
+      "sha256": "58f1db2ca62f55634d63bcddb621af80b7022f7f233d0c19b1e6faa4af7ec44b"
+    },
+    {
+      "band": 900,
+      "file": "r0900.json",
+      "count": 1000,
+      "bytes": 175005,
+      "sha256": "40159a2a820696797401f33cfd9fb6853fb677b12310749b88746ddc708d53aa"
+    },
+    {
+      "band": 1000,
+      "file": "r1000.json",
+      "count": 1000,
+      "bytes": 178733,
+      "sha256": "e38121428c7dcea7fe37b728a7602aae01c6e202b45571361c3a4aef051613ec"
+    },
+    {
+      "band": 1100,
+      "file": "r1100.json",
+      "count": 1000,
+      "bytes": 175751,
+      "sha256": "e23c0cb671fa32d9fc9d1202cd58adc07750582a0ac4883ba127003c1cfcd82c"
+    },
+    {
+      "band": 1200,
+      "file": "r1200.json",
+      "count": 1000,
+      "bytes": 178511,
+      "sha256": "c3c06ca9018e9add911768d393f33c2cac9c1d0496b2ac71d651be5c44a36df4"
+    },
+    {
+      "band": 1300,
+      "file": "r1300.json",
+      "count": 1000,
+      "bytes": 179190,
+      "sha256": "7006c0c15fe84c809c293bdec5138e9fb2acdcb4db5a0c0ddf8ba9a98353d28b"
+    },
+    {
+      "band": 1400,
+      "file": "r1400.json",
+      "count": 1000,
+      "bytes": 180933,
+      "sha256": "a1e537ca431c15c221ac0391ad30a789508719270f46f09502b3217a76d2b7c2"
+    },
+    {
+      "band": 1500,
+      "file": "r1500.json",
+      "count": 1000,
+      "bytes": 180926,
+      "sha256": "6ad6c744ff8f899753f40df365852d73ab46a0970f049062b0aa7ebfb16e3b45"
+    },
+    {
+      "band": 1600,
+      "file": "r1600.json",
+      "count": 1000,
+      "bytes": 183861,
+      "sha256": "b091067923ed4847c92e040db66f0550a162966e96f3cac7589907f35bfb7aac"
+    },
+    {
+      "band": 1700,
+      "file": "r1700.json",
+      "count": 1000,
+      "bytes": 181580,
+      "sha256": "f857692d5da7d463711057665e4639bc4b0f2c916da788e476e55f97a1e559a1"
+    },
+    {
+      "band": 1800,
+      "file": "r1800.json",
+      "count": 1000,
+      "bytes": 184390,
+      "sha256": "c1493050da4fe67084eb29e9020ba46523312ee52e9f15b142abb6dd828e3114"
+    },
+    {
+      "band": 1900,
+      "file": "r1900.json",
+      "count": 1000,
+      "bytes": 185322,
+      "sha256": "381413c7d81207c41cd59771e21850fadf36080851a7872d1a8689f2492a4f40"
+    },
+    {
+      "band": 2000,
+      "file": "r2000.json",
+      "count": 1000,
+      "bytes": 183668,
+      "sha256": "911cb040bb00b92c21572efd894eb06b433f8054ea23379de256db2be2befa06"
+    },
+    {
+      "band": 2100,
+      "file": "r2100.json",
+      "count": 1000,
+      "bytes": 185740,
+      "sha256": "8e821799a3a9508f30ae3c56a3614f1fde59b9b5a17f0e11e7e5f97a0f0e034d"
+    },
+    {
+      "band": 2200,
+      "file": "r2200.json",
+      "count": 1000,
+      "bytes": 188847,
+      "sha256": "0bdb5f3fddaa1b25be42a4bc5525c79b9b4c91a00972fa40fc69d8011550cec3"
+    },
+    {
+      "band": 2300,
+      "file": "r2300.json",
+      "count": 1000,
+      "bytes": 188085,
+      "sha256": "00689b0f2f27af4a2f4024b028f48f53a628a9b730c24c53f8eae14eff0d2c1b"
+    },
+    {
+      "band": 2400,
+      "file": "r2400.json",
+      "count": 1000,
+      "bytes": 186626,
+      "sha256": "28d652cb082d6df21b943f8a57e897db4fe8f72b48fd1b105fc93a4cec68f981"
+    },
+    {
+      "band": 2500,
+      "file": "r2500.json",
+      "count": 1000,
+      "bytes": 187984,
+      "sha256": "944c424221b68bb56df71889e8d3c29a9bfd4059f7390bff41b30169223867e4"
+    },
+    {
+      "band": 2600,
+      "file": "r2600.json",
+      "count": 1000,
+      "bytes": 186509,
+      "sha256": "4e08b712f81cc1758c76c53a47300ed28190d7252227faaa2a357c8bfdb29817"
+    },
+    {
+      "band": 2700,
+      "file": "r2700.json",
+      "count": 1000,
+      "bytes": 187903,
+      "sha256": "106404de286a7e2180e711a10dbc046798ffc509e6ec291ed6aa3a7242a8b5f7"
+    },
+    {
+      "band": 2800,
+      "file": "r2800.json",
+      "count": 528,
+      "bytes": 98245,
+      "sha256": "1a56bf21bb41c4d0d89ac0613af7f6e3df64adadb2cb45b21825337d86ed2753"
+    },
+    {
+      "band": 2900,
+      "file": "r2900.json",
+      "count": 57,
+      "bytes": 10885,
+      "sha256": "abaa7ce7fec57293d5d3a5f612568c8bb7d6205f9af9ff3209ee10d96312326f"
+    },
+    {
+      "band": 3000,
+      "file": "r3000.json",
+      "count": 2,
+      "bytes": 370,
+      "sha256": "69d61cf04e52da607fc915d8fc306ceb816099ca903b0ad8e1aa50c3fdf89321"
+    }
+  ]
+}

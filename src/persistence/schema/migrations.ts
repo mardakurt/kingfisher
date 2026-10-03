@@ -1,5 +1,5 @@
 export const DATABASE_NAME = 'kingfisher';
-export const DATABASE_VERSION = 23;
+export const DATABASE_VERSION = 24;
 
 export const STORE_NAMES = {
   studies: 'studies',
@@ -57,6 +57,8 @@ export const STORE_NAMES = {
   inboxDecisions: 'inboxDecisions',
   /* Phase 86: stored evaluations written into a chapter, one undoable batch each. */
   analysisWriteBacks: 'analysisWriteBacks',
+  /* Version 24: every tactics-puzzle attempt; the solver rating is derived from them. */
+  puzzleAttempts: 'puzzleAttempts',
 } as const;
 
 export type StoreName = (typeof STORE_NAMES)[keyof typeof STORE_NAMES];
@@ -590,6 +592,21 @@ export const MIGRATIONS: readonly Migration[] = [
       /* Asked for by chapter: "what was last written here, and can it be undone?" */
       target.createStore(STORE_NAMES.analysisWriteBacks, { keyPath: 'id' }, [
         { name: 'chapterId', keyPath: 'chapterId' },
+      ]);
+    },
+  },
+  {
+    version: 24,
+    description: 'Keep every tactics-puzzle attempt, from which the solver rating is derived.',
+    apply(target) {
+      /*
+       * Read in time order to replay the rating, and by puzzle to say "you
+       * have seen this one". The rating itself is not stored: it is a pure
+       * function of the attempts, so a restore cannot disagree with it.
+       */
+      target.createStore(STORE_NAMES.puzzleAttempts, { keyPath: 'id' }, [
+        { name: 'attemptedAt', keyPath: 'attemptedAt' },
+        { name: 'puzzleId', keyPath: 'puzzleId' },
       ]);
     },
   },

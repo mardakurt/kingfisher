@@ -39,6 +39,7 @@ import {
   Search,
   Season,
   Similar,
+  Tactics,
   Target,
   Team,
 } from '@/components/icons';
@@ -158,6 +159,14 @@ export const NAV_SECTIONS: readonly NavSection[] = [
     href: '/training',
     icon: Recall,
     hint: 'Calculation and recall from your own positions.',
+    group: 'improve',
+  },
+  {
+    id: 'puzzles',
+    label: 'Puzzles',
+    href: '/puzzles',
+    icon: Tactics,
+    hint: 'Rated tactics puzzles from the Lichess puzzle database, with your own solver rating.',
     group: 'improve',
   },
   {

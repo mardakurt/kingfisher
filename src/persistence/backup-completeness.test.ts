@@ -195,6 +195,17 @@ const authored: Partial<Record<StoreName, Record<string, unknown>>> = {
     status: 'applied',
     appliedAt: 1,
   },
+  puzzleAttempts: {
+    ...common,
+    puzzleId: '00sHx',
+    puzzleRating: 1760,
+    puzzleDeviation: 80,
+    themes: ['mate', 'mateIn2'],
+    solved: true,
+    played: ['a2e6', 'f7f8'],
+    durationMs: 12_000,
+    attemptedAt: 2,
+  },
   inboxDecisions: {
     ...common,
     repertoireId: 'r1',

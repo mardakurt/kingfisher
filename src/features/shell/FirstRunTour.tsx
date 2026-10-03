@@ -80,6 +80,8 @@ function sectionTourDetail(id: string): string {
       return 'A folder of openings per subject. Each file holds your repertoire moves, key games, and your annotations on them.';
     case 'training':
       return 'Spaced repetition over positions you have studied. The schedule learns from how you answered last time.';
+    case 'puzzles':
+      return 'Rated tactics from the Lichess puzzle database (CC0), offline, with a solver rating kept from your own attempts.';
     case 'daily':
       return 'Fifteen minutes built only from your own repertoire, critical positions and endgame library — graded by the same four buttons, audited by the same schedule.';
     case 'season':

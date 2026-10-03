@@ -1564,6 +1564,27 @@ export interface InboxDecisionRecord {
 }
 
 /**
+ * One attempt at a tactics puzzle (`src/training/puzzles.ts`). The puzzle's
+ * rating and deviation are copied in at the time of the attempt, so the
+ * solver rating replays the same way after the puzzle set is rebuilt.
+ */
+export interface PuzzleAttemptRecord {
+  readonly id: string;
+  readonly puzzleId: string;
+  readonly puzzleRating: number;
+  readonly puzzleDeviation: number;
+  readonly themes: readonly string[];
+  readonly solved: boolean;
+  /** The solver's moves, in UCI, including a wrong one that ended the attempt. */
+  readonly played: readonly string[];
+  readonly durationMs: number;
+  readonly attemptedAt: number;
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  readonly revision: number;
+}
+
+/**
  * Stored evaluations written into a chapter, as one batch (Phase 86,
  * `src/evidence/write-back.ts`). `entries` is exactly what was written, so
  * undoing it removes those and nothing a person changed afterwards.

@@ -9,6 +9,7 @@ import type {
   DeepAnalysisJobRecord,
   ImportedEvaluationRecord,
   InboxDecisionRecord,
+  PuzzleAttemptRecord,
   AnalysisWriteBackRecord,
   SavedQueryRecord,
   ModelGameLinkRecord,
@@ -671,6 +672,23 @@ export const isInboxDecisionRecord = (value: unknown): value is InboxDecisionRec
   (value.snoozedUntil === undefined || finite(value.snoozedUntil)) &&
   text(value.evidence) &&
   finite(value.decidedAt) &&
+  finite(value.createdAt) &&
+  finite(value.updatedAt) &&
+  finite(value.revision);
+
+export const isPuzzleAttemptRecord = (value: unknown): value is PuzzleAttemptRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.puzzleId) &&
+  finite(value.puzzleRating) &&
+  finite(value.puzzleDeviation) &&
+  array(value.themes) &&
+  value.themes.every((theme) => typeof theme === 'string') &&
+  typeof value.solved === 'boolean' &&
+  array(value.played) &&
+  value.played.every((move) => typeof move === 'string') &&
+  finite(value.durationMs) &&
+  finite(value.attemptedAt) &&
   finite(value.createdAt) &&
   finite(value.updatedAt) &&
   finite(value.revision);

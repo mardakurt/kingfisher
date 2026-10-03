@@ -814,3 +814,38 @@ describe('migrating a Phase 86 installation at v22 to current', () => {
     current.close();
   });
 });
+
+describe('migrating a 1.4.1 installation at v23 to current', () => {
+  it('v23 write-back batches survive; puzzle attempts arrive empty and indexed by time and puzzle', async () => {
+    const name = dbName();
+    const v23 = await openPersistenceDatabaseAt(23, name);
+    await v23.put(STORE_NAMES.analysisWriteBacks, { id: 'w1', chapterId: 'c1' });
+    v23.close();
+    const current = await openPersistenceDatabaseAt(DATABASE_VERSION, name);
+    expect(await current.get(STORE_NAMES.analysisWriteBacks, 'w1')).toEqual({
+      id: 'w1',
+      chapterId: 'c1',
+    });
+    expect(await current.getAll(STORE_NAMES.puzzleAttempts)).toEqual([]);
+    await current.put(STORE_NAMES.puzzleAttempts, { id: 'a2', puzzleId: 'p', attemptedAt: 2 });
+    await current.put(STORE_NAMES.puzzleAttempts, { id: 'a1', puzzleId: 'q', attemptedAt: 1 });
+    expect(
+      (
+        await current.getAllFromIndex<Record<string, unknown>>(
+          STORE_NAMES.puzzleAttempts,
+          'attemptedAt',
+        )
+      ).map((row) => row.id),
+    ).toEqual(['a1', 'a2']);
+    expect(
+      (
+        await current.getAllFromIndex<Record<string, unknown>>(
+          STORE_NAMES.puzzleAttempts,
+          'puzzleId',
+          'p',
+        )
+      ).map((row) => row.id),
+    ).toEqual(['a2']);
+    current.close();
+  });
+});

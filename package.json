@@ -60,6 +60,8 @@
     "openings:build": "node scripts/build-opening-index.mjs && prettier --write src/theory/opening-index.generated.ts",
     "players:roster": "node scripts/build-player-roster.mjs",
     "players:roster:check": "node scripts/build-player-roster.mjs --check",
+    "puzzles:build": "node scripts/build-puzzles.mjs",
+    "puzzles:check": "node scripts/build-puzzles.mjs --check",
     "annotated:build": "node scripts/build-annotated-sets.mjs",
     "annotated:check": "node scripts/build-annotated-sets.mjs --check",
     "companion:engine-host": "node companion/src/server.mjs --serve-engines",

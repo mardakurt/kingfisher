@@ -303,6 +303,30 @@ thresholds and the measurements behind them are in
 | Used for     | per-position aggregates over games where both players are 2400+, in classical, rapid and blitz |
 | Not used for | bullet and ultrabullet, which are excluded; see the document above for why                     |
 
+## Lichess puzzle database (tactics puzzles, 1.4.2)
+
+The Puzzles section ships 24,587 tactics puzzles chosen from the 6,157,341 in
+the Lichess puzzle export of 2026-10-02 (`public/data/puzzles/`, 4.3 MB in 27
+shards, one per 100-point rating band from 400 to 3099). A puzzle is eligible
+when its rating deviation is at most 90, its popularity at least 80 and it has
+been played at least 300 times (2,884,979 were); up to 1,000 per band are
+taken by the smallest SHA-1 of the puzzle id, so the choice is reproducible and
+not biased to the oldest puzzles. Bands above 2800 hold fewer because fewer
+puzzles qualify. Every shipped puzzle is replayed through Kingfisher's rules at
+build time and again by `npm run puzzles:check` (none refused).
+
+|              |                                                                                                    |
+| ------------ | -------------------------------------------------------------------------------------------------- |
+| Source       | <https://database.lichess.org/#puzzles> (`lichess_db_puzzle.csv.zst`, Last-Modified 2026-10-02)    |
+| Licence      | CC0 1.0 — public domain dedication                                                                 |
+| Digest       | SHA-256 `76335bfa…22d962f8d` of the archive read, computed by the build (the publisher posts none) |
+| Used for     | positions, solutions, puzzle ratings and deviations, themes, opening tags, source-game links       |
+| Not used for | any claim about the solver's Lichess rating: the solver rating is Kingfisher's own Glicko-2        |
+
+Rebuild with `npm run puzzles:build -- --archive <file> --last-modified "<date>"`;
+`public/data/puzzles/manifest.json` records the filter, counts, theme totals
+and the SHA-256 of every shard.
+
 ## Data deliberately **not** used
 
 These were investigated and rejected. Recording the rejections matters as much

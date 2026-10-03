@@ -545,6 +545,7 @@ export function Chessboard({
                 className={cn('relative', (canSelect || isTarget) && 'cursor-pointer')}
                 style={squareStyle(square)}
                 role="gridcell"
+                data-target={isTarget ? 'true' : undefined}
                 aria-label={
                   squarePiece ? `${square}, ${pieceLabel(squarePiece)}` : `${square}, empty`
                 }

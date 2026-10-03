@@ -335,6 +335,15 @@ export const Recall = (p: IconProps) => (
   </Icon>
 );
 /**
+ * Puzzles: a lightning bolt — a tactic is the sudden move. Nothing else in
+ * the rail is angular and diagonal, so it stays distinct when collapsed.
+ */
+export const Tactics = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M13.5 2.5 5.5 13.5h6l-1 8 8-11h-6z" />
+  </Icon>
+);
+/**
  * Review: a magnifier over the board, pointed at your own thinking.
  *
  * Deliberately not a bullseye — Preparation already owns that, and the two
