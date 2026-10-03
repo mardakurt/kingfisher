@@ -235,8 +235,10 @@ export const EMPTY_MOVES: MoveMask = {
  * with move counters before it is read, so a saved query's key reads back;
  * either way Kingfisher's own FEN parser decides whether it is a position.
  */
-export function positionKeyOf(text: string): { key: string } | { error: string } | null {
-  const trimmed = text.trim();
+export function positionKeyOf(
+  text: string | undefined,
+): { key: string } | { error: string } | null {
+  const trimmed = (text ?? '').trim();
   if (!trimmed) return null;
   const fields = trimmed.split(/\s+/);
   const parsed = Position.fromFen(fields.length === 4 ? `${trimmed} 0 1` : trimmed);

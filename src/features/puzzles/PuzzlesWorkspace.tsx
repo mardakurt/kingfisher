@@ -393,6 +393,24 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
             <Button onClick={showSolution} data-puzzle-solution>
               Show solution
             </Button>
+            {/*
+              ChessBase's "Stuck? One click opens the position on the analysis
+              board". An engine there would give the answer away, so it ends
+              the rated attempt as a hint does, and the button says so.
+            */}
+            <Button
+              onClick={() => {
+                if (!puzzle || !line) return;
+                const fen = position?.fen ?? line.setup.after;
+                void (recorded ? Promise.resolve() : record(puzzle, false)).then(() =>
+                  router.push(`/analysis?fen=${encodeURIComponent(fen)}`),
+                );
+              }}
+              title="Opens this position on the analysis board. The attempt is recorded as unsolved."
+              data-puzzle-analyse-stuck
+            >
+              Analyse (counts as unsolved)
+            </Button>
           </>
         ) : null}
         {phase === 'failed' && line ? (
