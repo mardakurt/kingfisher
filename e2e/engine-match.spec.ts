@@ -35,6 +35,7 @@ test('a two-game match alternates colours, scores 1–0–1, and saves its games
   await expect(report).toContainText('2 games cannot separate engines');
 
   await section.locator('[data-match-save]').click();
+  await section.locator('[data-match-study]').click();
   await page.waitForURL('**/studies?study=*');
   await expect(page.getByText(/Game 1: Stockfish/).first()).toBeVisible();
   await expect(page.getByText(/Game 2: Stockfish/).first()).toBeVisible();

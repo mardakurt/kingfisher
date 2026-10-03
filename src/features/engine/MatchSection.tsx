@@ -9,7 +9,6 @@
  */
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 
 import type { Fen } from '@/chess/types';
 import { Button } from '@/components/ui/Button';
@@ -33,10 +32,10 @@ const signed = (value: number | null): string =>
 export function MatchSection({ fen }: { readonly fen: Fen }) {
   const match = useMatch();
   const notify = useUi((state) => state.notify);
-  const router = useRouter();
   const engines = useVisibleEngineDefinitions();
   const primary = useEngine((state) => state.primary.engineId) ?? DEFAULT_ENGINE_ID;
   const [open, setOpen] = useState(false);
+  const [savedStudy, setSavedStudy] = useState<string | null>(null);
   const [engineA, setEngineA] = useState<string | null>(null);
   const [engineB, setEngineB] = useState<string | null>(null);
   const [games, setGames] = useState<number>(10);
@@ -56,8 +55,8 @@ export function MatchSection({ fen }: { readonly fen: Fen }) {
   const save = async () => {
     try {
       const id = await match.saveAsStudy();
+      setSavedStudy(id);
       notify({ tone: 'success', message: 'Match saved as a study, one chapter per game.' });
-      router.push(`/studies?study=${encodeURIComponent(id)}`);
     } catch (error) {
       notify({ tone: 'error', message: error instanceof Error ? error.message : 'Not saved.' });
     }
@@ -98,7 +97,14 @@ export function MatchSection({ fen }: { readonly fen: Fen }) {
             Match…
           </Button>
         ) : (
-          <Button size="sm" variant="ghost" onClick={match.reset}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setSavedStudy(null);
+              match.reset();
+            }}
+          >
             Discard
           </Button>
         )}
@@ -193,9 +199,19 @@ export function MatchSection({ fen }: { readonly fen: Fen }) {
               <Button size="sm" onClick={() => void copy()} data-match-copy>
                 Copy PGN
               </Button>
-              <Button size="sm" onClick={() => void save()} data-match-save>
-                Save as study
-              </Button>
+              {savedStudy ? (
+                <a
+                  className="inline-flex h-6 items-center rounded-[var(--radius-control)] px-2 text-accent underline"
+                  href={`/studies?study=${encodeURIComponent(savedStudy)}`}
+                  data-match-study
+                >
+                  Open the saved study
+                </a>
+              ) : (
+                <Button size="sm" onClick={() => void save()} data-match-save>
+                  Save as study
+                </Button>
+              )}
             </div>
           ) : null}
           {stats.games > 0 && stats.games < 40 ? (
