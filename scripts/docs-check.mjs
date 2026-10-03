@@ -769,6 +769,14 @@ mustExist('src/app/robots.ts');
 // must still be whole.
 if (existsSync(join(REPO_ROOT, '.vercel'))) mustExist('.vercel/project.json');
 mustExist('vercel.json');
+// Vercel's edge policy overrides Next's header: local media must work in
+// both identities, without allowing remote lesson videos.
+mustMatch('vercel.json', /media-src 'self' blob:;/, 'hosted CSP permits local lesson media');
+mustMatch(
+  'next.config.ts',
+  /"media-src 'self' blob:"/,
+  'application CSP permits local lesson media',
+);
 
 // 17. The CHANGELOG and ARCHITECTURE are still in the repo and non-empty.
 mustExist('CHANGELOG.md');
