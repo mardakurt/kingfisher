@@ -45,6 +45,11 @@ test('top games name the move each played here, and open at this position', asyn
   await expect(
     dock.locator(`[data-explorer-row="${played}"] [data-explorer-last-played]`),
   ).toHaveText(/^(19|20)\d{2}$/);
+  // Strongest players: who made the move in the strongest games the pack keeps after
+  // it, with their ratings (which side is whose is checked in move-players.test.ts).
+  await expect(
+    dock.locator(`[data-explorer-row="${played}"] [data-explorer-players]`),
+  ).toHaveAttribute('title', /^[^,()]+, [^()]+ \(\d{4}\)/);
   // Ratings and a date beside the names.
   await expect(first).toContainText(/\(\d{4}\)/);
   await expect(first).toContainText(/\b(19|20)\d{2}\b/);

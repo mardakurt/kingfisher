@@ -21,6 +21,8 @@ import Link from 'next/link';
 import { formatScore } from '@/chess/evaluation';
 import { moveIntent } from '@/chess/moves';
 import { positionKey, START_FEN } from '@/chess/fen';
+import { useQuery } from '@tanstack/react-query';
+import { GAMES_READ, movePlayers, type MovePlayer } from '@/reference/move-players';
 import type { DatabaseMove } from '@/database/types';
 import { Button, IconButton } from '@/components/ui/Button';
 import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
@@ -262,6 +264,16 @@ export function ExplorerPanel() {
     repertoireHere.data,
     window.years,
   ]);
+
+  // Who made each move in the strongest games an installed pack keeps after it.
+  const moveSans = evidence.slice(0, 12).map((entry) => entry.san);
+  const movers = useQuery({
+    queryKey: ['explorer-move-players', provider?.id ?? '', node.fen, moveSans.join(' ')],
+    enabled: Boolean(provider && packReader(provider.id)) && moveSans.length > 0,
+    staleTime: Number.POSITIVE_INFINITY,
+    retry: false,
+    queryFn: () => movePlayers(packReader(provider!.id)!, node.fen, moveSans),
+  });
 
   const playMove = useCallback(
     (move: DatabaseMove) => {
@@ -701,6 +713,19 @@ export function ExplorerPanel() {
                     >
                       Last
                     </th>
+                    {movers.data ? (
+                      /*
+                        ChessBase's "Best players", answered as a pack can:
+                        who made the move in the strongest games it keeps for
+                        the position after it (reference/move-players.ts).
+                      */
+                      <th
+                        className="@max-[559px]:hidden px-1.5 py-1.5 font-medium"
+                        title={`Who made the move in the ${GAMES_READ} strongest games ${provider?.name ?? 'the source'} keeps after it, by any move order — not everyone who plays it`}
+                      >
+                        Strongest players
+                      </th>
+                    ) : null}
                     <th className="@max-[559px]:hidden px-1.5 py-1.5 font-medium">Opening</th>
                     <th className="@max-[559px]:hidden px-1.5 py-1.5 font-medium">Mine</th>
                   </tr>
@@ -714,6 +739,7 @@ export function ExplorerPanel() {
                       selected={selected.includes(entry.uci)}
                       onToggle={() => toggleSelected(entry.uci)}
                       onPlay={() => playMove(entry.database)}
+                      {...(movers.data ? { players: movers.data.get(entry.san) ?? [] } : {})}
                     />
                   ))}
                 </tbody>
@@ -962,12 +988,15 @@ function Row({
   selected,
   onToggle,
   onPlay,
+  players,
 }: {
   readonly entry: MoveEvidence;
   readonly showRecent: boolean;
   readonly selected: boolean;
   readonly onToggle: () => void;
   readonly onPlay: () => void;
+  /** Present only when the source can say (see the column's header). */
+  readonly players?: readonly MovePlayer[];
 }) {
   const trend = trendOf(entry);
   /*
@@ -1075,6 +1104,15 @@ function Row({
       >
         {entry.database.lastPlayedYear ?? '—'}
       </td>
+      {players ? (
+        <td
+          className="@max-[559px]:hidden max-w-[220px] truncate px-1.5 py-1.5 text-secondary"
+          data-explorer-players
+          title={players.map((p) => (p.rating ? `${p.name} (${p.rating})` : p.name)).join(', ')}
+        >
+          {players.length ? players.map((p) => p.name.split(',')[0]).join(', ') : '—'}
+        </td>
+      ) : null}
       <td className="@max-[559px]:hidden max-w-[150px] truncate px-1.5 py-1.5 text-tertiary">
         {[entry.database.opening?.eco, entry.database.opening?.name].filter(Boolean).join(' ') ||
           '—'}
