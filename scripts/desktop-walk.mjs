@@ -115,6 +115,7 @@ const ROUTES = [
   '/databases',
   '/review',
   '/endgame',
+  '/puzzles',
   '/players',
   '/preparation',
   '/recent',

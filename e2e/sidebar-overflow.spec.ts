@@ -28,6 +28,7 @@ const SECTIONS = [
   'team',
   'review',
   'training',
+  'puzzles',
   'daily',
   'season',
   'endgame',

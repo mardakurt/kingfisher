@@ -4,6 +4,21 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## 1.4.2 — 2026-10-03
+
+- **Puzzles**: 24,587 rated tactics puzzles from the CC0 Lichess database,
+  offline, with themes, difficulty and a Glicko-2 solver rating kept from your
+  own attempts.
+- **Tournament tables** for any event in a database: round-robin grid or swiss
+  standings with Sonneborn-Berger, Buchholz, FIDE performance and progress by
+  round.
+- **Threats and safety** in the Features panel: pieces en prise, loose pieces,
+  and the engine's answer to "what does the other side threaten?".
+- **Diagrams**: copy the board as an image or save it as PNG or SVG.
+- **Engine matches** between any two engines, with an Elo interval and PGN.
+- **Rating history** and yearly performance on the player page.
+- Guess the Move is offered on any game in Analysis and Studies.
+
 ## 1.4.1 — 2026-10-02
 
 - Repeated error notices collapse into a bounded stack. Notice text permits

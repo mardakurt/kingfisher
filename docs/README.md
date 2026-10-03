@@ -24,8 +24,10 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ### The public product
 
-- [`release/1.4.1.md`](release/1.4.1.md) — source release preparation; public Mac remains 1.4.0.
-- [`product/chessbase-roadmap-2026-10-02.md`](product/chessbase-roadmap-2026-10-02.md) — current comparison, implemented survey and proposed next increments.
+- [`release/1.4.2.md`](release/1.4.2.md) — puzzles, tournament tables, threats, diagrams, engine matches, rating history.
+- [`product/chessbase-comparison-2026-10-03.md`](product/chessbase-comparison-2026-10-03.md) — the feature inventory against ChessBase 26 and ChessBase for Mac, what 1.4.2 closes and what stays open.
+- [`release/1.4.1.md`](release/1.4.1.md) — opening surveys, preparation chapters, large imports; published 2026-10-03.
+- [`product/chessbase-roadmap-2026-10-02.md`](product/chessbase-roadmap-2026-10-02.md) — the research-workflow comparison and roadmap.
 - [`reports/2026-10-02-chessbase-research-1.4.1.md`](reports/2026-10-02-chessbase-research-1.4.1.md) — validation and public-release limitations.
 
 - [`../README.md`](../README.md) — the project README: what Kingfisher is,

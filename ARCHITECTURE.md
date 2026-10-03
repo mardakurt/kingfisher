@@ -113,6 +113,8 @@ src/
     providers/             Lichess explorer, PKCE sign-in, local collection
   theory/radar.ts          Move shares over three date windows. ADR 0026, 0024
   repertoire/              Repertoire rules, and the transposition graph
+  tournament/crosstable.ts Cross-tables from game headers: SB, Buchholz, FIDE 8.1.1 performance
+  training/puzzles.ts      Puzzle replay, answer rules and the solver rating (training/glicko2.ts)
   tablebase/               Providers, priority and provenance. ADR 0031
   persistence/             Local-first storage. See ADR 0008.
     schema/migrations.ts   Versioned stores and indexes; an ordered array
@@ -142,6 +144,7 @@ src/
     preparation/           Sessions, dossiers and the game-day sheet. ADR 0029
     opening-files/         One opening subject, and its references
     endgame/               The endgame library
+    puzzles/               The Puzzles route: its own board, rating shards from public/data/puzzles
     model-games/           Guess-the-move
     theory/                The radar panel
     movetree/flatten.ts    One flattening pass, so the tree can be windowed
