@@ -1,6 +1,6 @@
-# Launch kit — Kingfisher 1.4.4
+# Launch kit — Kingfisher 1.4.5
 
-Draft copy for the current public release: Kingfisher 1.4.4 on the web and
+Draft copy for the current public release: Kingfisher 1.4.5 on the web and
 macOS (Apple Silicon, macOS 13 or later, Developer ID signed and notarised).
 This kit contains no user counts, endorsements or claims of complete ChessBase
 parity. Check [`marketing-facts.md`](../product/marketing-facts.md) before posting.
@@ -16,11 +16,10 @@ page-view and performance analytics do not run in the Mac application.
 
 ## Release announcement draft
 
-> Kingfisher 1.4.4 adds an annotation bar under the notation, an Opponent
-> filter, the built-in reference searchable by player in the Library, Explorer
-> top games that name each game's move and open at the position, the
-> strongest players of each move, database folders, and a switch for the
-> Wikimedia player photos.
+> Kingfisher 1.4.5 adds video lessons to Studies — a local video whose timed
+> cues move the board — Annotator, PGN source and Team filters in the Library,
+> and the most frequent players of each Explorer move in your own games.
+> Switching study chapters quickly no longer risks losing a pending edit.
 >
 > Stockfish 18 runs in the browser. The Apple Silicon application offers real
 > native Stockfish, Stormphrax, Viridithas, Halogen, PlentyChess and Lc0 engines,
@@ -31,7 +30,7 @@ page-view and performance analytics do not run in the Mac application.
 > events. Other installed or remote sources retain separate counts, licences
 > and provenance. No combined statistic is presented as a single population.
 >
-> `Kingfisher-1.4.4-arm64.dmg` is Developer ID signed and notarised by Apple.
+> `Kingfisher-1.4.5-arm64.dmg` is Developer ID signed and notarised by Apple.
 > Sparkle checks quietly at launch; Check for Updates opens its native interface.
 > Download and installation require a user action. Work remains in the profile.
 >

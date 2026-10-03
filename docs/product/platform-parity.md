@@ -10,12 +10,13 @@ been published or certified during this audit.
 
 # Platform parity — the web application and the macOS application
 
-**1.4.5 source preparation (2026-10-03).** Local video lessons, Library PGN
-metadata filters, My games' frequent-player counts, verified strongest movers
-and the study-switch save correction are shared renderer changes and
-Mac-facing. The public descriptor still names 1.4.4 build 1069 until a new
-package has been certified, published and byte-verified. Source and targeted
-browser checks do not establish a published 1.4.5 Mac release.
+**Published revision check (2026-10-03, 1.4.5).** The public Mac download is
+1.4.5 build 1077 from `ef004085fb7e309d6940fc40c18a2a3ea336e436`, stable and
+clean at packaging, the same commit the website deployed. The app and DMG are
+Developer ID signed, notarised and stapled; `desktop:public:verify -- --full`
+downloaded the published DMG and passed 61/61 against the descriptor. 1.4.4
+updated itself to it through the public Sparkle feed (19/19). See
+[release handover](../reports/2026-10-03-1.4.5-release-handover.md).
 
 **Published revision check (2026-10-03, 1.4.4).** The public Mac download is
 1.4.4 build 1069 from `f5f751cebbbd9982c68db766df27dfdca79813cc`, stable and

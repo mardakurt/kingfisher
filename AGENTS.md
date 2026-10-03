@@ -401,7 +401,7 @@ source of truth for the URLs the application prints is
   previous host was retired the same day. Do not touch the
   `publicUrl.studio` default again without a persistence / migration
   plan.
-- **macOS stable DMG:** `Kingfisher-1.4.4-arm64.dmg`, build 1069,
+- **macOS stable DMG:** `Kingfisher-1.4.5-arm64.dmg`, build 1077,
   signed with Developer ID Application and notarised. The public descriptor
   `src/release/macos-download.json` selects the release; the landing and
   install guide consume it. Verify its bytes before changing its claims.

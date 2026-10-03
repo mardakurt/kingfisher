@@ -9,7 +9,7 @@ reopening; the filename and cues travel in PGN and workspace backups. See the
 [1.4.5 comparison](docs/product/chessbase-mac-comparison-1.4.5.md) for the
 remaining ChessBase data and service boundaries.
 
-> **Public release · 1.4.4** (macOS, Developer ID signed and notarised)
+> **Public release · 1.4.5** (macOS, Developer ID signed and notarised)
 > Research remains opt-in under Layout.
 > No account. No cookies. No subscription.
 
@@ -270,7 +270,7 @@ source-labelled variation tree of recorded practice and copy its PGN.
 
 The sections below are the record of what each phase set out to fix, kept
 because the reasons are still the reasons. They are history, not a status line:
-the source and the public Mac download are both **Kingfisher 1.4.4**. Current release status is in
+the source and the public Mac download are both **Kingfisher 1.4.5**. Current release status is in
 [`docs/product/platform-parity.md`](docs/product/platform-parity.md), and
 what changed is in [`CHANGELOG.md`](CHANGELOG.md); the 1.0.0 notes are in
 [`docs/release/1.0.0.md`](docs/release/1.0.0.md).
