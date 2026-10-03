@@ -114,6 +114,11 @@ src/
   theory/radar.ts          Move shares over three date windows. ADR 0026, 0024
   repertoire/              Repertoire rules, and the transposition graph
   tournament/crosstable.ts Cross-tables from game headers: SB, Buchholz, FIDE 8.1.1 performance
+  reference/rating-classes.ts Moves by rating band and year, from a pack's position histories
+  reference/player-photo.ts  Wikidata P18 → Commons photo and credit, fetched at runtime
+  preparation/costly-moves.ts Win chance an opponent's own moves gave up, by phase and colour
+  database/collections/collection-index.ts Players and tournaments counted from duplicate keys
+  sync/download.ts         One player's public Lichess or Chess.com games, newest first
   training/puzzles.ts      Puzzle replay, answer rules and the solver rating (training/glicko2.ts)
   tablebase/               Providers, priority and provenance. ADR 0031
   persistence/             Local-first storage. See ADR 0008.

@@ -4,6 +4,25 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## 1.4.3 — 2026-10-03
+
+- **Rating classes in the Explorer**: the moves re-read for each rating class
+  from the reference pack's own histories, the position across classes, and
+  each move's share year by year.
+- **Explorer moves on the board**: hover a row to preview the move; a toggle
+  draws the most played moves.
+- **Library filters for a position and for annotations** (annotated or
+  commented), savable as queries.
+- **Players and tournaments** on each collection's page.
+- **Download online games** from Lichess or Chess.com into My games.
+- **Costly moves** in Preparation: where an opponent's own moves gave games
+  away, counted by the engine.
+- **Player photos** from Wikimedia Commons, credited.
+- Puzzles open on the analysis board while you are stuck.
+- Fixed: Chess960 games were imported as invented standard games; Explorer
+  filters a source cannot apply were ignored without a word; a position search
+  in the Library listed nothing.
+
 ## 1.4.2 — 2026-10-03
 
 - **Puzzles**: 24,587 rated tactics puzzles from the CC0 Lichess database,

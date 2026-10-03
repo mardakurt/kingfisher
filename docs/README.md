@@ -24,6 +24,8 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ### The public product
 
+- [`release/1.4.3.md`](release/1.4.3.md) — rating classes, Library position and annotation filters, collection index, online download, costly moves, photos; the Chess960 import fix.
+- [`product/chessbase-mac-comparison-2026-10-03.md`](product/chessbase-mac-comparison-2026-10-03.md) — ChessBase for Mac screen by screen, what 1.4.3 closes, and the defects using it turned up.
 - [`release/1.4.2.md`](release/1.4.2.md) — puzzles, tournament tables, threats, diagrams, engine matches, rating history.
 - [`product/chessbase-comparison-2026-10-03.md`](product/chessbase-comparison-2026-10-03.md) — the feature inventory against ChessBase 26 and ChessBase for Mac, what 1.4.2 closes and what stays open.
 - [`release/1.4.1.md`](release/1.4.1.md) — opening surveys, preparation chapters, large imports; published 2026-10-03.

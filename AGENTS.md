@@ -517,7 +517,7 @@ number (`git rev-list --count HEAD`), commit, dirty flag and channel, in
 them. `KINGFISHER_DESKTOP_CHANNEL` is `dev` (default), `preview` or
 `stable`; a publishable channel refuses a dirty tree.
 
-- **The source version is 1.4.2.** The public Mac descriptor names the
+- **The source version is 1.4.3.** The public Mac descriptor names the
   build that has been published and byte-verified; it changes only after that.
   Bump the marketing version only for a real release.
   Never create a version to freshen a filename.
@@ -613,6 +613,33 @@ sources (`desktop/scripts/build-dmg-background.py`,
 `desktop/scripts/build-dmg-icon.sh`) so the visual is
 reproducible from the repository, not a screenshot a designer
 remembers.
+
+## Added in 1.4.3
+
+- **A game Kingfisher cannot play is refused at the parser**
+  (`src/chess/pgn/parse.ts`, `PgnRefusal`): a non-standard `[Variant]` or an
+  unreadable `[FEN]`. Never fall back to the standard start — that replays a
+  different game under the original's tags. Importers report
+  `describeRefusals`.
+- **A filter goes to a source only if the source declares it**
+  (`features/explorer/explorer-filters.ts`). Reference packs declare neither
+  rating nor date; their per-band and per-year evidence is the position
+  history, read by `src/reference/rating-classes.ts` and labelled "by any move
+  order".
+- **Library move searches** carry `position` and `annotations` in `DeepQuery`
+  and in the query AST. The companion's line index answers neither, so those
+  searches take the paged path. A match with no main-line moment is listed and
+  opens at the start; it is never dropped.
+- **Costly moves** (`src/preparation/costly-moves.ts`) is ChessBase's blunder
+  report without the word: counts against `annotate.ts`'s win-chance
+  thresholds, one disposable engine session per run, median depth reported.
+- **Player photos** (`src/reference/player-photo.ts`) come from Wikimedia at
+  runtime, only with a licence named and credited, from a blob URL so the
+  image CSP stays `'self' data: blob:`.
+- **Runtime CSS variables only.** `--color-*` names exist in Tailwind's
+  `@theme inline` block and are not emitted; inline SVG must use the runtime
+  tokens (`--shape-*`, `--border-subtle`, `--text-tertiary`, …).
+  `src/ui/token-references.test.ts` refuses the others.
 
 ## Added in 1.4.2
 

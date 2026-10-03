@@ -172,6 +172,24 @@ specification or from any of the dozens of implementations that carry it.
 
 ---
 
+## Player photographs (Wikimedia Commons, at runtime)
+
+Since 1.4.3 the preparation card and the player page show a photograph of a
+titled player, when the roster above resolves the name to exactly one
+Wikidata item and that item states an image (P18). Nothing is bundled or
+stored: the picture is fetched when the page is shown and held in memory for
+the session.
+
+| Field    | Value                                                                                                      |
+| -------- | ---------------------------------------------------------------------------------------------------------- |
+| Source   | Wikidata item → its P18 file on Wikimedia Commons, read with the Commons `imageinfo` API                   |
+| Licence  | Per file — mostly CC BY-SA or CC BY; a file Commons names no licence for is not shown                      |
+| Credit   | The author and licence from the file's own Commons metadata, printed beside the photo, linking to its page |
+| Requests | `wikidata.org`, `commons.wikimedia.org`, Wikimedia's image host; disclosed on the privacy page             |
+| Code     | `src/reference/player-photo.ts`, `src/features/player/PlayerPortrait.tsx`                                  |
+
+---
+
 ## ChessBase interoperability
 
 Kingfisher reads ChessBase databases (`.cbh` and their siblings) and archives
