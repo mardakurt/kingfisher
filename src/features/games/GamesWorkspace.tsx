@@ -10,6 +10,7 @@
  * seven-column table at 320px is a table nobody can read.
  */
 
+import { CountryFlag } from '@/features/player/CountryFlag';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -1081,6 +1082,7 @@ export function GamesWorkspace() {
                           }}
                           className="block w-full truncate text-left text-primary hover:underline"
                         >
+                          <CountryFlag name={game.white} />
                           {game.white}
                         </button>
                       </td>
@@ -1102,6 +1104,7 @@ export function GamesWorkspace() {
                           }}
                           className="block w-full truncate text-left text-primary hover:underline"
                         >
+                          <CountryFlag name={game.black} />
                           {game.black}
                         </button>
                       </td>
@@ -1704,12 +1707,14 @@ function GamePreview({
     <div className="flex min-h-0 flex-1 flex-col" data-library-preview={game.id}>
       <div className="shrink-0 px-4 pt-4">
         <p className="truncate text-[13px] font-semibold text-primary">
+          <CountryFlag name={game.white} />
           {game.white}
           {game.whiteRating ? (
             <span className="font-normal text-tertiary"> {game.whiteRating}</span>
           ) : null}
         </p>
         <p className="truncate text-[13px] font-semibold text-primary">
+          <CountryFlag name={game.black} />
           {game.black}
           {game.blackRating ? (
             <span className="font-normal text-tertiary"> {game.blackRating}</span>

@@ -51,8 +51,16 @@ const initials = (name: string): string =>
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('');
 
-export function PlayerPortrait({ name }: { readonly name: string }) {
+export function PlayerPortrait({
+  name,
+  size = 'lg',
+}: {
+  readonly name: string;
+  /** `lg` for a player's own page, `sm` beside a name in a game's header. */
+  readonly size?: 'lg' | 'sm';
+}) {
   const photo = usePlayerPhoto(name).data;
+  const box = size === 'sm' ? 'size-7 text-[10px]' : 'size-14 text-lg';
   if (photo) {
     return (
       // A blob URL from bytes already fetched; next/image has nothing to add.
@@ -60,7 +68,7 @@ export function PlayerPortrait({ name }: { readonly name: string }) {
       <img
         src={photo.objectUrl}
         alt={`${name}, photograph by ${photo.author}`}
-        className="size-14 shrink-0 rounded-full bg-surface-3 object-cover"
+        className={`${box} shrink-0 rounded-full bg-surface-3 object-cover`}
         data-player-photo
       />
     );
@@ -68,7 +76,7 @@ export function PlayerPortrait({ name }: { readonly name: string }) {
   return (
     <span
       aria-hidden
-      className="flex size-14 shrink-0 items-center justify-center rounded-full bg-surface-3 text-lg font-semibold text-secondary"
+      className={`flex ${box} shrink-0 items-center justify-center rounded-full bg-surface-3 font-semibold text-secondary`}
     >
       {initials(name)}
     </span>

@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { Panel, PanelHeader } from '@/components/ui/Panel';
+import { GameHeaderCard } from './GameHeaderCard';
 import { AnnotationBar, useAnnotationBarInHeader } from '@/features/movetree/AnnotationBar';
 import { MoveTree } from '@/features/movetree/MoveTree';
 import { useChessWorkspace } from '@/features/workspace/ChessWorkspaceContext';
@@ -55,6 +56,7 @@ export function MoveTreePanel({
   return (
     <Panel className={cn('h-full', className)}>
       {withHeader ? <PanelHeader>Moves &amp; variations</PanelHeader> : null}
+      <GameHeaderCard headers={tree.headers} />
       {/*
         Named, so a test can say "the move list" and mean it.
 

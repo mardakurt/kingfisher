@@ -147,3 +147,43 @@ describe('playerPhoto', () => {
     expect(await playerPhoto('not-a-qid', async () => json({}))).toBeNull();
   });
 });
+
+describe('rosterIndex', () => {
+  // rosterEntryFor scans the roster per name (~16 ms each), which is the point.
+  it('answers exactly as rosterEntryFor over the real roster', { timeout: 30_000 }, async () => {
+    const { readFileSync } = await import('node:fs');
+    const { expandTitledRow } = await import('./titled-players');
+    const { rosterIndex } = await import('./player-photo');
+    const roster = (
+      JSON.parse(readFileSync('public/data/players/titled-players.json', 'utf8')) as Parameters<
+        typeof expandTitledRow
+      >[0][]
+    ).map(expandTitledRow);
+    const lookup = rosterIndex(roster);
+    const names: string[] = ['Nobody, Atall', '?', '', 'Carlsen', 'Magnus Carlsen'];
+    roster.forEach((player, index) => {
+      if (index % 97 !== 0) return;
+      const parts = player.name.split(' ');
+      names.push(
+        player.name,
+        `${parts.at(-1)}, ${parts.slice(0, -1).join(' ')}`,
+        ...player.aliases,
+      );
+    });
+    let matched = 0;
+    for (const name of names) {
+      const expected = rosterEntryFor(name, roster);
+      expect(lookup(name)?.wikidata ?? null, name).toBe(expected?.wikidata ?? null);
+      if (expected) matched += 1;
+    }
+    // Not vacuous: most of the sampled names do name exactly one person.
+    expect(matched).toBeGreaterThan(100);
+  });
+
+  it('draws a flag from a country code and nothing from anything else', async () => {
+    const { flagOf } = await import('./player-photo');
+    expect(flagOf('NO')).toBe('🇳🇴');
+    expect(flagOf('')).toBe('');
+    expect(flagOf('nor')).toBe('');
+  });
+});

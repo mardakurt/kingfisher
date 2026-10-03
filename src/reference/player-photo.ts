@@ -41,6 +41,40 @@ export function rosterEntryFor(name: string, roster: readonly TitledPlayer[]): T
   return found.length === 1 ? found[0]! : null;
 }
 
+/**
+ * `rosterEntryFor` for many names: the roster indexed once by every key a
+ * player can be matched under, with the same answer — the one player a name
+ * matches, or null when it matches none or several. A list of fifty games
+ * asked the 8,339-row roster a hundred times otherwise.
+ */
+export function rosterIndex(
+  roster: readonly TitledPlayer[],
+): (name: string) => TitledPlayer | null {
+  const byKey = new Map<string, Set<TitledPlayer>>();
+  for (const player of roster) {
+    for (const key of [player.name, ...nameOrders(player.name), ...player.aliases].map(matchKey)) {
+      if (!key) continue;
+      const set = byKey.get(key) ?? new Set<TitledPlayer>();
+      set.add(player);
+      byKey.set(key, set);
+    }
+  }
+  return (name) => {
+    const found = new Set<TitledPlayer>();
+    for (const key of [name, ...nameOrders(name)].map(matchKey)) {
+      if (!key) continue;
+      for (const player of byKey.get(key) ?? []) found.add(player);
+    }
+    return found.size === 1 ? [...found][0]! : null;
+  };
+}
+
+/** A flag from an ISO 3166-1 alpha-2 code, as regional-indicator letters. */
+export function flagOf(iso: string): string {
+  if (!/^[A-Z]{2}$/.test(iso)) return '';
+  return String.fromCodePoint(...[...iso].map((letter) => 0x1f1e6 + letter.charCodeAt(0) - 65));
+}
+
 /** Commons' extmetadata values are HTML; the credit is shown as text. */
 export function plainText(html: string): string {
   return html
