@@ -100,6 +100,12 @@ export interface Preferences {
   /** Draw the Explorer's most played moves on the board as arrows (ChessBase's reference arrows). */
   explorerBoardArrows: boolean;
   /**
+   * Fetch a titled player's photograph from Wikimedia Commons when their page
+   * or preparation card opens. On by default (the owner's choice in 1.4.3);
+   * off means no request reaches Wikimedia at all, and the initials stay.
+   */
+  showPlayerPhotos: boolean;
+  /**
    * Which half of the Openings route was last used.
    *
    * Persisted because a mode that resets on every reload is a mode the user
@@ -223,6 +229,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   explorerMinRating: null,
   explorerSinceYear: null,
   explorerBoardArrows: false,
+  showPlayerPhotos: true,
   boardPriority: DEFAULT_BOARD_PRIORITY,
   hiddenEngineIds: [],
   openingsMode: 'library',

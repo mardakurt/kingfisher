@@ -13,15 +13,18 @@ import { useQuery } from '@tanstack/react-query';
 
 import { playerPhoto, rosterEntryFor, type PlayerPhoto } from '@/reference/player-photo';
 import { loadTitledRoster } from '@/reference/titled-players';
+import { usePreferences } from '@/stores/preferences-store';
 
 interface LoadedPhoto extends PlayerPhoto {
   readonly objectUrl: string;
 }
 
 export function usePlayerPhoto(name: string) {
-  return useQuery({
+  // Off in Settings means no request to Wikimedia, not a request whose answer is hidden.
+  const allowed = usePreferences((state) => state.showPlayerPhotos);
+  const query = useQuery({
     queryKey: ['player-photo', name.trim().toLowerCase()],
-    enabled: name.trim().length > 0,
+    enabled: allowed && name.trim().length > 0,
     staleTime: Number.POSITIVE_INFINITY,
     gcTime: 30 * 60_000,
     retry: false,
@@ -37,6 +40,7 @@ export function usePlayerPhoto(name: string) {
       return { ...photo, objectUrl: URL.createObjectURL(blob) };
     },
   });
+  return allowed ? query : { ...query, data: undefined };
 }
 
 const initials = (name: string): string =>

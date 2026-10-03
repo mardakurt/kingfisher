@@ -292,6 +292,13 @@ export const SETTINGS_INDEX: readonly SettingsEntry[] = [
     keywords: ['explorer', 'database', 'source', 'masters', 'provider'],
   },
   {
+    id: 'player-photos',
+    label: 'Player photos',
+    section: 'database',
+    description: 'Show titled players’ photographs from Wikimedia Commons, with their credit.',
+    keywords: ['photo', 'picture', 'portrait', 'wikimedia', 'commons', 'privacy', 'image'],
+  },
+  {
     id: 'shortcuts',
     label: 'Keyboard shortcuts',
     section: 'keyboard',

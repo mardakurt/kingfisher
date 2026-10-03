@@ -82,3 +82,37 @@ test('a file with no licence named is not shown, and the initials stay', async (
   await expect(page.locator('[data-player-photo]')).toHaveCount(0);
   await expect(page.locator('[data-player-photo-credit]')).toHaveCount(0);
 });
+
+test('with Player photos off in Settings, nothing is asked of Wikimedia', async ({ page }) => {
+  test.setTimeout(120_000);
+  await stubWikimedia(page, 'CC BY-SA 2.0');
+  const asked: string[] = [];
+  page.on('request', (request) => {
+    if (/wikimedia\.org|wikidata\.org/.test(request.url())) asked.push(request.url());
+  });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/preparation');
+  await page.locator('html[data-kingfisher-ready="true"]').waitFor();
+  await page
+    .getByRole('button', { name: /settings/i })
+    .first()
+    .click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('tab', { name: 'Database' }).click();
+  const toggle = dialog.getByRole('switch', { name: 'Show player photos' });
+  await expect(toggle).toHaveAttribute('aria-checked', 'true');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-checked', 'false');
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('combobox', { name: 'Player name' }).fill('Carlsen');
+  const option = page.locator('#opponent-suggestions').getByRole('option').first();
+  await expect(option).toContainText('Carlsen', { timeout: 30_000 });
+  await option.dispatchEvent('pointerdown');
+  await page.locator('[data-player-card]').waitFor({ timeout: 30_000 });
+  // The card has rendered and had time to ask; with photos on it asks within a second.
+  await page.waitForTimeout(3_000);
+  await expect(page.locator('[data-player-card]')).toContainText('CM');
+  await expect(page.locator('[data-player-photo]')).toHaveCount(0);
+  expect(asked).toEqual([]);
+});

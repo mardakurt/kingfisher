@@ -876,6 +876,16 @@ function DatabaseSection() {
           }
         />
       </Row>
+      <Row
+        label="Player photos"
+        hint="A titled player's photograph from Wikimedia Commons, credited, on their page and preparation card. Off, Kingfisher asks Wikimedia for nothing."
+      >
+        <Toggle
+          label="Show player photos"
+          checked={prefs.showPlayerPhotos}
+          onChange={(value) => prefs.set('showPlayerPhotos', value)}
+        />
+      </Row>
       {/*
         The Lichess connection lives in Accounts now, where somebody looking
         for "connect my account" will actually go. Left reachable from here

@@ -65,10 +65,23 @@ export async function wikidataImage(qid: string, request: Fetch): Promise<string
   const body = (await response.json()) as {
     entities?: Record<
       string,
-      { claims?: { P18?: { mainsnak?: { datavalue?: { value?: unknown } } }[] } }
+      {
+        claims?: {
+          P18?: { rank?: string; mainsnak?: { datavalue?: { value?: unknown } } }[];
+        };
+      }
     >;
   };
-  const value = body.entities?.[qid]?.claims?.P18?.[0]?.mainsnak?.datavalue?.value;
+  /*
+    Wikidata marks a statement it no longer stands behind as deprecated
+    rather than deleting it, which is where a replaced or vandalised picture
+    goes. Never show one of those; prefer a statement ranked preferred.
+  */
+  const claims = (body.entities?.[qid]?.claims?.P18 ?? []).filter(
+    (claim) => claim.rank !== 'deprecated',
+  );
+  const claim = claims.find((entry) => entry.rank === 'preferred') ?? claims[0];
+  const value = claim?.mainsnak?.datavalue?.value;
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
@@ -106,6 +119,8 @@ export async function commonsPhoto(
   if (!info?.thumburl || !info.descriptionurl) return null;
   // Only Wikimedia's own image hosts (upload. and, since 2026, thumb.).
   if (!/^https:\/\/[a-z]+\.wikimedia\.org\//.test(info.thumburl)) return null;
+  // The credit links here, so it must be the file's page on Commons and nothing else.
+  if (!info.descriptionurl.startsWith('https://commons.wikimedia.org/wiki/')) return null;
   const meta = info.extmetadata ?? {};
   const licence = plainText(meta.LicenseShortName?.value ?? '');
   // No licence named, no picture: the credit is the condition of showing it.

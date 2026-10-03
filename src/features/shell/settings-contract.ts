@@ -381,6 +381,18 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     verifiedBy: 'e2e/explorer-board-arrows.spec.ts',
   },
   {
+    key: 'showPlayerPhotos',
+    label: 'Player photos',
+    surface: 'settings',
+    control: 'features/shell/SettingsDialog.tsx',
+    consumer: 'features/player/PlayerPortrait.tsx',
+    effect:
+      "A titled player's Wikimedia Commons photograph, with its credit, on the player page and the preparation card. Off, nothing is requested from Wikimedia and the initials are shown.",
+    indexedAs: 'player-photos',
+    previewable: true,
+    verifiedBy: 'e2e/player-photo.spec.ts',
+  },
+  {
     key: 'explorerSinceYear',
     label: 'Explorer earliest year',
     surface: 'in-place',

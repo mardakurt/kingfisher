@@ -144,11 +144,12 @@ export function PrivacyPage(): JSX.Element {
         </li>
         <li>
           <strong>Wikimedia</strong> (<code>wikidata.org</code>, <code>commons.wikimedia.org</code>{' '}
-          and Wikimedia&apos;s image hosts), when a preparation report is opened for a titled player
-          the roster names: the player&apos;s Wikidata item is asked for its photograph, and Commons
-          for the file and its credit. The photo is shown with its author and licence, held in
-          memory for the session, and never stored. Nothing about you or your work goes with the
-          request.
+          and Wikimedia&apos;s image hosts), when a preparation report or player page is opened for
+          a titled player the roster names: the player&apos;s Wikidata item is asked for its
+          photograph, and Commons for the file and its credit. The photo is shown with its author
+          and licence, held in memory for the session, and never stored. Nothing about you or your
+          work goes with the request. <em>Settings → Database → Player photos</em> turns this off,
+          and then nothing is asked of Wikimedia.
         </li>
         <li>
           <strong>The public data mirror</strong> at{' '}

@@ -42,7 +42,11 @@ describe('plainText', () => {
 });
 
 const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
-const commons = (meta: Record<string, string>, thumb = 'https://thumb.wikimedia.org/a.jpg') =>
+const commons = (
+  meta: Record<string, string>,
+  thumb = 'https://thumb.wikimedia.org/a.jpg',
+  page = 'https://commons.wikimedia.org/wiki/File:A.jpg',
+) =>
   json({
     query: {
       pages: {
@@ -50,7 +54,7 @@ const commons = (meta: Record<string, string>, thumb = 'https://thumb.wikimedia.
           imageinfo: [
             {
               thumburl: thumb,
-              descriptionurl: 'https://commons.wikimedia.org/wiki/File:A.jpg',
+              descriptionurl: page,
               extmetadata: Object.fromEntries(
                 Object.entries(meta).map(([key, value]) => [key, { value }]),
               ),
@@ -87,6 +91,16 @@ describe('commonsPhoto', () => {
       ),
     ).toBeNull();
   });
+
+  it('shows nothing when the credit would link anywhere but the file’s Commons page', async () => {
+    for (const page of ['javascript:alert(1)', 'https://example.com/wiki/File:A.jpg']) {
+      expect(
+        await commonsPhoto('A.jpg', async () =>
+          commons({ LicenseShortName: 'CC0' }, undefined, page),
+        ),
+      ).toBeNull();
+    }
+  });
 });
 
 describe('playerPhoto', () => {
@@ -104,6 +118,29 @@ describe('playerPhoto', () => {
     });
     expect(asked[0]).toBe('https://www.wikidata.org/wiki/Special:EntityData/Q106807.json');
     expect(new URL(asked[1]!).searchParams.get('titles')).toBe('File:Carlsen.jpg');
+  });
+
+  it('never uses a deprecated image statement, and prefers a preferred one', async () => {
+    const fileAsked = async (P18: unknown[]) => {
+      let title: string | null = null;
+      await playerPhoto('Q1', async (url) => {
+        if (url.includes('wikidata')) return json({ entities: { Q1: { claims: { P18 } } } });
+        title = new URL(url).searchParams.get('titles');
+        return commons({ LicenseShortName: 'CC0' });
+      });
+      return title;
+    };
+    const statement = (value: string, rank: string) => ({
+      rank,
+      mainsnak: { datavalue: { value } },
+    });
+    expect(await fileAsked([statement('Old.jpg', 'deprecated')])).toBeNull();
+    expect(
+      await fileAsked([statement('Old.jpg', 'deprecated'), statement('Now.jpg', 'normal')]),
+    ).toBe('File:Now.jpg');
+    expect(
+      await fileAsked([statement('Now.jpg', 'normal'), statement('Best.jpg', 'preferred')]),
+    ).toBe('File:Best.jpg');
   });
 
   it('asks nothing for something that is not a Wikidata item', async () => {
