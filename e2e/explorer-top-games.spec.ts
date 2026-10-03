@@ -41,6 +41,10 @@ test('top games name the move each played here, and open at this position', asyn
   // A real move from this position, one the explorer's own table lists.
   expect(played).toMatch(/^[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](=[QRBN])?[+#]?$|^O-O(-O)?$/);
   await expect(dock.locator(`[data-explorer-row="${played}"]`)).toBeVisible();
+  // The table's Last column (shown when the panel is wide) is the source's latest year.
+  await expect(
+    dock.locator(`[data-explorer-row="${played}"] [data-explorer-last-played]`),
+  ).toHaveText(/^(19|20)\d{2}$/);
   // Ratings and a date beside the names.
   await expect(first).toContainText(/\(\d{4}\)/);
   await expect(first).toContainText(/\b(19|20)\d{2}\b/);

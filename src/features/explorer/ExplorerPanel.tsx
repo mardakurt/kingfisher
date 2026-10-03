@@ -694,6 +694,13 @@ export function ExplorerPanel() {
                     <th className="@max-[559px]:hidden px-1.5 py-1.5 text-right font-medium">
                       Elo
                     </th>
+                    {/* ChessBase's "Played": the latest year the source has the move. */}
+                    <th
+                      className="@max-[559px]:hidden px-1.5 py-1.5 text-right font-medium"
+                      title="The most recent year this source has a game with the move"
+                    >
+                      Last
+                    </th>
                     <th className="@max-[559px]:hidden px-1.5 py-1.5 font-medium">Opening</th>
                     <th className="@max-[559px]:hidden px-1.5 py-1.5 font-medium">Mine</th>
                   </tr>
@@ -1061,6 +1068,12 @@ function Row({
       </td>
       <td className="@max-[559px]:hidden px-1.5 py-1.5 text-right text-secondary tabular">
         {entry.database.averageRating ?? '—'}
+      </td>
+      <td
+        className="@max-[559px]:hidden px-1.5 py-1.5 text-right text-tertiary tabular"
+        data-explorer-last-played
+      >
+        {entry.database.lastPlayedYear ?? '—'}
       </td>
       <td className="@max-[559px]:hidden max-w-[150px] truncate px-1.5 py-1.5 text-tertiary">
         {[entry.database.opening?.eco, entry.database.opening?.name].filter(Boolean).join(' ') ||
