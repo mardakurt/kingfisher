@@ -27,7 +27,7 @@ import type { GameSearchQuery, GameSearchResult, GameSummary } from '@/persisten
 import { gameTitle } from '@/persistence/describe';
 import { useAnalysis } from '@/stores/analysis-store';
 
-import type { DeepQuery } from '@/search/game-scan';
+import { needsTree, type DeepQuery } from '@/search/game-scan';
 import { lineFromRows, lineIndexForRows, THEMES_VERSION_NUMBER } from '@/search/line-index-encode';
 
 import { runPagedDeepSearch, type DeepMatch, type DeepSearchState } from './deep-search';
@@ -154,8 +154,15 @@ export async function companionMoveSearch(input: {
     (only the PGN has it), a game imported before the index existed, and any
     game if the companion predates the index.
   */
+  /*
+    1.4.3: a position or an annotations filter is not something the line
+    index answers, and a question it was handed without them would come back
+    as the answer to a wider one. Those go the paged way; a position can be
+    read from the indexed line, annotations only from the PGN.
+  */
+  const tree = needsTree(input.deep);
   let fast: CompanionMoveSearchResult | null = null;
-  if (!comment) {
+  if (!tree && !input.deep.position) {
     try {
       fast = await client.moveSearch(key, filters, indexedQuestion(input.deep));
     } catch {
@@ -198,11 +205,11 @@ export async function companionMoveSearch(input: {
       // cheaper than the PGN; a comment is only in the PGN, and the text
       // itself narrows which PGNs are worth reading.
       const page = await client.exportPage(key, after, MOVE_PAGE, filters, {
-        positions: comment ? false : 'line',
+        positions: tree ? false : 'line',
         ...(indexed ? { unindexedOnly: true } : {}),
         ...(comment ? { pgnContains: comment } : {}),
       });
-      if (!comment) {
+      if (!tree) {
         // Each game read the old way gets its line index, so the next search does not have to.
         const lines = page.games.flatMap((game) => {
           const data = lineIndexForRows(game.positions as never);
@@ -215,7 +222,7 @@ export async function companionMoveSearch(input: {
         games: page.games.map((game) => ({
           summary: game.summary as unknown as GameSummary,
           pgn: game.pgn ?? null,
-          line: comment ? null : lineFromRows(game.positions),
+          line: tree ? null : lineFromRows(game.positions),
         })),
         nextAfter: page.games.length > 0 ? page.nextAfter : null,
       };

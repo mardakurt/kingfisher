@@ -15,6 +15,7 @@ import type { GameRecord, GameRepository, GameSearchQuery, GameSummary } from '@
 import {
   scanGame,
   scanLine,
+  needsTree,
   type DeepQuery,
   type LinePosition,
   type ScanHit,
@@ -60,10 +61,16 @@ export async function runDeepSearch(input: {
     status: run.status,
     read: run.read,
     selected: run.selected,
-    // Every match of a move search has a moment; the scan that found it gave one.
-    matches: run.matches.flatMap((match) =>
-      match.hit ? [{ game: match.game, hit: match.hit }] : [],
-    ),
+    /*
+      A match whose conditions have no moment on the main line — a symbol, or
+      a position reached only in a variation — is still a match. It used to
+      be dropped here, so a saved query could count a game and not list it.
+      It opens at the start.
+    */
+    matches: run.matches.map((match) => ({
+      game: match.game,
+      hit: match.hit ?? { ply: 0, nodeId: '' },
+    })),
     ...(run.error ? { error: run.error } : {}),
   });
   const run = await executeQuery({
@@ -134,7 +141,7 @@ export async function runPagedDeepSearch(input: {
       const page: MovePage = await input.page(after, signal);
       for (const { summary, pgn, line } of page.games) {
         // A comment is only in the PGN; everything else is in the indexed line.
-        if (line && !deep.comment?.trim()) {
+        if (line && !needsTree(deep)) {
           const hit = scanLine(line, deep);
           if (hit) matches.push({ game: summary, hit });
           read += 1;

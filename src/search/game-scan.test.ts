@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { positionKey } from '@/chess/fen';
 import { parsePgn } from '@/chess/pgn';
 import type { GameTree } from '@/chess/tree/types';
 
@@ -81,5 +82,43 @@ describe('scanGame', () => {
 
   it('returns nothing when asked nothing', () => {
     expect(scanGame(HELD, {})).toBeNull();
+  });
+});
+
+describe('position and annotations (the Library mask, as ChessBase offers them)', () => {
+  // The Queen's Gambit Declined reached two ways: 1.d4 d5 2.c4 e6 and 1.c4 e6 2.d4 d5.
+  const qgdKey = (() => {
+    const game = tree('1. d4 d5 2. c4 e6 *');
+    const last = Object.values(game.nodes).find((node) => node.ply === 4)!;
+    return positionKey(last.fen);
+  })();
+
+  it('finds a position by any move order, at the ply it was reached', () => {
+    expect(scanGame(tree('1. c4 e6 2. d4 d5 3. Nc3 *'), { position: qgdKey })?.ply).toBe(4);
+    expect(scanGame(tree('1. d4 d5 2. c4 c6 *'), { position: qgdKey })).toBeNull();
+  });
+
+  it('only counts the main line for a position', () => {
+    expect(scanGame(tree('1. d4 d5 2. c4 (2. Nf3) e6 *'), { position: qgdKey })?.ply).toBe(4);
+    expect(scanGame(tree('1. d4 d5 2. Nf3 (2. c4 e6) e6 *'), { position: qgdKey })).toBeNull();
+  });
+
+  it('tells annotated from commented, and a clock from either', () => {
+    const plain = tree('1. e4 {[%clk 0:03:00]} e5 {[%clk 0:02:59]} *');
+    const symbol = tree('1. e4 e5 2. Nf3 $1 *');
+    const variation = tree('1. e4 e5 (1... c5) 2. Nf3 *');
+    const arrow = tree('1. e4 {[%cal Ge2e4]} e5 *');
+    const comment = tree('1. e4 e5 2. Nf3 {develops with tempo} *');
+    for (const [game, annotated, commented] of [
+      [plain, false, false],
+      [symbol, true, false],
+      [variation, true, false],
+      [arrow, true, false],
+      [comment, true, true],
+    ] as const) {
+      expect(scanGame(game, { annotations: 'annotated' }) !== null).toBe(annotated);
+      expect(scanGame(game, { annotations: 'commented' }) !== null).toBe(commented);
+    }
+    expect(scanGame(comment, { annotations: 'commented' })?.ply).toBe(3);
   });
 });

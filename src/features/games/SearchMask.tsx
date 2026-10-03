@@ -13,7 +13,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/Button';
+import { positionKey } from '@/chess/fen';
+import { Position } from '@/chess/position';
 import { STRATEGIC_THEMES, themeById } from '@/chess/themes';
+import { useAnalysis } from '@/stores/analysis-store';
 import type { Color } from '@/chess/types';
 import { getRepositories } from '@/persistence/repositories';
 import type { GameSearchQuery } from '@/persistence/types';
@@ -211,6 +214,9 @@ export interface MoveMask {
   readonly route: string;
   readonly routeColour: Color | 'either';
   readonly comment: string;
+  /** A FEN, or a position key (placement, side, castling, en passant). */
+  readonly position: string;
+  readonly annotations: 'any' | 'annotated' | 'commented';
 }
 
 export const EMPTY_MOVES: MoveMask = {
@@ -220,15 +226,36 @@ export const EMPTY_MOVES: MoveMask = {
   route: '',
   routeColour: 'either',
   comment: '',
+  position: '',
+  annotations: 'any',
 };
+
+/**
+ * A position typed or pasted into the mask, as its key. A key is completed
+ * with move counters before it is read, so a saved query's key reads back;
+ * either way Kingfisher's own FEN parser decides whether it is a position.
+ */
+export function positionKeyOf(text: string): { key: string } | { error: string } | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  const fields = trimmed.split(/\s+/);
+  const parsed = Position.fromFen(fields.length === 4 ? `${trimmed} 0 1` : trimmed);
+  return parsed.ok ? { key: positionKey(parsed.value.fen) } : { error: parsed.error.message };
+}
 
 export interface CompiledMoves {
   readonly query: DeepQuery;
-  readonly errors: { readonly material?: string; readonly route?: string };
+  readonly errors: {
+    readonly material?: string;
+    readonly route?: string;
+    readonly position?: string;
+  };
 }
 
 export function compileMoves(mask: MoveMask): CompiledMoves {
-  const errors: { material?: string; route?: string } = {};
+  const errors: { material?: string; route?: string; position?: string } = {};
+  const position = positionKeyOf(mask.position);
+  if (position && 'error' in position) errors.position = position.error;
   let material: DeepQuery['material'];
   if (mask.material.trim()) {
     const parsed = parseMaterialQuery(mask.material);
@@ -255,6 +282,8 @@ export function compileMoves(mask: MoveMask): CompiledMoves {
       ...(mask.theme ? { theme: mask.theme } : {}),
       ...(route ? { route } : {}),
       ...(mask.comment.trim() ? { comment: mask.comment.trim() } : {}),
+      ...(position && 'key' in position ? { position: position.key } : {}),
+      ...(mask.annotations !== 'any' ? { annotations: mask.annotations } : {}),
     },
     errors,
   };
@@ -280,7 +309,10 @@ export function MoveMaskFields({
   const set = <K extends keyof MoveMask>(key: K, value: MoveMask[K]) =>
     onChange({ ...mask, [key]: value });
   const theme = mask.theme ? themeById(mask.theme) : undefined;
-  const invalid = Boolean(compiled.errors.material || compiled.errors.route);
+  const boardFen = useAnalysis((state) => state.tree.nodes[state.currentId]?.fen ?? '');
+  const invalid = Boolean(
+    compiled.errors.material || compiled.errors.route || compiled.errors.position,
+  );
   const running = state?.status === 'running';
   return (
     <fieldset
@@ -359,6 +391,41 @@ export function MoveMaskFields({
           title="Any comment in the game, variations included; case is ignored."
         />
       </Field>
+      <Field label="Annotations">
+        <select
+          value={mask.annotations}
+          onChange={(event) => set('annotations', event.target.value as MoveMask['annotations'])}
+          className={FIELD}
+          title="Annotated: a comment, a move symbol, a variation or a drawn arrow anywhere in the game. Commented: a text comment. Clocks and engine evaluations that came with the PGN are neither."
+        >
+          <option value="any">Any</option>
+          <option value="annotated">Annotated</option>
+          <option value="commented">Commented</option>
+        </select>
+      </Field>
+      <div className="flex w-[268px] shrink-0 flex-col gap-1 text-[10px] text-tertiary">
+        <label htmlFor="search-mask-position">Position</label>
+        <div className="flex gap-1">
+          <input
+            id="search-mask-position"
+            value={mask.position}
+            onChange={(event) => set('position', event.target.value)}
+            className={FIELD}
+            placeholder="FEN, or use the board’s"
+            aria-invalid={Boolean(compiled.errors.position) || undefined}
+            title="Games whose main line reaches this position, by any move order."
+          />
+          <Button
+            size="sm"
+            onClick={() => set('position', boardFen)}
+            disabled={!boardFen}
+            title="The position on the analysis board now"
+            data-search-position-board
+          >
+            Board
+          </Button>
+        </div>
+      </div>
       <div className="flex items-end gap-1.5">
         {running ? (
           <Button variant="subtle" onClick={onStop}>
@@ -384,6 +451,11 @@ export function MoveMaskFields({
       {compiled.errors.route ? (
         <p role="alert" className="w-full text-2xs text-caution">
           Route: {compiled.errors.route}
+        </p>
+      ) : null}
+      {compiled.errors.position ? (
+        <p role="alert" className="w-full text-2xs text-caution">
+          Position: {compiled.errors.position}
         </p>
       ) : null}
       {theme ? (

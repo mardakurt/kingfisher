@@ -14,7 +14,7 @@
  * of them had.
  */
 
-import { readPlacement } from '@/chess/fen';
+import { positionKey, readPlacement } from '@/chess/fen';
 import { isOk } from '@/chess/result';
 import { boardView, themeById } from '@/chess/themes';
 import { mainlinePath } from '@/chess/tree/tree';
@@ -30,7 +30,23 @@ export interface DeepQuery {
   readonly route?: { readonly route: Route; readonly colour?: Color };
   /** Case-insensitive text in any comment. */
   readonly comment?: string;
+  /**
+   * A position the main line must reach, as its `positionKey` — so a game
+   * that reached it by another move order is found, which is the point.
+   */
+  readonly position?: string;
+  /**
+   * ChessBase's "Annotations" filter. `annotated`: a text comment, a move or
+   * position symbol, a variation or a drawn arrow anywhere in the game.
+   * `commented`: a text comment. A clock or an engine evaluation that came
+   * with the PGN is neither; it is a record, not an annotator's work.
+   */
+  readonly annotations?: 'annotated' | 'commented';
 }
+
+/** True when a query needs the game's whole tree, not only its main line. */
+export const needsTree = (query: DeepQuery): boolean =>
+  Boolean(query.comment?.trim() || query.annotations);
 
 export interface ScanHit {
   /** Ply of the position to open: the game is shown right after this half-move. */
@@ -39,7 +55,14 @@ export interface ScanHit {
 }
 
 export const hasDeepFilters = (query: DeepQuery): boolean =>
-  Boolean(query.material || query.theme || query.route || query.comment?.trim());
+  Boolean(
+    query.material ||
+    query.theme ||
+    query.route ||
+    query.comment?.trim() ||
+    query.position ||
+    query.annotations,
+  );
 
 /**
  * One position of a main line, as the scan reads it. A tree's `MoveNode` is
@@ -56,8 +79,11 @@ export interface LinePosition {
 export function scanGame(tree: GameTree, query: DeepQuery): ScanHit | null {
   const path = mainlinePath(tree);
   const nodes = path.map((id) => tree.nodes[id]!).filter(Boolean);
-  return scanLine(nodes, query, Object.values(tree.nodes));
+  return scanLine(nodes, query, Object.values(tree.nodes), new Set(path));
 }
+
+type AnnotatedNode = Pick<MoveNode, 'ply' | 'comment' | 'preComment'> &
+  Partial<Pick<MoveNode, 'id' | 'nags' | 'shapes'>>;
 
 /**
  * The scan over a main line. `commented` is every node whose comments a
@@ -67,9 +93,32 @@ export function scanGame(tree: GameTree, query: DeepQuery): ScanHit | null {
 export function scanLine(
   nodes: readonly LinePosition[],
   query: DeepQuery,
-  commented: readonly Pick<MoveNode, 'ply' | 'comment' | 'preComment'>[] = [],
+  commented: readonly AnnotatedNode[] = [],
+  mainline: ReadonlySet<string> = new Set(),
 ): ScanHit | null {
   const moments: number[] = [];
+
+  if (query.position) {
+    const node = nodes.find((candidate) => positionKey(candidate.fen) === query.position);
+    if (!node) return null;
+    moments.push(node.ply);
+  }
+
+  if (query.annotations) {
+    const textOf = (node: AnnotatedNode) => `${node.preComment ?? ''}${node.comment ?? ''}`.trim();
+    const annotated = (node: AnnotatedNode) =>
+      textOf(node) !== '' ||
+      (query.annotations === 'annotated' &&
+        ((node.nags?.length ?? 0) > 0 ||
+          (node.shapes?.length ?? 0) > 0 ||
+          (node.id !== undefined && mainline.size > 0 && !mainline.has(node.id))));
+    let at: number | null = null;
+    for (const node of commented) {
+      if (annotated(node) && (at === null || node.ply < at)) at = node.ply;
+    }
+    if (at === null) return null;
+    moments.push(Math.min(at, nodes[nodes.length - 1]?.ply ?? at));
+  }
 
   if (query.material) {
     const { query: material, colour } = query.material;

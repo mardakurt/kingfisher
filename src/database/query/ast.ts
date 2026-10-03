@@ -72,7 +72,12 @@ export type QueryPredicate =
   /** Text in any comment, variations included. */
   | { readonly type: 'comment'; readonly contains: string }
   /** An annotation symbol ($1 = !, $2 = ?, …) on any move, variations included. */
-  | { readonly type: 'nag'; readonly code: number };
+  | { readonly type: 'nag'; readonly code: number }
+  /**
+   * ChessBase's Annotations filter: `annotated` is any comment, symbol,
+   * variation or drawn arrow; `commented` is a text comment (`scanGame`).
+   */
+  | { readonly type: 'annotations'; readonly value: 'annotated' | 'commented' };
 
 export type QueryNode =
   | QueryPredicate
@@ -198,6 +203,10 @@ function validateNode(value: unknown, depth: number): string | null {
       return nonEmpty(value.prefix) ? null : 'An ECO condition needs a code.';
     case 'timeClass':
       return TIME_CLASSES.includes(value.value as TimeClass) ? null : 'Unknown time class.';
+    case 'annotations':
+      return value.value === 'annotated' || value.value === 'commented'
+        ? null
+        : 'Annotations is "annotated" or "commented".';
     case 'position':
       return typeof value.key === 'string' && value.key.trim().split(/\s+/).length === 4
         ? null
@@ -307,6 +316,8 @@ export function queryFromFilters(
     });
   }
   if (deep.comment?.trim()) all.push({ type: 'comment', contains: deep.comment.trim() });
+  if (deep.position) all.push({ type: 'position', key: deep.position });
+  if (deep.annotations) all.push({ type: 'annotations', value: deep.annotations });
   return {
     version: QUERY_VERSION,
     where: { type: 'and', of: all },
@@ -329,6 +340,8 @@ export function filtersFromQuery(query: GameQuery): {
     readonly theme?: string;
     readonly route?: { readonly text: string; readonly colour?: Color };
     readonly comment?: string;
+    readonly position?: string;
+    readonly annotations?: 'annotated' | 'commented';
   };
 } | null {
   const all = query.where.type === 'and' ? query.where.of : [query.where];
@@ -408,6 +421,13 @@ export function filtersFromQuery(query: GameQuery): {
         break;
       case 'comment':
         ok = once(moves, 'comment', node.contains);
+        break;
+      case 'position':
+        // The mask reads the main line; "variations too" is the editor's.
+        ok = !node.inVariations && once(moves, 'position', node.key);
+        break;
+      case 'annotations':
+        ok = once(moves, 'annotations', node.value);
         break;
       default:
         return null;
@@ -494,6 +514,8 @@ function describePredicate(node: QueryPredicate): string {
       return `a comment says "${node.contains}"`;
     case 'nag':
       return `annotated $${node.code}`;
+    case 'annotations':
+      return node.value === 'commented' ? 'has a text comment' : 'is annotated';
   }
 }
 

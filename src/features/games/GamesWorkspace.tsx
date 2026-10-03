@@ -423,7 +423,11 @@ export function GamesWorkspace() {
   */
   const queryClient = useQueryClient();
   const saveCurrent = async () => {
-    if (compiledMoves.errors.material || compiledMoves.errors.route) {
+    if (
+      compiledMoves.errors.material ||
+      compiledMoves.errors.route ||
+      compiledMoves.errors.position
+    ) {
       notify({ tone: 'error', message: 'Correct the move filters before saving the query.' });
       return;
     }
@@ -459,6 +463,8 @@ export function GamesWorkspace() {
       route: fields.moves.route?.text ?? '',
       routeColour: fields.moves.route?.colour ?? 'either',
       comment: fields.moves.comment ?? '',
+      position: fields.moves.position ?? '',
+      annotations: fields.moves.annotations ?? 'any',
     });
   };
 

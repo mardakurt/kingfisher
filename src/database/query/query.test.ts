@@ -23,6 +23,7 @@ import { parseMaterialQuery } from '@/search/material-query';
 import { parseRoute } from '@/search/route';
 
 import {
+  describeNode,
   describeQuery,
   filtersFromQuery,
   parseQuery,
@@ -400,5 +401,23 @@ describe('the query model', () => {
       },
     } as GameQuery;
     expect(filtersFromQuery(twice)).toBeNull();
+  });
+});
+
+describe('the mask’s position and annotations survive a saved query', () => {
+  it('round-trips through queryFromFilters and filtersFromQuery', () => {
+    const key = 'rnbqkbnr/ppp2ppp/4p3/3p4/2PP4/8/PP2PPPP/RNBQKBNR w KQkq -';
+    const saved = queryFromFilters({}, { position: key, annotations: 'commented' });
+    expect(parseQuery(JSON.parse(JSON.stringify(saved))).ok).toBe(true);
+    expect(filtersFromQuery(saved)?.moves).toEqual({ position: key, annotations: 'commented' });
+    expect(describeNode(saved.where)).toBe('reaches the position and has a text comment');
+  });
+
+  it('refuses an annotations value that means nothing', () => {
+    const parsed = parseQuery({
+      version: QUERY_VERSION,
+      where: { type: 'annotations', value: 'brilliant' },
+    });
+    expect(parsed.ok).toBe(false);
   });
 });

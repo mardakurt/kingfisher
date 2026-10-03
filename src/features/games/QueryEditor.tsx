@@ -50,6 +50,7 @@ const KINDS: readonly { readonly type: PredicateType; readonly label: string }[]
   { type: 'route', label: 'Piece route' },
   { type: 'comment', label: 'Comment text' },
   { type: 'nag', label: 'Annotation symbol' },
+  { type: 'annotations', label: 'Annotations' },
 ];
 
 const NAGS = [
@@ -99,6 +100,8 @@ function blank(type: PredicateType, boardKey: string): QueryPredicate {
       return { type, text: 'N g1 f3' };
     case 'nag':
       return { type, code: 1 };
+    case 'annotations':
+      return { type, value: 'annotated' };
   }
 }
 
@@ -371,6 +374,20 @@ function PredicateFields({
               {nag.label}
             </option>
           ))}
+        </select>
+      );
+    case 'annotations':
+      return (
+        <select
+          aria-label="Annotations"
+          className={FIELD}
+          value={node.value}
+          onChange={(event) =>
+            onChange({ ...node, value: event.target.value as 'annotated' | 'commented' })
+          }
+        >
+          <option value="annotated">annotated (comments, symbols, variations, arrows)</option>
+          <option value="commented">commented (text comments)</option>
         </select>
       );
   }

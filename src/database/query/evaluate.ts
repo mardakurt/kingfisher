@@ -105,6 +105,12 @@ export function deepQueryOf(predicate: QueryPredicate): DeepQuery | null {
     }
     case 'comment':
       return { comment: predicate.contains };
+    case 'annotations':
+      return { annotations: predicate.value };
+    case 'position':
+      // The main-line reading is the scan's; "variations too" is decided by
+      // `evaluatePredicate` and has no single moment on the main line.
+      return predicate.inVariations ? null : { position: predicate.key };
     default:
       return null;
   }
