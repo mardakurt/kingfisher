@@ -197,6 +197,8 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'transpositions',
     'theory-radar',
     'calculation',
+    // 1.4.2: ChessBase's replay training works on any game, not only model games.
+    'guess-the-move',
     'candidates',
     'features',
     'tablebase',
@@ -217,6 +219,7 @@ export const WORKSPACE_TOOLS: Record<string, readonly WorkspaceToolId[]> = {
     'database',
     'transpositions',
     'calculation',
+    'guess-the-move',
     'features',
     'tablebase',
     'play',
