@@ -15,6 +15,7 @@
  * invention, and this application does neither.
  */
 
+import { useSanDisplay } from '@/features/movetree/use-san-display';
 import { useTabField } from '@/features/tabs/tab-fields';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -175,6 +176,7 @@ const EMPTY: readonly OpeningEntry[] = [];
 const NO_ORDERS: readonly (readonly string[])[] = [];
 
 function OpeningDetail({ entry }: { readonly entry: OpeningEntry }) {
+  const display = useSanDisplay();
   const router = useRouter();
   const prefs = usePreferences();
   const notify = useUi((state) => state.notify);
@@ -320,7 +322,7 @@ function OpeningDetail({ entry }: { readonly entry: OpeningEntry }) {
               <tbody>
                 {explorer.data?.moves.slice(0, 10).map((move) => (
                   <tr key={move.uci} className="border-b border-line-subtle last:border-0">
-                    <td className="py-1.5 font-medium text-primary">{move.san}</td>
+                    <td className="py-1.5 font-medium text-primary">{display(move.san)}</td>
                     <td className="py-1.5 text-right text-secondary tabular">
                       {move.games.toLocaleString()}
                     </td>

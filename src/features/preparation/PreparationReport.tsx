@@ -12,6 +12,7 @@
  * `src/preparation/style.ts`.
  */
 
+import { useSanDisplay } from '@/features/movetree/use-san-display';
 import { useMemo, useState, type ReactNode } from 'react';
 
 import type { San } from '@/chess/types';
@@ -404,6 +405,7 @@ export function MoveTable({
   readonly onSelect: (key: string, san: San) => void;
   readonly onPrepare: (edge: PreparationEdge) => void;
 }) {
+  const display = useSanDisplay();
   if (node.edges.length === 0) {
     return (
       <p className="px-4 py-6 text-center text-xs text-tertiary">
@@ -441,7 +443,7 @@ export function MoveTable({
                     onSelect(edge.resultingKey, edge.san);
                   }}
                 >
-                  {edge.san}
+                  {display(edge.san)}
                 </button>
               </td>
               <td className="px-2 py-1.5 text-right tabular">{edge.games}</td>

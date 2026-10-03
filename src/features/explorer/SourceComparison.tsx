@@ -15,6 +15,7 @@
  * different facts and a reader is entitled to tell them apart.
  */
 
+import { useSanDisplay } from '@/features/movetree/use-san-display';
 import { useState } from 'react';
 
 import type { Fen } from '@/chess/types';
@@ -61,6 +62,7 @@ export function SourceComparison({
   readonly onSelectedChange: (ids: readonly string[]) => void;
   readonly onPlay: (san: string) => void;
 }) {
+  const display = useSanDisplay();
   const [showScore, setShowScore] = useState(false);
 
   /*
@@ -168,7 +170,7 @@ export function SourceComparison({
                         onClick={() => onPlay(row.san)}
                         className="font-medium text-primary hover:text-accent-ink"
                       >
-                        {row.san}
+                        {display(row.san)}
                       </button>
                     </td>
                     {row.cells.map((cell) => (

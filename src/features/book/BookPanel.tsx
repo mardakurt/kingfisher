@@ -11,6 +11,7 @@
  * and the line at the top always names the book they came from.
  */
 
+import { useSanDisplay } from '@/features/movetree/use-san-display';
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
@@ -23,6 +24,7 @@ import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 
 export function BookPanel() {
+  const display = useSanDisplay();
   const { node, position } = useAnalysisPosition();
   const play = useAnalysis((state) => state.play);
   const notify = useUi((state) => state.notify);
@@ -105,7 +107,7 @@ export function BookPanel() {
                           play(moveIntent(legal.value));
                         }}
                       >
-                        {move.san}
+                        {display(move.san)}
                       </button>
                     </td>
                     <td className="px-1.5 py-1.5 text-right text-secondary tabular">

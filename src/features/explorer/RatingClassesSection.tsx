@@ -12,6 +12,7 @@
  * really filter by rating has the Min Elo filter for that.
  */
 
+import { useSanDisplay } from '@/features/movetree/use-san-display';
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
@@ -56,6 +57,7 @@ export function RatingClassesSection({
   readonly moves: readonly DatabaseMove[];
   readonly onPlay: (move: DatabaseMove) => void;
 }) {
+  const display = useSanDisplay();
   const bands = useMemo(
     () => [...(reader.manifest.history?.bands ?? [])].sort((a, b) => a - b),
     [reader],
@@ -165,7 +167,7 @@ export function RatingClassesSection({
                             className="font-medium text-primary hover:text-accent-ink"
                             onClick={() => move && onPlay(move)}
                           >
-                            {row.san}
+                            {display(row.san)}
                           </button>
                         </td>
                         <td className="px-1.5 py-1 text-right text-secondary tabular">

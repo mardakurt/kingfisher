@@ -124,7 +124,7 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     control: 'features/shell/SettingsDialog.tsx',
     consumer: 'features/movetree/use-san-display.tsx',
     effect:
-      'Moves in the notation and the Explorer are written with figurines (♘f3, exd8=♕) instead of piece letters (Nf3, exd8=Q); a copied or exported PGN keeps the letters.',
+      'Moves in the notation and in the move tables of the Explorer, Openings, Preparation and Book are written with figures from the piece set instead of piece letters (Nf3, exd8=Q); engine lines, a copied move and an exported PGN keep the letters.',
     indexedAs: 'piece-notation',
     previewable: true,
     verifiedBy: 'e2e/piece-notation.spec.ts',

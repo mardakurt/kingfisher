@@ -428,7 +428,7 @@ function BoardSection() {
 
       <Row
         label="Piece notation"
-        hint="Nf3, or the knight drawn in your piece set, in the notation and the Explorer. PGN files keep letters either way."
+        hint="Nf3, or the knight drawn in your piece set — in the notation and the move tables of the Explorer, Openings, Preparation and Book. Engine lines and PGN files keep letters."
       >
         <Segmented
           items={[
