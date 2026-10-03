@@ -232,12 +232,14 @@ class Walk {
   async currentPage() {
     if (!this.page.isClosed()) return this.page;
     for (let attempt = 0; attempt < 50; attempt += 1) {
+      /*
+        Any page the shell serves from its loopback origin is the main window.
+        This was a list of twelve routes, written before /puzzles, /daily,
+        /season, /library and the rest existed; a window reopened on one of
+        those would have been reported as no window at all.
+      */
       const windows = this.app.windows().filter((w) => !w.isClosed());
-      const main = windows.find((w) =>
-        /\/(analysis|studies|repertoire|training|openings|databases|review|endgame|players|preparation|recent|settings)/.test(
-          w.url(),
-        ),
-      );
+      const main = windows.find((w) => /^https?:\/\/(127\.0\.0\.1|localhost):\d+\/./.test(w.url()));
       if (main) {
         this.page = main;
         await this.attachRenderer(main);
@@ -728,15 +730,37 @@ class Walk {
         async run() {
           const before = await w.fen();
           await w.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.close());
-          await new Promise((resolve) => setTimeout(resolve, 400));
-          const remaining = await w.app.evaluate(
-            ({ BrowserWindow }) => BrowserWindow.getAllWindows().length,
-          );
+          /*
+            Wait for the close to finish rather than for a fixed 400 ms. A
+            full-screen window animates out of its Space first, and on a loaded
+            machine that outlasted the sleep: the Dock click below then arrived
+            while the window still existed, the shell (correctly) made no second
+            one, the harness re-adopted the dying page, and the next step found
+            no window at all — certify's "no main window came back" on 1.4.5.
+            A window that never closes is the application's fault, and says so.
+          */
+          let remaining = 1;
+          let waited = 0;
+          for (; waited < 10_000; waited += 100) {
+            remaining = await w.app.evaluate(
+              ({ BrowserWindow }) => BrowserWindow.getAllWindows().length,
+            );
+            if (remaining === 0) break;
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
+          if (remaining !== 0) {
+            w.findings.push({
+              step: w.stepIndex,
+              action: 'close-and-reopen',
+              name: 'window-did-not-close',
+              detail: `${remaining} window(s) still open 10 s after close()`,
+            });
+          }
           // The Dock click: macOS sends `activate`, the shell makes a window.
           await w.app.evaluate(({ app }) => app.emit('activate'));
           const p = await w.currentPage();
           await waitForReady(p);
-          return `${remaining} windows after close, reopened, position ${before ? 'was set' : 'unknown'}`;
+          return `closed in ${waited} ms, reopened, position ${before ? 'was set' : 'unknown'}`;
         },
       },
       {
