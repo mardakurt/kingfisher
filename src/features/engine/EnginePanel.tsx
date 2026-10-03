@@ -46,6 +46,7 @@ import { useCompanionStatus } from '@/companion/useCompanion';
 import { CloudEvaluationSection } from './CloudEvaluation';
 import { SharedEvaluationsSection } from './SharedEvaluations';
 import { DeepenSection } from './DeepenSection';
+import { MatchSection } from './MatchSection';
 import { PlayoutSection } from './PlayoutSection';
 import { EngineSelect } from './EngineSelect';
 import { scoreTone } from './score-chip';
@@ -437,6 +438,7 @@ export function EnginePanel({ compact = false }: { readonly compact?: boolean })
         */}
         {outcome ? null : <DeepenSection fen={node.fen} />}
         {outcome ? null : <PlayoutSection fen={node.fen} />}
+        {outcome ? null : <MatchSection fen={node.fen} />}
         {analysis && !stale && preview ? (
           <PvPreview
             fen={node.fen}
