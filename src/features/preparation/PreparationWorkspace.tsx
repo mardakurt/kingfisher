@@ -394,9 +394,10 @@ export function PreparationWorkspace({
 
   useTabTitle(submitted ? `Preparation against ${submitted}` : null);
 
-  const openGame = (game: GameRecord) => {
+  const openGame = (game: GameRecord, nodeId?: string) => {
     openDocument({
       tree: game.tree,
+      ...(nodeId && game.tree.nodes[nodeId] ? { currentId: nodeId } : {}),
       document: {
         kind: 'untitled',
         title: `${game.white} – ${game.black}${game.year ? `, ${game.year}` : ''}`,

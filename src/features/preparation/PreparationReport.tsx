@@ -31,13 +31,14 @@ import type {
 import { buildStyleReport, type StyleReport } from '@/preparation/style';
 import { cn } from '@/lib/cn';
 
+import { CostlyMovesView } from './CostlyMovesView';
 import { DossierPanel } from './DossierPanel';
 import { SheetBoard } from './SheetBoard';
 import { SurprisesPanel } from './SurprisesPanel';
 import type { OpponentSource } from './opponent-games';
 import type { Surprise } from '@/preparation/surprises';
 
-export type ReportView = 'openings' | 'games' | 'style' | 'dossier' | 'sheet';
+export type ReportView = 'openings' | 'games' | 'style' | 'costly' | 'dossier' | 'sheet';
 
 type TreeNode = NonNullable<OpeningTree['nodes'] extends ReadonlyMap<string, infer T> ? T : never>;
 
@@ -67,7 +68,7 @@ export interface PreparationReportProps {
   readonly onPrepare: (edge: PreparationEdge) => void;
   readonly onOpenPosition: () => void;
   readonly onOpenSurprise: (surprise: Surprise) => void;
-  readonly onOpenGame: (game: GameRecord) => void;
+  readonly onOpenGame: (game: GameRecord, nodeId?: string) => void;
   readonly onAddToSheet?: () => void;
 }
 
@@ -75,6 +76,7 @@ const VIEWS: readonly { id: ReportView; label: string }[] = [
   { id: 'openings', label: 'Openings' },
   { id: 'games', label: 'Games' },
   { id: 'style', label: 'Style' },
+  { id: 'costly', label: 'Costly moves' },
   { id: 'dossier', label: 'Dossier' },
   { id: 'sheet', label: 'Sheet' },
 ];
@@ -116,6 +118,14 @@ export function PreparationReport(props: PreparationReportProps) {
           {view === 'openings' ? <OpeningsView {...props} /> : null}
           {view === 'games' ? <GamesView games={props.games} onOpen={props.onOpenGame} /> : null}
           {view === 'style' ? <StyleView style={style} /> : null}
+          {view === 'costly' ? (
+            <CostlyMovesView
+              name={props.name}
+              games={props.games}
+              aliases={props.aliases}
+              onOpen={props.onOpenGame}
+            />
+          ) : null}
           {view === 'dossier' ? (
             <DossierPanel name={props.name} games={props.games} color={props.opponentColor} />
           ) : null}
