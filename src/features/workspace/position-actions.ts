@@ -47,6 +47,9 @@ export interface PositionActionHandlers {
   /** Take the board to the Team hub, where it can be handed in or attached to a review. */
   readonly handInToTeam: () => void;
   readonly copyFen: () => void;
+  /** The board as an image, with the player's pieces and colours and the drawn arrows. */
+  readonly copyDiagram?: () => void;
+  readonly saveDiagram?: (format: 'png' | 'svg') => void;
   readonly clearMoves: () => void;
   /** Open the un-silo: games, studies, hand-ins, repertoire decisions, references and engine evidence in one place. */
   readonly openPositionPage?: () => void;
@@ -123,6 +126,23 @@ export function positionActionSections(
       items: [
         { id: 'training', label: 'Create training item…', run: handlers.createTraining },
         { id: 'fen', label: 'Copy FEN', run: handlers.copyFen },
+        ...(handlers.copyDiagram
+          ? [{ id: 'diagram', label: 'Copy diagram as image', run: handlers.copyDiagram }]
+          : []),
+        ...(handlers.saveDiagram
+          ? [
+              {
+                id: 'diagram-png',
+                label: 'Save diagram as PNG',
+                run: () => handlers.saveDiagram?.('png'),
+              },
+              {
+                id: 'diagram-svg',
+                label: 'Save diagram as SVG',
+                run: () => handlers.saveDiagram?.('svg'),
+              },
+            ]
+          : []),
       ],
     },
     {

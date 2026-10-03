@@ -22,6 +22,9 @@ import { showTool } from '@/features/workspace/select-tool';
 import { useCalculation } from '@/features/calculation/calculation-store';
 import { positionPageUrl } from '@/position/knowledge';
 
+import { copyDiagram, saveDiagram, type DiagramRequest } from '@/features/board/diagram-export';
+import { usePreferences } from '@/stores/preferences-store';
+
 import { positionActionSections, type PositionActionHandlers } from './position-actions';
 
 export interface UsePositionActionsOptions {
@@ -53,6 +56,21 @@ export function usePositionActions(options: UsePositionActionsOptions) {
       ...(options.context ? { context: options.context } : {}),
     });
   }, [push, pathname, options.label, options.fen, options.context]);
+
+  /** The board as drawn: orientation, and the arrows on this move when the board is on it. */
+  const diagramRequest = (): DiagramRequest => {
+    const analysis = useAnalysis.getState();
+    const node = analysis.tree.nodes[analysis.currentId];
+    const prefs = usePreferences.getState();
+    return {
+      fen: options.fen,
+      orientation: analysis.orientation,
+      shapes: node && node.fen === options.fen ? node.shapes : [],
+      theme: prefs.boardTheme,
+      pieceSet: prefs.pieceSet,
+      title: options.label || 'diagram',
+    };
+  };
 
   const handlers: PositionActionHandlers = {
     analyse: () => {
@@ -105,6 +123,26 @@ export function usePositionActions(options: UsePositionActionsOptions) {
     clearMoves: () => useAnalysis.getState().clearMoves(),
     // The board is one store, so what is on it is on the Team route's board too.
     handInToTeam: () => router.push('/team'),
+    copyDiagram: () => {
+      void copyDiagram(diagramRequest())
+        .then((set) =>
+          ui.notify({ tone: 'success', message: `Diagram copied as an image (${set} pieces).` }),
+        )
+        .catch((error: unknown) =>
+          ui.notify({
+            tone: 'error',
+            message: error instanceof Error ? error.message : 'The diagram could not be copied.',
+          }),
+        );
+    },
+    saveDiagram: (format) => {
+      void saveDiagram(diagramRequest(), format).catch((error: unknown) =>
+        ui.notify({
+          tone: 'error',
+          message: error instanceof Error ? error.message : 'The diagram could not be saved.',
+        }),
+      );
+    },
     copyFen: () => {
       void navigator.clipboard
         .writeText(options.fen)
