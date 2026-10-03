@@ -486,6 +486,14 @@ const RUNTIME: Record<string, (page: Page) => Promise<void>> = {
     await expect(
       page.getByLabel(/Min Elo/i).or(page.locator('input[inputmode="numeric"]').first()),
     ).toHaveValue('2500');
+    /*
+      The default source is the built-in pack, which keeps one count per move
+      and cannot apply a rating floor. The visible effect of the setting there
+      is that the panel says so; until 1.4.3 it changed nothing at all.
+    */
+    await expect(page.locator('[data-explorer-ignored-filters]')).toContainText(
+      'Min Elo 2500 not applied',
+    );
   },
 
   explorerSinceYear: async (page) => {

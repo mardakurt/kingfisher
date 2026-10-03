@@ -1,5 +1,6 @@
 'use client';
 
+import { applicableExplorerFilters } from '@/features/explorer/explorer-filters';
 import { useState, useSyncExternalStore } from 'react';
 import { Info } from '@/components/icons';
 import { Button, IconButton } from '@/components/ui/Button';
@@ -74,15 +75,8 @@ function ReadinessDetails({ onClose }: { readonly onClose: () => void }) {
   const sources = useSourcesFor('explorer');
   const source = sources.find((entry) => entry.id === provider?.id);
   const offline = sources.find((entry) => entry.offline && entry.id !== provider?.id);
-  const query = useExplorer(
-    provider?.id ?? '',
-    fen,
-    {
-      ...(prefs.explorerMinRating ? { minRating: prefs.explorerMinRating } : {}),
-      ...(prefs.explorerSinceYear ? { sinceYear: prefs.explorerSinceYear } : {}),
-    },
-    !!provider,
-  );
+  const applicable = applicableExplorerFilters(prefs, provider?.capabilities);
+  const query = useExplorer(provider?.id ?? '', fen, applicable.filters, !!provider);
   const answered = query.data?.fen === fen && query.data.source.id === provider?.id;
   const failure = query.error ? describeError(query.error) : null;
   const backup = describeBackupStatus({
@@ -182,11 +176,13 @@ function ReadinessDetails({ onClose }: { readonly onClose: () => void }) {
         {answered && query.data!.totalGames === 0 && (
           <p>No games reach this position in this source. This is a valid empty answer.</p>
         )}
-        {(!!prefs.explorerMinRating || !!prefs.explorerSinceYear) && (
+        {applicable.applied.length > 0 && (
+          <p>Explorer filters: {applicable.applied.join(', ')}. Counts apply to these filters.</p>
+        )}
+        {applicable.ignored.length > 0 && (
           <p>
-            Explorer filters: {prefs.explorerMinRating ? `rating ≥ ${prefs.explorerMinRating}` : ''}
-            {prefs.explorerSinceYear ? ` since ${prefs.explorerSinceYear}` : ''}. Counts apply to
-            these filters.
+            {applicable.ignored.join(' and ')} not applied: {provider?.name} cannot filter that way,
+            so its counts are for all its games.
           </p>
         )}
         <div className="flex flex-wrap gap-2">

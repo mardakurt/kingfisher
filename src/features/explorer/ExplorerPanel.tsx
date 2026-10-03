@@ -53,6 +53,7 @@ import { useRouter } from 'next/navigation';
 
 import { DepartureSection } from './DepartureSection';
 import { RatingClassesSection } from './RatingClassesSection';
+import { applicableExplorerFilters } from './explorer-filters';
 import { SourceFallback, SourcePicker } from './SourcePicker';
 import { SourceComparison } from './SourceComparison';
 import { useExplorerSource } from './useExplorerSource';
@@ -148,13 +149,10 @@ export function ExplorerPanel() {
   */
   const ratingFilter = provider?.capabilities.ratingFilter ?? false;
   const dateFilter = provider?.capabilities.dateFilter ?? false;
-  const ignoredFilters = [
-    !ratingFilter && prefs.explorerMinRating ? `Min Elo ${prefs.explorerMinRating}` : null,
-    !dateFilter && prefs.explorerSinceYear ? `since ${prefs.explorerSinceYear}` : null,
-  ].filter((entry): entry is string => entry !== null);
+  const applicable = applicableExplorerFilters(prefs, provider?.capabilities);
+  const ignoredFilters = applicable.ignored;
   const filters = {
-    ...(ratingFilter && prefs.explorerMinRating ? { minRating: prefs.explorerMinRating } : {}),
-    ...(dateFilter && prefs.explorerSinceYear ? { sinceYear: prefs.explorerSinceYear } : {}),
+    ...applicable.filters,
     ...(speedFilter && speedFacetEntry.speeds ? { speeds: speedFacetEntry.speeds } : {}),
     ...(playerFilter && player.trim() ? { player: player.trim(), playerColor } : {}),
   };
