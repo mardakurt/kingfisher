@@ -1,0 +1,113 @@
+# Real-scale acceptance on a GitHub-hosted runner (1.4.2).
+#
+# The 10M-game certification needs about 50 GB for a fully indexed posting
+# collection plus a 1.8 GB archive. The maintainer's Mac does not have that to
+# spare, and Kingfisher has no server. A GitHub-hosted runner does, for free on
+# a public repository: this job reclaims the runner's preinstalled toolchains,
+# pools the root and temporary disks, downloads one Lichess month (CC0) and
+# runs `scripts/bench-import-file.mjs` exactly as `docs/operations/large-databases.md`
+# describes — the companion's own import path, a corpus minimum, and the
+# Explorer checked against an independent replay of every stored PGN.
+#
+# Nothing is kept but the evidence: `result.json` and the log are uploaded as
+# an artifact; the collection is discarded with the runner.
+#
+# It is a Linux x86-64 runner, not the maintainer's Apple Silicon Mac, and the
+# timings it records are that machine's. The result says which machine it ran on.
+name: Real-scale acceptance
+
+on:
+  workflow_dispatch:
+    inputs:
+      month:
+        description: 'Lichess standard rated month (2017-02 holds 10,194,939 games)'
+        default: '2017-02'
+        required: true
+      sha256:
+        description: 'Publisher SHA-256 of the archive (from database.lichess.org/standard/sha256sums.txt)'
+        default: '0d85d1c1ca6782fa3fae4aa2016835c0b60d51162aa84e6bfff8e4cb4af6285b'
+        required: true
+      min_games:
+        description: 'Corpus minimum the run must reach'
+        default: '10000000'
+        required: true
+      layout:
+        description: 'Collection layout'
+        default: 'postings'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  real-scale:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 355
+    steps:
+      - name: Disk before
+        run: df -h
+
+      - name: Reclaim and pool runner disk
+        uses: easimon/maximize-build-space@v10
+        with:
+          root-reserve-mb: 6144
+          temp-reserve-mb: 1024
+          swap-size-mb: 4096
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'true'
+
+      - name: Disk after
+        run: df -h
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Download the archive
+        run: |
+          mkdir -p work
+          curl -fsSL -o work/archive.pgn.zst \
+            "https://database.lichess.org/standard/lichess_db_standard_rated_${{ inputs.month }}.pgn.zst"
+          ls -l work/archive.pgn.zst
+          df -h .
+
+      - name: Import and certify
+        run: |
+          node scripts/bench-import-file.mjs \
+            --file work/archive.pgn.zst \
+            --out work/acceptance \
+            --layout '${{ inputs.layout }}' \
+            --workers 3 \
+            --max-gib 80 \
+            --sha256 '${{ inputs.sha256 }}' \
+            --licence 'Lichess standard rated ${{ inputs.month }}, CC0' \
+            --min-games '${{ inputs.min_games }}' \
+            --sample 30000 --oracle 50 --independent-oracle \
+            2>&1 | tee work/acceptance.log
+          df -h .
+
+      - name: Keep the evidence
+        if: always()
+        run: |
+          mkdir -p evidence
+          cp work/acceptance/result.json evidence/ 2>/dev/null || true
+          cp work/acceptance.log evidence/ 2>/dev/null || true
+          df -h . > evidence/disk.txt
+          nproc >> evidence/disk.txt
+          free -g >> evidence/disk.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real-scale-${{ inputs.month }}-${{ inputs.layout }}
+          path: evidence/
+          retention-days: 90
