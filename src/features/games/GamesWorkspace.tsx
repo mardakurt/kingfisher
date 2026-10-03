@@ -64,7 +64,10 @@ import { CrosstableDialog } from './CrosstableDialog';
 import { mergeSelectedGames } from './merge-selected';
 import { openInNewTab } from '@/features/tabs/tab-actions';
 import { useAnalysis } from '@/stores/analysis-store';
+import { useReferenceSources } from '@/reference/use-references';
 import { openStoredGame } from './open-game';
+import { namesAPlayer, referenceCoverage } from './reference-library';
+import { packReader } from '@/reference/manager';
 import {
   compileMoves,
   EMPTY_HEADER,
@@ -248,9 +251,20 @@ export function GamesWorkspace() {
     retry: false,
     queryFn: () => listCollections(),
   });
+  /*
+    1.4.4: an installed reference pack is a database the Library can search,
+    by player, as ChessBase searches Mega Database (reference-library.ts).
+  */
+  const references = useReferenceSources();
+  const referencePacks = references.sources.filter(
+    (entry) => entry.installed && entry.state === 'ready' && entry.capabilities.includes('games'),
+  );
   const sourceFacts = collections.data?.find((entry) => entry.id === sourceId);
+  const referenceFacts = referencePacks.find((entry) => `reference:${entry.id}` === sourceId);
   const source: LibrarySource =
-    sourceId === LOCAL_SOURCE.id ? LOCAL_SOURCE : librarySource(sourceId, sourceFacts?.name);
+    sourceId === LOCAL_SOURCE.id
+      ? LOCAL_SOURCE
+      : librarySource(sourceId, sourceFacts?.name ?? referenceFacts?.name);
   const local = source.kind === 'local';
 
   const query = useMemo<GameSearchQuery>(
@@ -311,7 +325,8 @@ export function GamesWorkspace() {
   const localGames = useGames(query);
   const sourceGames = useQuery({
     queryKey: ['library', 'source', source.id, query],
-    enabled: !local,
+    // A pack restored from the address is asked once it is loaded, not before.
+    enabled: !local && (source.kind !== 'reference' || referenceFacts !== undefined),
     retry: false,
     placeholderData: (previous) => previous,
     queryFn: () => searchSource(source, query),
@@ -346,7 +361,31 @@ export function GamesWorkspace() {
   */
   const filtered = games.data?.total ?? null;
   const hasMore = games.data?.hasMore ?? false;
-  const stored = local ? (total.data ?? 0) : (sourceFacts?.games ?? games.data?.total ?? 0);
+  const stored = local
+    ? (total.data ?? 0)
+    : (sourceFacts?.games ??
+      referenceFacts?.openableCount ??
+      referenceFacts?.gameCount ??
+      games.data?.total ??
+      0);
+  // A reference pack lists games only for someone named (reference-library.ts).
+  const needsPlayer = source.kind === 'reference' && !namesAPlayer(query);
+  const coverage = useQuery({
+    queryKey: [
+      'library',
+      'reference-coverage',
+      source.id,
+      query.player,
+      query.opponent,
+      query.text,
+    ],
+    enabled: source.kind === 'reference' && !needsPlayer && referenceFacts !== undefined,
+    retry: false,
+    queryFn: async () => {
+      const reader = source.kind === 'reference' ? packReader(source.packId) : undefined;
+      return reader ? referenceCoverage(reader, query) : [];
+    },
+  });
   const pageCount = filtered === null ? null : Math.max(1, Math.ceil(filtered / PAGE_SIZE));
   const visibleFrom = rows.length === 0 ? 0 : page * PAGE_SIZE + 1;
   const visibleTo = page * PAGE_SIZE + rows.length;
@@ -668,7 +707,17 @@ export function GamesWorkspace() {
                   {entry.games !== null ? ` · ${entry.games.toLocaleString()}` : ''}
                 </option>
               ))}
-            {!local && !sourceFacts ? <option value={source.id}>{source.name}</option> : null}
+            {referencePacks.map((entry) => (
+              <option key={entry.id} value={`reference:${entry.id}`}>
+                {entry.name}
+                {(entry.openableCount ?? entry.gameCount) !== undefined
+                  ? ` · ${(entry.openableCount ?? entry.gameCount)!.toLocaleString()}`
+                  : ''}
+              </option>
+            ))}
+            {!local && !sourceFacts && !referenceFacts ? (
+              <option value={source.id}>{source.name}</option>
+            ) : null}
           </select>
         </label>
         <Button
@@ -700,6 +749,18 @@ export function GamesWorkspace() {
         </div>
       ) : null}
 
+      {coverage.data?.length && source.kind === 'reference' ? (
+        <p className="shrink-0 px-3 pb-2 text-[11px] text-caution sm:px-4" data-reference-coverage>
+          {source.name} keeps the moves of each player’s newest games only:{' '}
+          {coverage.data
+            .map(
+              (entry) =>
+                `${entry.name}, ${entry.listed.toLocaleString()} of ${entry.played.toLocaleString()}`,
+            )
+            .join('; ')}
+          . Older games are counted in the Explorer but cannot be listed or opened here.
+        </p>
+      ) : null}
       {dropped.length ? (
         <p className="shrink-0 px-3 pb-2 text-[11px] text-caution sm:px-4" data-library-dropped>
           Not applied in {source.name}: {dropped.join(', ')}. The list below ignores{' '}
@@ -812,7 +873,7 @@ export function GamesWorkspace() {
         <div className="min-h-0 min-w-0 flex-1 overflow-auto" data-library-list>
           {games.isError ? (
             <EmptyState
-              title="Local storage is unavailable"
+              title={local ? 'Local storage is unavailable' : `${source.name} could not be read`}
               description={
                 games.error instanceof Error
                   ? games.error.message
@@ -839,6 +900,11 @@ export function GamesWorkspace() {
                   : `${moveState.read.toLocaleString()} of the ${moveState.selected.toLocaleString()} games the other filters selected were read.`
               }
             />
+          ) : needsPlayer && !moveState ? (
+            <EmptyState
+              title={`Search ${source.name} by player`}
+              description={`Type a name in the search box, or name a player or an opponent in Filters, and their games in ${source.name} are listed with every other filter applied. A reference is read by player, as ChessBase reads Mega Database; it keeps no list of all its games to page through.`}
+            />
           ) : games.isPending && !moveState ? (
             <p className="px-3 py-6 text-2xs text-tertiary">Reading the local database…</p>
           ) : rows.length === 0 ? (
@@ -847,7 +913,9 @@ export function GamesWorkspace() {
               description={
                 stored === 0
                   ? 'Import a PGN collection to build your local database. Every game is indexed by position, so the explorer can tell you what you actually play.'
-                  : `${stored.toLocaleString()} games are stored; none of them match.`
+                  : source.kind === 'reference'
+                    ? `None of the games ${source.name} lists for the players named match.`
+                    : `${stored.toLocaleString()} games are stored; none of them match.`
               }
               action={
                 stored === 0 ? (
@@ -1168,7 +1236,7 @@ export function GamesWorkspace() {
               }}
               moves={
                 <>
-                  {!local ? (
+                  {source.kind === 'companion' ? (
                     /*
                         A companion database is read for its moves too: the
                         companion selects by header and serves the games a
@@ -1177,6 +1245,11 @@ export function GamesWorkspace() {
                     <p className="mb-1 text-[11px] text-tertiary" data-move-search-source>
                       Reads the moves of {source.name}’s games through the companion, a page at a
                       time; a large file takes a while, and it can be stopped.
+                    </p>
+                  ) : source.kind === 'reference' ? (
+                    <p className="mb-1 text-[11px] text-tertiary" data-move-search-source>
+                      Reads the moves of the games the filters above select in {source.name}; name a
+                      player first.
                     </p>
                   ) : null}
                   <MoveMaskFields

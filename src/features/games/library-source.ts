@@ -22,6 +22,9 @@ import { parseSingleGame } from '@/chess/pgn';
 import type { GameTree } from '@/chess/tree/types';
 import type { CompanionMoveQuery, CompanionMoveSearchResult } from '@/companion/client';
 import { companionClient } from '@/companion/session';
+import { packReader } from '@/reference/manager';
+import { packGamePgn } from '@/reference/provider';
+import { referenceGamePgn } from '@/reference/player-games';
 import { getRepositories } from '@/persistence/repositories';
 import type { GameSearchQuery, GameSearchResult, GameSummary } from '@/persistence/types';
 import { gameTitle } from '@/persistence/describe';
@@ -33,6 +36,7 @@ import { lineFromRows, lineIndexForRows, THEMES_VERSION_NUMBER } from '@/search/
 
 import { runPagedDeepSearch, type DeepMatch, type DeepSearchState } from './deep-search';
 import { openStoredGame } from './open-game';
+import { REFERENCE_UNSUPPORTED, referenceMatches, searchReference } from './reference-library';
 
 export type LibrarySource =
   | { readonly kind: 'local'; readonly id: 'local'; readonly name: string }
@@ -40,6 +44,13 @@ export type LibrarySource =
       readonly kind: 'companion';
       readonly id: string;
       readonly key: string;
+      readonly name: string;
+    }
+  | {
+      /** An installed reference pack, searched by player (`reference-library.ts`). */
+      readonly kind: 'reference';
+      readonly id: string;
+      readonly packId: string;
       readonly name: string;
     };
 
@@ -50,6 +61,15 @@ export function librarySource(id: string | null | undefined, name?: string): Lib
   if (id && id.startsWith('sqlite:')) {
     const key = id.slice('sqlite:'.length);
     return { kind: 'companion', id, key, name: name ?? key };
+  }
+  if (id && id.startsWith('reference:')) {
+    const packId = id.slice('reference:'.length);
+    return {
+      kind: 'reference',
+      id,
+      packId,
+      name: name ?? packReader(packId)?.manifest.name ?? packId,
+    };
   }
   return LOCAL_SOURCE;
 }
@@ -65,10 +85,11 @@ export function queryForSource(
   source: LibrarySource,
 ): { readonly query: GameSearchQuery; readonly dropped: readonly string[] } {
   if (source.kind === 'local') return { query, dropped: [] };
+  const unsupported = source.kind === 'reference' ? REFERENCE_UNSUPPORTED : COMPANION_UNSUPPORTED;
   const kept: Record<string, unknown> = {};
   const dropped: string[] = [];
   for (const [field, value] of Object.entries(query)) {
-    const name = COMPANION_UNSUPPORTED[field];
+    const name = unsupported[field];
     if (name) dropped.push(name);
     // The companion compares whole names with the keys games were stored under
     // (playerKey); a name as typed, "Carlsen, Magnus", matched nothing there.
@@ -84,6 +105,11 @@ export async function searchSource(
   query: GameSearchQuery,
 ): Promise<GameSearchResult> {
   if (source.kind === 'local') return (await getRepositories()).games.search(query);
+  if (source.kind === 'reference') {
+    const reader = packReader(source.packId);
+    if (!reader) throw new Error(`${source.name} is not installed on this device.`);
+    return searchReference(reader, queryForSource(query, source).query);
+  }
   const client = companionClient();
   if (!client) throw new Error('The companion is not connected, so that database cannot be read.');
   return client.searchGames<GameSearchResult>(source.key, {
@@ -95,6 +121,12 @@ export async function searchSource(
 /** The moves of one game, as a tree the rules code built. */
 export async function sourceTree(source: LibrarySource, id: string): Promise<GameTree | null> {
   if (source.kind === 'local') return (await (await getRepositories()).games.get(id))?.tree ?? null;
+  if (source.kind === 'reference') {
+    const pgn = await referenceGamePgn(source.packId, id);
+    if (!pgn) return null;
+    const parsed = parseSingleGame(pgn);
+    return parsed.ok ? parsed.value.tree : null;
+  }
   const client = companionClient();
   if (!client) throw new Error('The companion is not connected.');
   const { pgn } = await client.gameContent(source.key, id);
@@ -122,6 +154,21 @@ export async function openSourceGame(
   if (!tree) throw new Error(`That game could not be read from ${source.name}.`);
   // At the ply asked for, as a stored game opens (Phase 86: it opened at the start).
   const currentId = options.ply !== undefined ? nodeAtPly(tree, options.ply) : null;
+  if (source.kind === 'reference') {
+    // Source material, as the Explorer's top games open: read-only, named by its pack.
+    useAnalysis.getState().openDocument({
+      tree,
+      document: {
+        kind: 'reference-game',
+        title: `${game.white} – ${game.black}`,
+        sourceId: source.packId,
+        sourceName: source.name,
+        gameId: game.id,
+      },
+      ...(currentId ? { currentId } : {}),
+    });
+    return;
+  }
   useAnalysis.getState().openDocument({
     tree,
     document: { kind: 'untitled', title: `${gameTitle(game)} (${source.name})` },
@@ -276,3 +323,45 @@ const MOVE_PAGE = 500;
 
 // Phase 85: moved beside the line index it now also feeds.
 export { lineFromRows };
+
+/**
+ * The move-level search over a reference pack: the player's games the header
+ * filters select (`referenceMatches`), each read through the rules from the
+ * pack's own movetext, as a stored game is.
+ */
+export async function referenceMoveSearch(input: {
+  readonly source: Extract<LibrarySource, { kind: 'reference' }>;
+  readonly header: Omit<GameSearchQuery, 'limit' | 'offset' | 'exactTotal'>;
+  readonly deep: DeepQuery;
+  readonly signal?: AbortSignal;
+  readonly onProgress?: (state: DeepSearchState) => void;
+}): Promise<DeepSearchState> {
+  const reader = packReader(input.source.packId);
+  if (!reader) throw new Error(`${input.source.name} is not installed on this device.`);
+  const { query } = queryForSource(input.header as GameSearchQuery, input.source);
+  const selected = await referenceMatches(reader, query);
+  const PAGE = 200;
+  return runPagedDeepSearch({
+    selected: selected.length,
+    page: async (after) => {
+      const start = after === null ? 0 : Number(after);
+      const slice = selected.slice(start, start + PAGE);
+      const games = await reader.games(slice.map((summary) => summary.id));
+      const byId = new Map(games.map((game) => [game.id, game]));
+      return {
+        games: slice.map((summary) => {
+          const game = byId.get(summary.id);
+          return { summary, pgn: game ? packGamePgn(game, reader.manifest) : null };
+        }),
+        nextAfter: start + PAGE < selected.length ? String(start + PAGE) : null,
+      };
+    },
+    parse: (pgn) => {
+      const parsed = parseSingleGame(pgn);
+      return parsed.ok ? parsed.value.tree : null;
+    },
+    deep: input.deep,
+    ...(input.signal ? { signal: input.signal } : {}),
+    ...(input.onProgress ? { onProgress: input.onProgress } : {}),
+  });
+}
