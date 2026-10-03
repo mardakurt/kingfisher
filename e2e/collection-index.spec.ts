@@ -74,6 +74,8 @@ test('a collection counts its players and tournaments, and each row opens the Li
   await expect(spring).toContainText('Spring Open');
   await expect(spring).toContainText('2025-04-03');
   await spring.getByRole('link', { name: 'Spring Open' }).click();
-  await page.waitForURL(/\/games\?.*q=Spring/);
+  // The edition exactly: its whole name in quotes and its year, not a
+  // free-text search that any game sharing the words would match.
+  await page.waitForURL(/\/games\?.*event=%22Spring\+Open%22.*from=2025-01-01.*to=2025-12-31/);
   await expect(page.locator('main table tbody tr')).toHaveCount(3);
 });
