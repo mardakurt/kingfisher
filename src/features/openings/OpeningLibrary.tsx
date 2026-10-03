@@ -328,7 +328,8 @@ function OpeningDetail({ entry }: { readonly entry: OpeningEntry }) {
                       {percent(move.games, total)}
                     </td>
                     <td className="py-1.5 text-right text-tertiary tabular">
-                      {move.white} / {move.draws} / {move.black}
+                      {move.white.toLocaleString()} / {move.draws.toLocaleString()} /{' '}
+                      {move.black.toLocaleString()}
                     </td>
                     <td className="py-1.5 text-right text-tertiary tabular">
                       {move.recent

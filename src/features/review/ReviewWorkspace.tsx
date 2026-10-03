@@ -220,6 +220,12 @@ export function ReviewWorkspace() {
           ]}
           value={tab}
           onChange={setTab}
+          /*
+            The context column is 210 px at 1280 wide, and four tabs at the
+            usual padding cut "Patterns" in half behind a sideways scroll.
+            They wrap onto a second row instead, tighter.
+          */
+          className="h-auto flex-wrap [&>button]:h-8 [&>button]:px-2"
         />
       </div>
       <div className="min-h-0 flex-1">
