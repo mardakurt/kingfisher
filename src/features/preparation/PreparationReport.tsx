@@ -33,6 +33,7 @@ import { cn } from '@/lib/cn';
 
 import { CostlyMovesView } from './CostlyMovesView';
 import { DossierPanel } from './DossierPanel';
+import { PlayerPhotoCredit, PlayerPortrait } from '@/features/player/PlayerPortrait';
 import { SheetBoard } from './SheetBoard';
 import { SurprisesPanel } from './SurprisesPanel';
 import type { OpponentSource } from './opponent-games';
@@ -138,14 +139,6 @@ export function PreparationReport(props: PreparationReportProps) {
 
 // --- the player ----------------------------------------------------------------
 
-const initials = (name: string): string =>
-  name
-    .split(/[,\s]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('');
-
 function PlayerCard({
   name,
   profile,
@@ -157,12 +150,7 @@ function PlayerCard({
   return (
     <section className="flex flex-wrap items-center gap-x-8 gap-y-4" data-player-card>
       <div className="flex min-w-0 items-center gap-3.5">
-        <span
-          aria-hidden
-          className="flex size-14 shrink-0 items-center justify-center rounded-full bg-surface-3 text-lg font-semibold text-secondary"
-        >
-          {initials(name)}
-        </span>
+        <PlayerPortrait name={profile.name || name} />
         <div className="min-w-0">
           <h2 className="truncate text-lg font-semibold tracking-[-0.01em] text-primary">
             {profile.name}
@@ -182,10 +170,9 @@ function PlayerCard({
           <ul className="mt-0.5 flex flex-wrap gap-x-3 text-[11px] text-tertiary tabular">
             {sources.map((source) => (
               <li key={source.id} data-report-source={source.id}>
-                {source.games.toLocaleString()} from {source.name}
                 {source.found > source.games
-                  ? ` (the newest of ${source.found.toLocaleString()} that match; Filters → Most recent games reads more)`
-                  : ''}
+                  ? `${source.games.toLocaleString()} of ${source.found.toLocaleString()} matching games from ${source.name}`
+                  : `${source.games.toLocaleString()} from ${source.name}`}
                 {source.recorded && source.kept ? (
                   <span data-report-source-cap>
                     {` · the source records ${source.recorded.toLocaleString()} games for this player and keeps the moves of the newest ${source.kept.toLocaleString()}`}
@@ -197,6 +184,13 @@ function PlayerCard({
               <li>{localTotal.toLocaleString()} in My games</li>
             ) : null}
           </ul>
+          {sources.some((source) => source.found > source.games) ? (
+            <p className="text-[11px] text-tertiary" data-report-limit>
+              The newest {profile.games.toLocaleString()} across these sources are read; Filters →
+              Most recent games reads more.
+            </p>
+          ) : null}
+          <PlayerPhotoCredit name={profile.name || name} />
         </div>
       </div>
 

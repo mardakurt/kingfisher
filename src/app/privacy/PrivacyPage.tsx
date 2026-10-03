@@ -143,6 +143,14 @@ export function PrivacyPage(): JSX.Element {
           other identifier of yours.
         </li>
         <li>
+          <strong>Wikimedia</strong> (<code>wikidata.org</code>, <code>commons.wikimedia.org</code>{' '}
+          and Wikimedia&apos;s image hosts), when a preparation report is opened for a titled player
+          the roster names: the player&apos;s Wikidata item is asked for its photograph, and Commons
+          for the file and its credit. The photo is shown with its author and licence, held in
+          memory for the session, and never stored. Nothing about you or your work goes with the
+          request.
+        </li>
+        <li>
           <strong>The public data mirror</strong> at{' '}
           <code>mardakurt.github.io/kingfisher-data</code> for reference-pack manifests and chunks.
           Every chunk is verified against the manifest&apos;s SHA-256 before it is used. A failed
