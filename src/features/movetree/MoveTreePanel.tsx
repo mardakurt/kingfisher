@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { Panel, PanelHeader } from '@/components/ui/Panel';
+import { AnnotationBar } from '@/features/movetree/AnnotationBar';
 import { MoveTree } from '@/features/movetree/MoveTree';
 import { useChessWorkspace } from '@/features/workspace/ChessWorkspaceContext';
 import { cn } from '@/lib/cn';
@@ -73,6 +74,7 @@ export function MoveTreePanel({
           {...(marks.data ? { ecoMarks: marks.data } : {})}
         />
       </div>
+      <AnnotationBar />
     </Panel>
   );
 }
