@@ -315,6 +315,15 @@ const REBUILD_DERIVED = `
 
 /** A bulk load commits once per this many games (Phase 85). */
 const BULK_COMMIT_GAMES = 25_000;
+/**
+ * The most games at one position for which the explorer names each move's
+ * frequent players. The read is over the per-game index and grows with the
+ * games at the position: `bench-collection-report.mjs 100000` on an M3 Pro
+ * put the starting position (all 100,000 games) at 63.5 ms p95 against
+ * 0.3 ms without it, and 23.4 ms at the commonest position in the postings
+ * layout. Past this the explorer says it left them out.
+ */
+export const FREQUENT_PLAYERS_MAX_GAMES = 100_000;
 
 const AFFECTED_POSITIONS_TABLE = `
   CREATE TEMP TABLE IF NOT EXISTS affected_positions (
@@ -396,6 +405,8 @@ export class GameDatabase {
    */
   #postings = null;
   #kit = null;
+  /** `options.frequentPlayersMaxGames`; tests lower it rather than write 100,000 games. */
+  #frequentPlayersMaxGames = FREQUENT_PLAYERS_MAX_GAMES;
 
   /**
    * `options.layout: 'postings'` makes an empty collection keep the compact
@@ -417,6 +428,8 @@ export class GameDatabase {
   }
 
   constructor(file, options = {}) {
+    if (options.frequentPlayersMaxGames !== undefined)
+      this.#frequentPlayersMaxGames = options.frequentPlayersMaxGames;
     this.#file = file;
     this.#db = new DatabaseSync(file);
     this.#db.exec(SCHEMA);
@@ -1552,8 +1565,107 @@ export class GameDatabase {
     return row ? row.pgn : null;
   }
 
-  /** Every move played from a canonical position, aggregated. */
+  /**
+   * Every move played from a canonical position, aggregated, with who played
+   * each move most often in this filtered population.
+   */
   explore(positionKey, limit = 24, filters = {}) {
+    const result = this.#exploreMoves(positionKey, limit, filters);
+    return this.#withFrequentPlayers(positionKey, filters, result);
+  }
+
+  /**
+   * The frequent movers of each move: the three players with the most
+   * distinct games in which they played it from this position, under the
+   * same filters as the counts beside them. ChessBase's Frequent Players
+   * column, for a collection the companion holds.
+   *
+   * The aggregates carry no player, so this reads the per-game index, and a
+   * read proportional to the games at a position is bounded: above
+   * FREQUENT_PLAYERS_MAX_GAMES the result says so (`frequentPlayersOmitted`)
+   * rather than leaving the column to read as "nobody". A count is never
+   * estimated from a sample.
+   */
+  #withFrequentPlayers(positionKey, filters, result) {
+    if (!result.moves?.length || !result.totalGames) return result;
+    if (result.totalGames > this.#frequentPlayersMaxGames) {
+      return {
+        ...result,
+        frequentPlayersOmitted: { games: result.totalGames, limit: this.#frequentPlayersMaxGames },
+      };
+    }
+    const mover = positionKey.split(' ')[1] === 'b' ? 'b' : 'w';
+    const keyColumn = mover === 'w' ? 'g.white_key' : 'g.black_key';
+    const nameColumn = mover === 'w' ? 'g.white' : 'g.black';
+    const where = [];
+    const params = [];
+    if (filters.minRating) {
+      where.push('g.max_rating >= ?');
+      params.push(filters.minRating);
+    }
+    if (filters.maxRating) {
+      where.push('g.max_rating <= ?');
+      params.push(filters.maxRating);
+    }
+    if (filters.sinceYear) {
+      where.push('g.year >= ?');
+      params.push(filters.sinceYear);
+    }
+    if (filters.untilYear) {
+      where.push('g.year <= ?');
+      params.push(filters.untilYear);
+    }
+    if (filters.player) {
+      if (filters.playerColor === 'w') where.push('g.white_key = ?');
+      else if (filters.playerColor === 'b') where.push('g.black_key = ?');
+      else where.push('(g.white_key = ? OR g.black_key = ?)');
+      params.push(filters.player);
+      if (!filters.playerColor) params.push(filters.player);
+    }
+    const extra = where.length ? ` AND ${where.join(' AND ')}` : '';
+    // One row per (move, player). Both layouts store a game's (position, move)
+    // once however often the game returns to it, so COUNT(*) is distinct games
+    // — the invariant the explorer's own counts beside these rely on.
+    const rows = this.#postings
+      ? this.#db
+          .prepare(
+            `SELECT p.move AS move, ${keyColumn} AS player, MIN(${nameColumn}) AS name,
+                    COUNT(*) AS games
+               FROM postings p JOIN games g ON g.id = p.game
+              WHERE p.pos = ?${extra}
+              GROUP BY p.move, ${keyColumn}`,
+          )
+          .all(positionHash(positionKey), ...params)
+          .map((row) => ({ ...row, uci: decodeMove(row.move) }))
+      : this.#db
+          .prepare(
+            `SELECT p.move_uci AS uci, ${keyColumn} AS player, MIN(${nameColumn}) AS name,
+                    COUNT(*) AS games
+               FROM positions p JOIN games g ON g.id = p.game_id
+              WHERE p.position_key = ?${extra}
+              GROUP BY p.move_uci, ${keyColumn}`,
+          )
+          .all(positionKey, ...params);
+    const byMove = new Map();
+    for (const row of rows) {
+      // "?" is a game with no name recorded, not a person who played it.
+      if (!row.player || !row.name || row.name.trim() === '?') continue;
+      const list = byMove.get(row.uci) ?? [];
+      list.push({ name: row.name, games: row.games });
+      byMove.set(row.uci, list);
+    }
+    return {
+      ...result,
+      moves: result.moves.map((move) => ({
+        ...move,
+        frequentPlayers: (byMove.get(move.uci) ?? [])
+          .sort((a, b) => b.games - a.games || a.name.localeCompare(b.name))
+          .slice(0, 3),
+      })),
+    };
+  }
+
+  #exploreMoves(positionKey, limit, filters) {
     if (this.#postings) return this.#postings.explore(positionKey, limit, filters);
     const where = ['p.position_key = ?'];
     const params = [positionKey];

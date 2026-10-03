@@ -758,6 +758,21 @@ export function ExplorerPanel() {
               </table>
             </div>
 
+            {/*
+              A companion collection names each move's frequent players up to a
+              stated number of games at the position, because the count is read
+              game by game. Past it the column is absent, and this says why —
+              an absent column must not read as "nobody plays this".
+            */}
+            {query.data?.frequentPlayersOmitted ? (
+              <p className="px-2.5 pt-1.5 text-[10px] text-tertiary" data-frequent-players-omitted>
+                Frequent players are counted for positions with up to{' '}
+                {query.data.frequentPlayersOmitted.limit.toLocaleString('en')} games; this one has{' '}
+                {query.data.frequentPlayersOmitted.games.toLocaleString('en')}. Make a move or
+                filter by rating or year to see them.
+              </p>
+            ) : null}
+
             {brief}
 
             {provider && packReader(provider.id)?.hasHistory && query.data ? (
@@ -1061,7 +1076,7 @@ function Row({
         {entry.database.frequentPlayers?.length ? (
           <span
             className="@min-[560px]:hidden mt-0.5 block max-w-[160px] truncate text-[10px] font-normal text-tertiary"
-            title={`Most frequent movers in this filtered source: ${entry.database.frequentPlayers.map((player) => `${player.name}: ${player.games} games`).join(', ')}`}
+            title={`Most frequent movers in this filtered source: ${entry.database.frequentPlayers.map((player) => `${player.name}: ${plural(player.games, 'game')}`).join(', ')}`}
           >
             {entry.database.frequentPlayers
               .map((player) => `${player.name.split(',')[0]} (${player.games})`)
@@ -1142,7 +1157,7 @@ function Row({
           className="@max-[559px]:hidden max-w-[220px] truncate px-1.5 py-1.5 text-secondary"
           data-explorer-frequent-players
           title={entry.database.frequentPlayers
-            ?.map((player) => `${player.name}: ${player.games} games`)
+            ?.map((player) => `${player.name}: ${plural(player.games, 'game')}`)
             .join(', ')}
         >
           {entry.database.frequentPlayers?.length

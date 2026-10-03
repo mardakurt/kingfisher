@@ -91,6 +91,12 @@ export interface ExplorerResult {
   readonly topGames?: readonly DatabaseGameRef[];
   /** True when the provider capped the result set. */
   readonly truncated?: boolean;
+  /**
+   * The source can name each move's frequent players but did not here: the
+   * position held `games` games, more than the `limit` it reads movers for.
+   * Said, so an empty column is not read as "nobody played it".
+   */
+  readonly frequentPlayersOmitted?: { readonly games: number; readonly limit: number };
 }
 
 /** A bounded read of one collection's games at a position, never an imported copy. */
