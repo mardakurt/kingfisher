@@ -68,8 +68,7 @@ export function matchesGameSearch(game: GameSummary, query: GameSearchQuery): bo
   if (query.fromYear && (!game.year || game.year < query.fromYear)) return false;
   if (query.toYear && (!game.year || game.year > query.toYear)) return false;
   if (!matchesRating(game, query)) return false;
-  const event = query.event?.trim().toLowerCase();
-  if (event && !(game.event ?? '').toLowerCase().includes(event)) return false;
+  if (query.event?.trim() && !matchesEvent(game.event, query.event)) return false;
   const site = query.site?.trim().toLowerCase();
   if (site && !(game.site ?? '').toLowerCase().includes(site)) return false;
   if ((query.fromDate || query.toDate) && !matchesDateRange(game, query)) return false;
@@ -125,4 +124,24 @@ export function matchesDateRange(game: GameSummary, query: GameSearchQuery): boo
   if (query.fromDate && year < Number(query.fromDate.slice(0, 4))) return false;
   if (query.toDate && year > Number(query.toDate.slice(0, 4))) return false;
   return true;
+}
+
+/**
+ * An event filter in quotes is the event's whole name; without, a part of it.
+ *
+ * A tournament row in a database's index leads to its games with
+ * `"Synthetic Open 1"` — the part-of-name rule would bring Opens 10 to 19
+ * with it. The companion applies the same rule (`gameWhere`).
+ */
+export function exactEvent(filter: string): string | null {
+  const text = filter.trim();
+  return text.length > 2 && text.startsWith('"') && text.endsWith('"')
+    ? text.slice(1, -1).trim()
+    : null;
+}
+
+export function matchesEvent(event: string | undefined, filter: string): boolean {
+  const exact = exactEvent(filter);
+  const have = (event ?? '').trim().toLowerCase();
+  return exact !== null ? have === exact.toLowerCase() : have.includes(filter.trim().toLowerCase());
 }

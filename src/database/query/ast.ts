@@ -531,7 +531,10 @@ function describePredicate(node: QueryPredicate): string {
             : `at most ${node.max}`
       }`;
     case 'event':
-      return `event contains "${node.contains}"`;
+      // A quoted event is matched whole (game-match.ts `exactEvent`).
+      return /^".+"$/.test(node.contains.trim())
+        ? `event is ${node.contains.trim()}`
+        : `event contains "${node.contains}"`;
     case 'site':
       return `site contains "${node.contains}"`;
     case 'timeClass':

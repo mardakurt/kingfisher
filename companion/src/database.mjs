@@ -3035,8 +3035,15 @@ function gameWhere(query, options = {}) {
     params.push(query.minRating);
   }
   if (query.event) {
-    where.push('event LIKE ?');
-    params.push(`%${query.event}%`);
+    // In quotes, the event's whole name (src/persistence/game-match.ts `exactEvent`).
+    const text = String(query.event).trim();
+    if (text.length > 2 && text.startsWith('"') && text.endsWith('"')) {
+      where.push('LOWER(TRIM(event)) = ?');
+      params.push(text.slice(1, -1).trim().toLowerCase());
+    } else {
+      where.push('event LIKE ?');
+      params.push(`%${query.event}%`);
+    }
   }
   if (query.site) {
     where.push('site LIKE ?');

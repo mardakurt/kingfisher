@@ -185,6 +185,14 @@ export function GamesWorkspace() {
     const who = params.get('player');
     const against = params.get('opponent');
     const db = params.get('db');
+    /*
+      A tournament opened from a database's index: its whole name in quotes
+      and its year as a date range (`?event="…"&from=…&to=…`), so the list is
+      that edition and nothing that merely shares words with it.
+    */
+    const event = params.get('event');
+    const from = params.get('from');
+    const to = params.get('to');
     const pageNumber = Number(params.get('page'));
     const game = params.get('game');
     // The address is outside React and unknown to the server render, so it is
@@ -194,6 +202,8 @@ export function GamesWorkspace() {
     if (db) setSourceId(db);
     if (who) setPlayer(who);
     if (against) setOpponent(against);
+    if (event || from || to)
+      setHeader({ ...EMPTY_HEADER, event: event ?? '', fromDate: from ?? '', toDate: to ?? '' });
     /*
       Phase 87: the page and the previewed game as well. Back from a game
       opened on page 2 came to page 1, scrolled to the top, nothing selected
@@ -217,6 +227,12 @@ export function GamesWorkspace() {
       else params.delete('opponent');
       if (sourceId !== LOCAL_SOURCE.id) params.set('db', sourceId);
       else params.delete('db');
+      if (header.event.trim()) params.set('event', header.event.trim());
+      else params.delete('event');
+      if (header.fromDate) params.set('from', header.fromDate);
+      else params.delete('from');
+      if (header.toDate) params.set('to', header.toDate);
+      else params.delete('to');
       const search = params.toString();
       const next = `${window.location.pathname}${search ? `?${search}` : ''}`;
       if (next !== `${window.location.pathname}${window.location.search}`) {
@@ -224,7 +240,7 @@ export function GamesWorkspace() {
       }
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [text, player, opponent, sourceId]);
+  }, [text, player, opponent, sourceId, header.event, header.fromDate, header.toDate]);
   /*
     The page and the previewed game go into the address at once, not after
     the typing debounce: a click on a row and a double-click to open it come

@@ -282,6 +282,10 @@ describe('GameDatabase', () => {
     expect(found({ minRating: 2300, ratingScope: 'both' })).toEqual(['game-1', 'game-2']);
     expect(found({ event: 'test EVENT' })).toHaveLength(3);
     expect(found({ event: 'Olympiad' })).toEqual([]);
+    // In quotes, the whole name: "Test" is part of every event here and the
+    // whole of none; "test event" in any case is all three.
+    expect(found({ event: '"Test"' })).toEqual([]);
+    expect(found({ event: '"TEST EVENT"' })).toHaveLength(3);
     expect(found({ site: 'loc' })).toHaveLength(3);
     // game-1 is dated 2026.01.01, game-2 2025.01.01, game-3 2024.01.01.
     expect(found({ fromDate: '2025-01-01', toDate: '2025-01-01' })).toEqual(['game-2']);

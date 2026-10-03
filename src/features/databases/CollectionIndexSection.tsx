@@ -226,7 +226,18 @@ export function CollectionIndexSection({ collection }: { readonly collection: Co
                     <tr key={`${event.name}|${event.year ?? ''}`}>
                       <td className="max-w-[320px] truncate px-2 py-1.5">
                         <Link
-                          href={library({ q: event.name })}
+                          href={library({
+                            /*
+                              The edition, exactly: its whole name and its
+                              year. `q` matched any game sharing words with it
+                              — "Open 1" brought Opens 10 to 19 — and every
+                              other year's edition.
+                            */
+                            event: `"${event.name}"`,
+                            ...(event.year === null
+                              ? {}
+                              : { from: `${event.year}-01-01`, to: `${event.year}-12-31` }),
+                          })}
                           className="text-primary hover:text-accent-ink"
                           title={`Open the Library on “${event.name}”. A game there opens its tournament table.`}
                         >
