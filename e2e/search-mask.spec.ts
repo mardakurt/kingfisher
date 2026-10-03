@@ -165,7 +165,10 @@ test('a theme shows its definition, and a comment is found inside the game', asy
   await expect(rowsNamed(page, 'Endgame, Grinder')).toBeVisible();
 
   await page.locator('[data-library-filters]').getByLabel('Theme').selectOption('');
-  await page.locator('[data-library-filters]').getByLabel('Comment').fill('spanish');
+  await page
+    .locator('[data-library-filters]')
+    .getByLabel('Comment', { exact: true })
+    .fill('spanish');
   await page.getByRole('button', { name: 'Search the moves' }).click();
   await expect(page.locator('[data-found-at]')).toHaveText(['after White’s move 3']);
 });

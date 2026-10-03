@@ -407,9 +407,15 @@ test.describe('major workflows without a mouse', () => {
       "Press Tab to highlight each item"; Option-Tab is how its keyboard users
       reach buttons and links, and WebKit here behaves as Safari does.
     */
+    await expect(page.getByRole('button', { name: /^My games/ })).toBeVisible();
     const next = browserName === 'webkit' ? 'Alt+Tab' : 'Tab';
+    // Allow one pass through the page's controls. Adding a toolbar action
+    // must not fail reachability just because it shifts the collection a tab.
+    const tabBudget = await page
+      .locator('a[href], button, input, select, textarea, [tabindex]')
+      .count();
     let reached = false;
-    for (let index = 0; index < 40 && !reached; index += 1) {
+    for (let index = 0; index < tabBudget && !reached; index += 1) {
       await page.keyboard.press(next);
       reached = await page.evaluate(() => {
         const active = document.activeElement;

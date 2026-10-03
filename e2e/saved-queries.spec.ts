@@ -62,7 +62,7 @@ test('a saved query keeps the move filter, reruns with what is new, and fills th
   await page.getByRole('button', { name: 'Filters' }).click();
   const filters = page.locator('[data-library-filters]');
   await filters.getByLabel('Min Elo').fill('2400');
-  await filters.getByLabel('Comment').fill('sharp');
+  await filters.getByLabel('Comment', { exact: true }).fill('sharp');
   page.once('dialog', (dialog) => dialog.accept('Sharp and strong'));
   await filters.getByRole('button', { name: 'Save query' }).click();
   await expect(page.getByText('Saved query “Sharp and strong”.')).toBeVisible();
@@ -87,11 +87,11 @@ test('a saved query keeps the move filter, reruns with what is new, and fills th
   await page.locator(READY).waitFor();
   await page.getByRole('button', { name: 'Filters' }).click();
   await filters.getByLabel('Min Elo').fill('');
-  await filters.getByLabel('Comment').fill('');
+  await filters.getByLabel('Comment', { exact: true }).fill('');
   await expect(saved.locator('[data-saved-query-result]')).toContainText('3 of 4 games');
 
   // And it goes back into the mask, both halves.
   await saved.getByRole('button', { name: 'Use as filters' }).click();
   await expect(filters.getByLabel('Min Elo')).toHaveValue('2400');
-  await expect(filters.getByLabel('Comment')).toHaveValue('sharp');
+  await expect(filters.getByLabel('Comment', { exact: true })).toHaveValue('sharp');
 });
