@@ -418,8 +418,13 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
             Play the solution
           </Button>
         ) : null}
+        {/*
+          The accent belongs to "Next puzzle", the way on once a puzzle is
+          over. While solving, the same button is Skip, and the loudest control
+          on an unsolved puzzle was the one that gives it up.
+        */}
         <Button
-          variant="accent"
+          {...(phase === 'solving' ? {} : { variant: 'accent' as const })}
           onClick={() => void next()}
           disabled={phase === 'loading'}
           data-puzzle-next
