@@ -21,7 +21,7 @@
  */
 
 import { WorkspaceTabStrip } from '@/features/tabs/WorkspaceTabStrip';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Fragment } from 'react';
 import { LEGENDS_BY_KEY, legendYears } from '@/reference/legends';
 import { loadTitledRoster } from '@/reference/titled-players';
@@ -60,6 +60,9 @@ import {
 } from './usePlayer';
 
 import { TITLEBAR_BAND_MIN_CLASS } from '@/features/workspace/breakpoints';
+import { ratingHistory } from '@/player/rating-history';
+
+import { RatingHistory } from './RatingHistory';
 
 type Section =
   'overview' | 'openings' | 'opponents' | 'tendencies' | 'games' | 'reference' | 'identity';
@@ -87,6 +90,12 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
   const tendencies = usePlayerTendencies(identity.data, data.data?.games);
   const resolved = resolvePeriod(period);
   const aggregate = data.data?.aggregate;
+  const playerGames = data.data?.games;
+  const playerKeys = identity.data?.keys;
+  const history = useMemo(
+    () => (playerGames && playerKeys ? ratingHistory(playerGames, playerKeys) : null),
+    [playerGames, playerKeys],
+  );
 
   /*
     The name to use for everything, resolved once.
@@ -316,6 +325,7 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
                 }
               />
             ) : null}
+            {section === 'overview' && history ? <RatingHistory history={history} /> : null}
 
             {section === 'openings' ? (
               <div className="space-y-6">
