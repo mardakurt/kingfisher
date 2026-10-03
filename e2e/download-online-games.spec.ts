@@ -74,6 +74,7 @@ test('downloads the newest public games of a Chess.com user into My games', asyn
   // The newest three were the Chess960 game, opponent4 and opponent3; opponent1 and 2 were cut.
   const rows = page.locator('main table tbody tr');
   await expect(rows).toHaveCount(2);
-  await expect(rows.filter({ hasText: 'opponent4' })).toHaveCount(1);
-  await expect(rows.filter({ hasText: 'opponent3' })).toHaveCount(1);
+  // Newest at the top of the list the download opens, as the dialog says it keeps them.
+  await expect(rows.nth(0)).toContainText('opponent4');
+  await expect(rows.nth(1)).toContainText('opponent3');
 });

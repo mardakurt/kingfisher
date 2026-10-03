@@ -19,7 +19,7 @@ import { getRepositories } from '@/persistence/repositories';
 import { describeError } from '@/lib/describe-error';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
-import { downloadOnlineGames, type OnlineSite } from '@/sync/download';
+import { downloadOnlineGames, splitGames, type OnlineSite } from '@/sync/download';
 
 const PERIODS = [
   { id: '1', label: '1 month', months: 1 },
@@ -76,7 +76,15 @@ export function DownloadGamesDialog({ onClose }: { readonly onClose: () => void 
       }
       setStatus('Importing…');
       const repositories = await getRepositories();
-      const summary = await importGames(pgn, repositories.games, { signal: abort.signal });
+      /*
+        The download is newest first, and My games lists the most recently
+        imported first: imported in that order, the newest game ended up at
+        the bottom of the list it opens. Oldest first, it is at the top.
+      */
+      const chronological = splitGames(pgn).reverse().join('\n\n');
+      const summary = await importGames(chronological, repositories.games, {
+        signal: abort.signal,
+      });
       await queryClient.invalidateQueries({ queryKey: ['games'] });
       await queryClient.invalidateQueries({ queryKey: ['collection-index'] });
       notify({
