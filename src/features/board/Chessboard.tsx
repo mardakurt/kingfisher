@@ -105,6 +105,7 @@ export function Chessboard({
   animationMs = 130,
   emphasis = [],
   engineArrows = [],
+  referenceArrows,
   className,
 }: ChessboardProps) {
   const outsideCoordinates = coordinates === 'outside';
@@ -644,6 +645,7 @@ export function Chessboard({
         <BoardShapes
           shapes={shapes}
           engineArrows={engineArrows}
+          {...(referenceArrows ? { referenceArrows } : {})}
           movingPiece={activeSelection !== null || drag !== null}
           draft={
             shapeDraft

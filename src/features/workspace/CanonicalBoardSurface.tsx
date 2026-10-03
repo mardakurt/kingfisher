@@ -10,6 +10,8 @@ import type { MoveIntent, Square } from '@/chess/types';
 import { Chessboard } from '@/features/board/Chessboard';
 import { boardFrameVariables, boardTheme } from '@/features/board/themes';
 import { useEngineArrows } from '@/features/board/engine-arrows';
+import { computeReferenceArrows, type ReferenceArrow } from '@/features/board/reference-arrows';
+import { useReferenceArrows } from '@/stores/reference-arrows-store';
 import { BoardControls } from '@/features/analysis/BoardControls';
 import { EvaluationBar } from '@/features/analysis/EvaluationBar';
 import { EvaluationGraph } from '@/features/analysis/EvaluationGraph';
@@ -79,6 +81,19 @@ export function CanonicalBoardSurface({
   const engineRunning = useEngine((state) => state.primary.running);
   const engineName = useEngine((state) => state.primary.identity?.name ?? null);
   const engineArrows = useEngineArrows(node.fen);
+  const reference = useReferenceArrows();
+  const showReferenceArrows = usePreferences((state) => state.explorerBoardArrows);
+  const referenceArrows = useMemo(
+    () =>
+      computeReferenceArrows({
+        fen: reference.fen,
+        boardFen: node.fen,
+        moves: reference.moves,
+        hovered: reference.hovered,
+        show: showReferenceArrows,
+      }),
+    [reference.fen, reference.moves, reference.hovered, node.fen, showReferenceArrows],
+  );
   const boardEmphasis = useUi((state) => state.boardEmphasis);
   const emphasis = useMemo(
     () =>
@@ -343,6 +358,7 @@ export function CanonicalBoardSurface({
                   promotionColor={position.turn}
                   shapes={shapes}
                   engineArrows={caps.showEvaluation ? engineArrows : EMPTY_ARROWS}
+                  referenceArrows={caps.showEvaluation ? referenceArrows : EMPTY_REFERENCE}
                   emphasis={emphasis}
                   onShapeToggle={caps.allowAnnotations ? onShapeToggle : undefined}
                   onShapesClear={caps.allowAnnotations ? () => clearShapes(currentId) : undefined}
@@ -415,4 +431,5 @@ const sameScore = (a: Score, b: Score): boolean =>
 const EMPTY = new Map<never, never>() as never;
 const EMPTY_SHAPES: readonly Shape[] = [];
 const EMPTY_ARROWS: readonly EngineArrow[] = [];
+const EMPTY_REFERENCE: readonly ReferenceArrow[] = [];
 const EMPTY_SQUARES: readonly Square[] = [];

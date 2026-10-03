@@ -10,6 +10,7 @@
 
 import type { Shape } from '@/chess/annotations';
 import type { EngineArrow } from '@/features/board/engine-arrows';
+import type { ReferenceArrow } from '@/features/board/reference-arrows';
 import type { ChessMove, Color, Fen, MoveIntent, PromotionPiece, Square } from '@/chess/types';
 import type { BoardThemeId, CoordinateStyle, PieceSetId } from '@/lib/board-options';
 
@@ -49,6 +50,8 @@ export interface ChessboardProps {
    * mistaken for one of the four PGN brush colours.
    */
   readonly engineArrows?: readonly EngineArrow[];
+  /** The Explorer's moves, drawn under the engine's (`reference-arrows.ts`). */
+  readonly referenceArrows?: readonly ReferenceArrow[];
   readonly className?: string;
 }
 

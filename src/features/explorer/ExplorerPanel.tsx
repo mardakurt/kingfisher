@@ -15,7 +15,7 @@
  * whether it is masters, the user's own archive, or one opponent's games.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 
 import { formatScore } from '@/chess/evaluation';
@@ -28,13 +28,14 @@ import { Segmented } from '@/components/ui/Tabs';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
 import { useChessWorkspace } from '@/features/workspace/ChessWorkspaceContext';
 import { useRepertoiresAtPosition } from '@/features/persistence/queries';
-import { Database, Filter, Plus, Target } from '@/components/icons';
+import { ArrowUp, Database, Filter, Plus, Target } from '@/components/icons';
 import { cn } from '@/lib/cn';
 import { describeError } from '@/lib/describe-error';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useEngine } from '@/stores/engine-store';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
+import { useReferenceArrows } from '@/stores/reference-arrows-store';
 
 import { buildMoveEvidence, summariseEvidence, trendOf, type MoveEvidence } from './evidence';
 import { BUNDLED_PACK_ID } from '@/reference/catalog';
@@ -170,6 +171,35 @@ export function ExplorerPanel() {
     window.years > 0 ? recentFilters : filters,
   );
   useExplorerPrefetch(provider?.id ?? '', node.fen, filters, query.data?.moves);
+  /*
+    What the board may draw as reference arrows: this answer's moves, about
+    the position the answer is about (the board compares it with its own).
+    Withdrawn when the panel goes, so arrows never outlive the table.
+  */
+  const answer = query.data;
+  useEffect(() => {
+    const publish = useReferenceArrows.getState().publish;
+    if (!answer || answer.totalGames === 0) {
+      publish(null, null, []);
+      return;
+    }
+    publish(
+      answer.fen,
+      answer.source.id,
+      answer.moves.map((move) => ({
+        uci: move.uci,
+        san: move.san,
+        share: move.games / answer.totalGames,
+      })),
+    );
+  }, [answer]);
+  useEffect(
+    () => () => {
+      useReferenceArrows.getState().publish(null, null, []);
+      useReferenceArrows.getState().hover(null);
+    },
+    [],
+  );
   const repertoireHere = useRepertoiresAtPosition(positionKey(node.fen));
   const context = usePositionContext(node.fen);
   /*
@@ -334,6 +364,18 @@ export function ExplorerPanel() {
               }}
             >
               <Database />
+            </IconButton>
+            <IconButton
+              label={
+                prefs.explorerBoardArrows
+                  ? 'Hide the most played moves on the board'
+                  : 'Show the most played moves on the board'
+              }
+              active={prefs.explorerBoardArrows}
+              onClick={() => prefs.set('explorerBoardArrows', !prefs.explorerBoardArrows)}
+              data-explorer-board-arrows
+            >
+              <ArrowUp />
             </IconButton>
             <IconButton
               label="Explorer filters"
@@ -897,7 +939,13 @@ function Row({
   const trendClass =
     trend === 'rising' ? 'text-positive' : trend === 'falling' ? 'text-negative' : 'text-secondary';
   return (
-    <tr className={cn(selected && 'bg-accent-muted')}>
+    <tr
+      className={cn(selected && 'bg-accent-muted')}
+      // The move under the pointer is previewed on the board, as an arrow.
+      onMouseEnter={() => useReferenceArrows.getState().hover(entry.uci)}
+      onMouseLeave={() => useReferenceArrows.getState().hover(null)}
+      data-explorer-row={entry.san}
+    >
       <td className="px-1.5 py-1.5">
         <input
           type="checkbox"

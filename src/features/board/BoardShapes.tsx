@@ -19,6 +19,7 @@ import { useId, useMemo, useRef } from 'react';
 import type { Color } from '@/chess/types';
 
 import { ENGINE_ARROW_STYLES, type EngineArrow, type EngineArrowIdentity } from './engine-arrows';
+import type { ReferenceArrow } from './reference-arrows';
 import { squareOffset } from './layout';
 
 /**
@@ -37,6 +38,8 @@ const BRUSH_COLOR = {
 interface BoardShapesProps {
   readonly shapes: readonly Shape[];
   readonly engineArrows?: readonly EngineArrow[];
+  /** The Explorer's moves: a muted layer under the engine's. */
+  readonly referenceArrows?: readonly ReferenceArrow[];
   readonly draft?: Shape | null;
   readonly orientation: Color;
   /**
@@ -142,7 +145,9 @@ const variationOpacity = (rank: number): number =>
   rank <= 1 ? ENGINE_ARROW.opacity : Math.max(0.22, ENGINE_ARROW.opacity * 0.62 ** (rank - 1));
 
 /** The shaft and head of an arrow as one outline, in board units. */
-function arrowGeometry(arrow: ResolvedArrow) {
+function arrowGeometry(
+  arrow: Pick<ResolvedArrow, 'fromX' | 'fromY' | 'toX' | 'toY'> & { readonly shaft?: number },
+) {
   const dx = arrow.toX - arrow.fromX;
   const dy = arrow.toY - arrow.fromY;
   const length = Math.hypot(dx, dy);
@@ -152,7 +157,10 @@ function arrowGeometry(arrow: ResolvedArrow) {
   // Perpendicular unit, for the width.
   const nx = -uy;
   const ny = ux;
-  const { shaft, headLength, headHalfWidth, startInset, endInset } = ENGINE_ARROW;
+  const { headLength, startInset, endInset } = ENGINE_ARROW;
+  const shaft = arrow.shaft ?? ENGINE_ARROW.shaft;
+  // A wide reference arrow keeps a head wider than its shaft.
+  const headHalfWidth = Math.max(ENGINE_ARROW.headHalfWidth, shaft * 0.9);
   const startX = arrow.fromX + ux * startInset;
   const startY = arrow.fromY + uy * startInset;
   const tipX = arrow.toX - ux * endInset;
@@ -190,6 +198,7 @@ function arrowGeometry(arrow: ResolvedArrow) {
 export function BoardShapes({
   shapes,
   engineArrows = [],
+  referenceArrows = [],
   draft,
   orientation,
   movingPiece = false,
@@ -204,6 +213,46 @@ export function BoardShapes({
 
   return (
     <>
+      {referenceArrows.length > 0 ? (
+        <svg
+          viewBox="0 0 8 8"
+          data-reference-arrows
+          data-reference-arrow-count={referenceArrows.length}
+          opacity={movingPiece ? 0.3 : 1}
+          className="pointer-events-none absolute inset-0 h-full w-full transition-opacity duration-150"
+          aria-hidden
+        >
+          {referenceArrows.map((arrow) => {
+            const from = centre(arrow.from, orientation);
+            const to = centre(arrow.to, orientation);
+            const geometry = arrowGeometry({
+              fromX: from.cx,
+              fromY: from.cy,
+              toX: to.cx,
+              toY: to.cy,
+              shaft: arrow.width,
+            });
+            if (!geometry) return null;
+            return (
+              <g
+                key={`${arrow.from}${arrow.to}`}
+                data-reference-arrow={arrow.san}
+                data-reference-arrow-hovered={arrow.hovered ? 'true' : undefined}
+                opacity={arrow.hovered ? 0.95 : 0.6}
+              >
+                {/* Never the accent: blue is the engine's colour on this board. */}
+                <polygon
+                  points={geometry.outline}
+                  fill="var(--reference-arrow, #6b8f71)"
+                  stroke={arrow.hovered ? 'rgb(255 255 255 / 0.9)' : 'rgb(255 255 255 / 0.35)'}
+                  strokeWidth={arrow.hovered ? 0.05 : 0.03}
+                  strokeLinejoin="round"
+                />
+              </g>
+            );
+          })}
+        </svg>
+      ) : null}
       {resolvedEngine.length > 0 ? (
         <svg
           viewBox="0 0 8 8"

@@ -97,6 +97,8 @@ export interface Preferences {
   reportCollectionId: string | null;
   explorerMinRating: number | null;
   explorerSinceYear: number | null;
+  /** Draw the Explorer's most played moves on the board as arrows (ChessBase's reference arrows). */
+  explorerBoardArrows: boolean;
   /**
    * Which half of the Openings route was last used.
    *
@@ -220,6 +222,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   reportCollectionId: null,
   explorerMinRating: null,
   explorerSinceYear: null,
+  explorerBoardArrows: false,
   boardPriority: DEFAULT_BOARD_PRIORITY,
   hiddenEngineIds: [],
   openingsMode: 'library',

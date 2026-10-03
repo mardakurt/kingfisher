@@ -1,7 +1,7 @@
 /**
  * What every user-visible setting is supposed to do, and who does it.
  *
- * Kingfisher has forty preferences across twenty-two consumer modules,
+ * Kingfisher has forty-two preferences across twenty consumer modules,
  * which is more than anybody can hold in their head — and Phase 17 opened with a
  * reported bug where a setting persisted correctly, had two runtime consumers,
  * and still changed nothing a user could see. "It is wired up" turned out not
@@ -367,6 +367,18 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     effect: 'Games below the floor leave the counts, where the source supports the filter.',
     indexedAs: null,
     previewable: true,
+  },
+  {
+    key: 'explorerBoardArrows',
+    label: 'Explorer moves on the board',
+    surface: 'in-place',
+    control: 'features/explorer/ExplorerPanel.tsx',
+    consumer: 'features/workspace/CanonicalBoardSurface.tsx',
+    effect:
+      "The source's most played moves at the position (5% of its games or more, at most four) are drawn on the board as muted arrows, wider for the more played.",
+    indexedAs: null,
+    previewable: true,
+    verifiedBy: 'e2e/explorer-board-arrows.spec.ts',
   },
   {
     key: 'explorerSinceYear',
