@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
@@ -12,7 +12,7 @@ const PIXEL = Buffer.from(
   'base64',
 );
 
-async function stubWikimedia(page: import('@playwright/test').Page, licence: string | null) {
+async function stubWikimedia(page: Page, licence: string | null) {
   await page.route('https://www.wikidata.org/wiki/Special:EntityData/Q106807.json', (route) =>
     route.fulfill({
       json: {
@@ -49,7 +49,7 @@ async function stubWikimedia(page: import('@playwright/test').Page, licence: str
   );
 }
 
-async function prepareAgainstCarlsen(page: import('@playwright/test').Page) {
+async function prepareAgainstCarlsen(page: Page) {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/preparation');
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();

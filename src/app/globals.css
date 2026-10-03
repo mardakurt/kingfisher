@@ -204,6 +204,8 @@
    */
   --engine-a-color: #4f8df0;
   --engine-b-color: #e08a3a;
+  /* The Explorer's most played moves: muted, never the engine's blue. */
+  --reference-arrow: #6b8f71;
 
   --board-target: rgb(0 0 0 / 0.26);
   --board-check-core: rgb(207 111 104 / 0.92);
@@ -279,6 +281,7 @@
 
   --engine-a-color: #3a6cad;
   --engine-b-color: #b86a1c;
+  --reference-arrow: #5c7f62;
 
   --board-target: rgb(20 22 26 / 0.25);
   --board-check-core: rgb(168 68 60 / 0.9);

@@ -243,7 +243,7 @@ export function BoardShapes({
                 {/* Never the accent: blue is the engine's colour on this board. */}
                 <polygon
                   points={geometry.outline}
-                  fill="var(--reference-arrow, #6b8f71)"
+                  fill="var(--reference-arrow)"
                   stroke={arrow.hovered ? 'rgb(255 255 255 / 0.9)' : 'rgb(255 255 255 / 0.35)'}
                   strokeWidth={arrow.hovered ? 0.05 : 0.03}
                   strokeLinejoin="round"

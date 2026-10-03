@@ -37,10 +37,10 @@ import { plural } from '@/lib/plural';
 const CHILD_LIMIT = 8;
 
 const SERIES_COLOURS = [
-  'var(--color-shape-green)',
-  'var(--color-shape-blue)',
-  'var(--color-shape-yellow)',
-  'var(--color-shape-red)',
+  'var(--shape-green)',
+  'var(--shape-blue)',
+  'var(--shape-yellow)',
+  'var(--shape-red)',
 ];
 
 export function RatingClassesSection({
@@ -294,6 +294,23 @@ function FashionChart({ fashion }: { readonly fashion: Fashion }) {
   const x = (year: number) =>
     PAD.left + ((year - first) / Math.max(1, last - first)) * (W - PAD.left - PAD.right);
   const y = (share: number) => PAD.top + (1 - share / 100) * (H - PAD.top - PAD.bottom);
+  /*
+    End labels, spread so two moves ending at a similar share do not print
+    over each other: top to bottom, each at least one line below the last.
+  */
+  const labelYs = new Map<string, number>();
+  let previous = Number.NEGATIVE_INFINITY;
+  for (const line of [...series].sort(
+    (a, b) => (b.points.at(-1)?.share ?? 0) - (a.points.at(-1)?.share ?? 0),
+  )) {
+    const wanted = y(line.points.at(-1)?.share ?? 0) + 3;
+    const placed = Math.max(wanted, previous + 9);
+    labelYs.set(line.uci, placed);
+    previous = placed;
+  }
+  // Pushed past the axis: lift them all, keeping the spacing.
+  const overflow = previous - (H - PAD.bottom + 2);
+  if (overflow > 0) for (const [uci, value] of labelYs) labelYs.set(uci, value - overflow);
   const description = series
     .map(
       (line) =>
@@ -313,14 +330,14 @@ function FashionChart({ fashion }: { readonly fashion: Fashion }) {
               x2={W - PAD.right}
               y1={y(tick)}
               y2={y(tick)}
-              stroke="var(--color-line-subtle)"
+              stroke="var(--border-subtle)"
             />
             <text
               x={PAD.left - 4}
               y={y(tick) + 3}
               textAnchor="end"
               fontSize="8"
-              fill="var(--color-tertiary)"
+              fill="var(--text-tertiary)"
             >
               {tick}%
             </text>
@@ -333,13 +350,14 @@ function FashionChart({ fashion }: { readonly fashion: Fashion }) {
             y={H - 4}
             textAnchor="middle"
             fontSize="8"
-            fill="var(--color-tertiary)"
+            fill="var(--text-tertiary)"
           >
             {year}
           </text>
         ))}
         {series.map((line, index) => {
           const colour = SERIES_COLOURS[index % SERIES_COLOURS.length];
+          const labelY = labelYs.get(line.uci) ?? 0;
           const end = line.points.at(-1);
           return (
             <g key={line.uci}>
@@ -355,7 +373,7 @@ function FashionChart({ fashion }: { readonly fashion: Fashion }) {
                 </circle>
               ))}
               {end ? (
-                <text x={x(end.year) + 5} y={y(end.share) + 3} fontSize="8.5" fill={colour}>
+                <text x={x(end.year) + 5} y={labelY} fontSize="8.5" fill={colour}>
                   {line.san} {Math.round(end.share)}%
                 </text>
               ) : null}
