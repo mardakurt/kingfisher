@@ -10,6 +10,12 @@ been published or certified during this audit.
 
 # Platform parity — the web application and the macOS application
 
+**Published revision check (2026-10-03, 1.4.2).** The public Mac download is
+1.4.2 build 1039 from `bf6a8abe0f09ce074b16de1d71ceeb4a0fe6bb30`, stable and
+clean at packaging, application and DMG each notarised and stapled. It is the
+same source the web serves: puzzles, tournament tables, threats and safety,
+diagram export, engine matches, rating history and Guess the Move on any game.
+
 **Published revision check (2026-10-03, 1.4.1).** The public Mac download is
 1.4.1 build 1025 from `f6f705297e6df29b5af4597ace70ea802e299349`, stable,
 Developer ID signed, with the application and the DMG each notarised and
