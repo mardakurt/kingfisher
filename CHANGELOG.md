@@ -4,6 +4,21 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## 1.4.4 — 2026-10-03
+
+- **Annotation bar** under the notation: move glyphs, position judgements,
+  comment and delete, for the move on the board.
+- **Opponent** filter in the Library, in every kind of database and in saved
+  queries.
+- **The reference in the Library**: search an installed reference pack by
+  player, with every other filter, preview and move search.
+- **Top games** in the Explorer name the move each played here and open at
+  this position; **Strongest players** and **Last** columns when it is wide.
+- **Folders** on the Databases page.
+- **Player photos** can be switched off in Settings.
+- Fixed: a companion database's player filter missed names typed with
+  capitals; downloaded games were listed oldest first.
+
 ## 1.4.3 — 2026-10-03
 
 - **Rating classes in the Explorer**: the moves re-read for each rating class

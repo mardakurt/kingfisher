@@ -96,7 +96,7 @@ combined figure. Elite over-the-board play and 2400+ blitz disagree, and the
 disagreement is the reason to look at both.
 
 **Every visible setting needs a real consumer, and a way to check it.**
-`src/features/shell/settings-contract.ts` names, for all forty-two
+`src/features/shell/settings-contract.ts` names, for all forty-three
 preferences, the module that writes it, the module where it becomes visible,
 and what a person would see. A setting with no runtime assertion in
 `e2e/settings.spec.ts` must carry a written reason why one is impossible.
@@ -613,6 +613,27 @@ sources (`desktop/scripts/build-dmg-background.py`,
 `desktop/scripts/build-dmg-icon.sh`) so the visual is
 reproducible from the repository, not a screenshot a designer
 remembers.
+
+## Added in 1.4.4
+
+- **A reference pack is a Library source** (`features/games/reference-library.ts`),
+  searched by player because that is the only list a pack keeps. Names
+  resolve to the pack's identity (every spelling it merged), and the Library
+  says when a pack lists only a player's newest games. Never page "all the
+  games of a pack": there is no such list, and pretending would need one.
+- **Opponent** is one rule, `matchesPlayers` in `persistence/game-match.ts`;
+  the companion's `gameWhere` and the reference search state the same rule.
+  The colour is always the player's.
+- **Names go to a companion as keys** (`playerKey`), never as typed.
+- **Folders** are `SourceSetRecord`s with `kind: 'folder'` — no new store,
+  in every backup. Search sets filter them out; the grid places tiles with
+  `features/databases/database-folders.ts`.
+- **Top games** carry the move each played at the position
+  (`reference/provider.ts` replays the pack movetext); **Strongest players**
+  (`reference/move-players.ts`) names who made a move in the strongest games
+  kept after it, and must never be presented as everyone who plays it.
+- **Player photos** obey `showPlayerPhotos`; off means the query does not
+  run. A credit link must be a Commons page; deprecated P18 is never used.
 
 ## Added in 1.4.3
 

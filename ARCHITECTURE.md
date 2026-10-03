@@ -119,6 +119,9 @@ src/
   preparation/costly-moves.ts Win chance an opponent's own moves gave up, by phase and colour
   database/collections/collection-index.ts Players and tournaments counted from duplicate keys
   sync/download.ts         One player's public Lichess or Chess.com games, newest first
+  reference/move-players.ts Who made a move in the strongest games a pack keeps after it
+  features/games/reference-library.ts A reference pack as a Library source, searched by player
+  features/databases/database-folders.ts Where database tiles go when filed in folders
   training/puzzles.ts      Puzzle replay, answer rules and the solver rating (training/glicko2.ts)
   tablebase/               Providers, priority and provenance. ADR 0031
   persistence/             Local-first storage. See ADR 0008.
