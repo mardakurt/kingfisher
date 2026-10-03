@@ -38,6 +38,15 @@ describe('the database the Library shows', () => {
       dropped: ['time control'],
     });
   });
+
+  it('sends a companion database the keys its games are stored under, not names as typed', () => {
+    expect(
+      queryForSource(
+        { player: '  Carlsen,   Magnus ', opponent: 'Nakamura, Hikaru', playerColor: 'w' },
+        librarySource('sqlite:x', 'X'),
+      ).query,
+    ).toEqual({ player: 'carlsen, magnus', opponent: 'nakamura, hikaru', playerColor: 'w' });
+  });
 });
 
 describe('reading a companion game from its indexed rows', () => {

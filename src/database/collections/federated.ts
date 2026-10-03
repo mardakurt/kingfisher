@@ -57,6 +57,7 @@ export const FILTER_SUPPORT: Readonly<Record<string, readonly GameCollectionRef[
   text: ['indexeddb', 'sqlite'],
   player: ['indexeddb', 'sqlite'],
   playerColor: ['indexeddb', 'sqlite'],
+  opponent: ['indexeddb', 'sqlite'],
   result: ['indexeddb', 'sqlite'],
   fromYear: ['indexeddb', 'sqlite'],
   toYear: ['indexeddb', 'sqlite'],

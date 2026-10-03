@@ -25,6 +25,7 @@ import { companionClient } from '@/companion/session';
 import { getRepositories } from '@/persistence/repositories';
 import type { GameSearchQuery, GameSearchResult, GameSummary } from '@/persistence/types';
 import { gameTitle } from '@/persistence/describe';
+import { playerKey } from '@/persistence/schema/migrations';
 import { useAnalysis } from '@/stores/analysis-store';
 
 import { needsTree, type DeepQuery } from '@/search/game-scan';
@@ -69,7 +70,11 @@ export function queryForSource(
   for (const [field, value] of Object.entries(query)) {
     const name = COMPANION_UNSUPPORTED[field];
     if (name) dropped.push(name);
-    else kept[field] = value;
+    // The companion compares whole names with the keys games were stored under
+    // (playerKey); a name as typed, "Carlsen, Magnus", matched nothing there.
+    else if ((field === 'player' || field === 'opponent') && typeof value === 'string') {
+      if (playerKey(value)) kept[field] = playerKey(value);
+    } else kept[field] = value;
   }
   return { query: kept as GameSearchQuery, dropped };
 }

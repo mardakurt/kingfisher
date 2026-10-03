@@ -165,6 +165,16 @@ function PredicateFields({
             <option value="w">as White</option>
             <option value="b">as Black</option>
           </select>
+          {text(
+            'Opponent name',
+            node.opponent ?? '',
+            (opponent) => {
+              const { opponent: _drop, ...rest } = node;
+              void _drop;
+              onChange(opponent ? { ...rest, opponent } : rest);
+            },
+            'against (optional)',
+          )}
         </>
       );
     case 'text':

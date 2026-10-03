@@ -43,7 +43,7 @@ function conjuncts(node: QueryNode): QueryNode[] {
 /** The pushdown fields a predicate occupies. */
 const FIELDS: Partial<Record<QueryPredicate['type'], readonly (keyof Pushdown)[]>> = {
   text: ['text'],
-  player: ['player', 'playerColor'],
+  player: ['player', 'playerColor', 'opponent'],
   result: ['result'],
   year: ['fromYear', 'toYear'],
   date: ['fromDate', 'toDate'],

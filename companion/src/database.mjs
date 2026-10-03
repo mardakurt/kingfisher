@@ -2809,6 +2809,7 @@ const GAME_QUERY_FIELDS = new Set([
   'text',
   'player',
   'playerColor',
+  'opponent',
   'result',
   'fromYear',
   'toYear',
@@ -2851,17 +2852,30 @@ function gameWhere(query, options = {}) {
   if (refused.length) throw new UnsupportedQueryError(refused);
   const where = [];
   const params = [];
-  if (query.player) {
-    if (query.playerColor === 'w') {
-      where.push('white_key = ?');
-      params.push(query.player);
-    } else if (query.playerColor === 'b') {
-      where.push('black_key = ?');
-      params.push(query.player);
-    } else {
-      where.push('(white_key = ? OR black_key = ?)');
-      params.push(query.player, query.player);
+  if (query.player || query.opponent) {
+    /*
+      The player on one side and, when named, the opponent on the other;
+      playerColor is the player's side. The same rule as the browser's
+      matchesPlayers (src/persistence/game-match.ts).
+    */
+    const sides = [];
+    for (const [mine, theirs, colour] of [
+      ['white_key', 'black_key', 'w'],
+      ['black_key', 'white_key', 'b'],
+    ]) {
+      if (query.playerColor && query.playerColor !== colour) continue;
+      const terms = [];
+      if (query.player) {
+        terms.push(`${mine} = ?`);
+        params.push(query.player);
+      }
+      if (query.opponent) {
+        terms.push(`${theirs} = ?`);
+        params.push(query.opponent);
+      }
+      sides.push(`(${terms.join(' AND ')})`);
     }
+    where.push(`(${sides.join(' OR ')})`);
   }
   if (query.text) {
     /*

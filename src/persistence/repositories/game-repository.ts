@@ -580,8 +580,10 @@ function planQuery(query: GameSearchQuery): QueryPlan {
     error, which is the worst kind.
   */
   const player = playerKey(query.player);
+  const opponent = playerKey(query.opponent);
   const predicates =
     (player ? 1 : 0) +
+    (opponent ? 1 : 0) +
     (query.result ? 1 : 0) +
     (query.fromYear || query.toYear ? 1 : 0) +
     (query.text?.trim() ? 1 : 0) +
@@ -607,6 +609,15 @@ function planQuery(query: GameSearchQuery): QueryPlan {
     const range = onlyKey(player);
     if (query.playerColor === 'w') return plan('whiteKey', range, 1);
     if (query.playerColor === 'b') return plan('blackKey', range, 1);
+    return plan('players', range, 1);
+  }
+
+  if (opponent) {
+    // Alone, the opponent is the one name to narrow by; `playerColor` is the
+    // player's side, so the opponent is looked up on the other.
+    const range = onlyKey(opponent);
+    if (query.playerColor === 'w') return plan('blackKey', range, 1);
+    if (query.playerColor === 'b') return plan('whiteKey', range, 1);
     return plan('players', range, 1);
   }
 

@@ -11,6 +11,7 @@
 import { parsePgn } from '@/chess/pgn';
 import type { PersistenceDatabase } from '@/persistence/indexeddb/database';
 import type { KeyRange } from '@/persistence/indexeddb/key-range';
+import { matchesPlayers } from '@/persistence/game-match';
 import { normalizeGame } from '@/persistence/prepare-game';
 import { STORE_NAMES } from '@/persistence/schema/migrations';
 import type {
@@ -231,16 +232,7 @@ export function matchesTransferQuery(game: GameSummary, query: GameSearchQuery):
       .toLowerCase();
     if (!haystack.includes(text)) return false;
   }
-  const player = query.player?.trim().toLowerCase().replace(/\s+/g, ' ');
-  if (player) {
-    const white = game.whiteKey === player;
-    const black = game.blackKey === player;
-    if (
-      query.playerColor === 'w' ? !white : query.playerColor === 'b' ? !black : !white && !black
-    ) {
-      return false;
-    }
-  }
+  if (!matchesPlayers(game.whiteKey, game.blackKey, query)) return false;
   if (query.result && game.result !== query.result) return false;
   if (query.fromYear && (!game.year || game.year < query.fromYear)) return false;
   if (query.toYear && (!game.year || game.year > query.toYear)) return false;

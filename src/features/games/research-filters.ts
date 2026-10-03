@@ -52,6 +52,7 @@ export function describeResearchFilter(filters: ResearchFilter['filters']): stri
   const parts = [
     filters.player?.trim(),
     filters.playerColor === 'w' ? 'as White' : filters.playerColor === 'b' ? 'as Black' : null,
+    filters.opponent?.trim() ? `vs ${filters.opponent.trim()}` : null,
     filters.text?.trim(),
     filters.eco?.trim(),
     filters.minRating ? `${filters.minRating}+` : null,
@@ -67,6 +68,7 @@ const signature = (filters: ResearchFilter['filters']): string => {
     filters.text ?? '',
     filters.player ?? '',
     filters.playerColor ?? '',
+    filters.opponent ?? '',
     filters.result ?? '',
     filters.minRating ?? 0,
     filters.fromYear ?? 0,

@@ -247,6 +247,13 @@ export interface GameSearchQuery {
   readonly text?: string;
   readonly player?: string;
   readonly playerColor?: 'w' | 'b';
+  /**
+   * The other player, as a whole name (ChessBase's Opponent filter). With
+   * `player`, the games between the two, `playerColor` still naming the
+   * player's side; alone, games the opponent played, on the side opposite
+   * `playerColor` when one is given.
+   */
+  readonly opponent?: string;
   readonly result?: GameResult;
   readonly fromYear?: number;
   readonly toYear?: number;

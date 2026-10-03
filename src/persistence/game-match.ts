@@ -13,6 +13,33 @@ import { classifyTimeControl } from '@/search/time-control';
 import { playerKey } from './schema/migrations';
 import type { GameSearchQuery, GameSummary } from './types';
 
+/**
+ * The player and opponent filters, on the normalized keys a game stores.
+ *
+ * Whole-name equality, never a substring: `text` searches names loosely,
+ * `player` names one person. Merging two people who share a surname is a
+ * worse failure than showing nothing for a half-typed name. `playerColor` is
+ * always the player's side, so an opponent sits on the other one.
+ */
+export function matchesPlayers(
+  whiteKey: string | undefined,
+  blackKey: string | undefined,
+  query: Pick<GameSearchQuery, 'player' | 'playerColor' | 'opponent'>,
+): boolean {
+  const player = playerKey(query.player);
+  const opponent = playerKey(query.opponent);
+  if (!player && !opponent) return true;
+  const asWhite =
+    query.playerColor !== 'b' &&
+    (!player || whiteKey === player) &&
+    (!opponent || blackKey === opponent);
+  const asBlack =
+    query.playerColor !== 'w' &&
+    (!player || blackKey === player) &&
+    (!opponent || whiteKey === opponent);
+  return asWhite || asBlack;
+}
+
 export function matchesGameSearch(game: GameSummary, query: GameSearchQuery): boolean {
   const text = query.text?.trim().toLowerCase();
   if (text) {
@@ -36,19 +63,7 @@ export function matchesGameSearch(game: GameSummary, query: GameSearchQuery): bo
       .toLowerCase();
     if (!haystack.includes(text)) return false;
   }
-  const player = playerKey(query.player);
-  if (player) {
-    // Whole-name equality, never a substring: `text` searches names loosely,
-    // `player` names one person. Merging two people who share a surname is a
-    // worse failure than showing nothing for a half-typed name.
-    const white = game.whiteKey === player;
-    const black = game.blackKey === player;
-    if (
-      query.playerColor === 'w' ? !white : query.playerColor === 'b' ? !black : !white && !black
-    ) {
-      return false;
-    }
-  }
+  if (!matchesPlayers(game.whiteKey, game.blackKey, query)) return false;
   if (query.result && game.result !== query.result) return false;
   if (query.fromYear && (!game.year || game.year < query.fromYear)) return false;
   if (query.toYear && (!game.year || game.year > query.toYear)) return false;

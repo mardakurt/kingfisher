@@ -138,6 +138,7 @@ export function GamesWorkspace() {
   const [text, setText] = useState('');
   const [sourceId, setSourceId] = useState<string>(LOCAL_SOURCE.id);
   const [player, setPlayer] = useState('');
+  const [opponent, setOpponent] = useState('');
   const [playerColor, setPlayerColor] = useState<'any' | 'w' | 'b'>('any');
   const [result, setResult] = useState<GameResult | 'any'>('any');
   const [minRating, setMinRating] = useState('');
@@ -177,6 +178,7 @@ export function GamesWorkspace() {
     const params = new URLSearchParams(window.location.search);
     const q = params.get('q');
     const who = params.get('player');
+    const against = params.get('opponent');
     const db = params.get('db');
     const pageNumber = Number(params.get('page'));
     const game = params.get('game');
@@ -186,6 +188,7 @@ export function GamesWorkspace() {
     if (q) setText(q);
     if (db) setSourceId(db);
     if (who) setPlayer(who);
+    if (against) setOpponent(against);
     /*
       Phase 87: the page and the previewed game as well. Back from a game
       opened on page 2 came to page 1, scrolled to the top, nothing selected
@@ -205,6 +208,8 @@ export function GamesWorkspace() {
       else params.delete('q');
       if (player.trim()) params.set('player', player.trim());
       else params.delete('player');
+      if (opponent.trim()) params.set('opponent', opponent.trim());
+      else params.delete('opponent');
       if (sourceId !== LOCAL_SOURCE.id) params.set('db', sourceId);
       else params.delete('db');
       const search = params.toString();
@@ -214,7 +219,7 @@ export function GamesWorkspace() {
       }
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [text, player, sourceId]);
+  }, [text, player, opponent, sourceId]);
   /*
     The page and the previewed game go into the address at once, not after
     the typing debounce: a click on a row and a double-click to open it come
@@ -253,6 +258,7 @@ export function GamesWorkspace() {
       ...(text.trim() ? { text: text.trim() } : {}),
       ...(player.trim() ? { player: player.trim() } : {}),
       ...(playerColor !== 'any' ? { playerColor } : {}),
+      ...(opponent.trim() ? { opponent: opponent.trim() } : {}),
       ...(result !== 'any' ? { result } : {}),
       ...(Number(minRating) > 0 ? { minRating: Number(minRating) } : {}),
       ...headerMaskQuery(header, minRating),
@@ -262,7 +268,19 @@ export function GamesWorkspace() {
       limit: PAGE_SIZE,
       offset: page * PAGE_SIZE,
     }),
-    [text, player, playerColor, result, minRating, header, eco, sortBy, sortDirection, page],
+    [
+      text,
+      player,
+      playerColor,
+      opponent,
+      result,
+      minRating,
+      header,
+      eco,
+      sortBy,
+      sortDirection,
+      page,
+    ],
   );
 
   const compiledMoves = useMemo(() => compileMoves(moves), [moves]);
@@ -380,7 +398,7 @@ export function GamesWorkspace() {
   };
 
   const filtersActive =
-    Boolean(player || minRating || eco) ||
+    Boolean(player || opponent || minRating || eco) ||
     playerColor !== 'any' ||
     result !== 'any' ||
     headerMaskActive(header);
@@ -404,6 +422,7 @@ export function GamesWorkspace() {
     const values = filter.filters;
     setText(values.text ?? '');
     setPlayer(values.player ?? '');
+    setOpponent(values.opponent ?? '');
     setPlayerColor(values.playerColor ?? 'any');
     setResult(values.result ?? 'any');
     setMinRating(values.minRating?.toString() ?? '');
@@ -470,6 +489,7 @@ export function GamesWorkspace() {
 
   const clearFilters = () => {
     setPlayer('');
+    setOpponent('');
     setPlayerColor('any');
     setResult('any');
     setMinRating('');
@@ -486,6 +506,16 @@ export function GamesWorkspace() {
   const chips: { id: string; name: string; value: string; remove: () => void }[] = [
     ...(player.trim()
       ? [{ id: 'player', name: 'Player', value: player.trim(), remove: () => setPlayer('') }]
+      : []),
+    ...(opponent.trim()
+      ? [
+          {
+            id: 'opponent',
+            name: 'Opponent',
+            value: opponent.trim(),
+            remove: () => setOpponent(''),
+          },
+        ]
       : []),
     ...(playerColor !== 'any'
       ? [
@@ -1111,6 +1141,11 @@ export function GamesWorkspace() {
                 setPlayerColor(value);
                 setPage(0);
               }}
+              opponent={opponent}
+              setOpponent={(value) => {
+                setOpponent(value);
+                setPage(0);
+              }}
               result={result}
               setResult={(value) => {
                 setResult(value);
@@ -1341,6 +1376,8 @@ function FilterPanel(props: {
   readonly setPlayer: (value: string) => void;
   readonly playerColor: 'any' | 'w' | 'b';
   readonly setPlayerColor: (value: 'any' | 'w' | 'b') => void;
+  readonly opponent: string;
+  readonly setOpponent: (value: string) => void;
   readonly result: GameResult | 'any';
   readonly setResult: (value: GameResult | 'any') => void;
   readonly minRating: string;
@@ -1431,6 +1468,19 @@ function FilterPanel(props: {
               </Button>
             ) : null}
           </div>
+        </PopoverSection>
+        <PopoverSection
+          icon={<Players />}
+          title="Opponent"
+          hint="The other player in the game, as a whole name. With a player, the games between them; the colour above stays the player's."
+        >
+          <input
+            aria-label="Opponent"
+            value={props.opponent}
+            onChange={(event) => props.setOpponent(event.target.value)}
+            className={cn(FIELD, 'w-full')}
+            placeholder="Nakamura, Hikaru"
+          />
         </PopoverSection>
         <PopoverSection title="Result">
           <Segmented

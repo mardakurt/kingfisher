@@ -31,8 +31,9 @@ export function headerQueryOf(
       return { text: predicate.value };
     case 'player':
       return {
-        player: predicate.name,
+        ...(predicate.name ? { player: predicate.name } : {}),
         ...(predicate.color ? { playerColor: predicate.color } : {}),
+        ...(predicate.opponent ? { opponent: predicate.opponent } : {}),
       };
     case 'result':
       return { result: predicate.value };

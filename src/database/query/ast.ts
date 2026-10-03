@@ -40,7 +40,13 @@ export type QueryPredicate =
   /** Loose text over players, event, site and opening names (as the search box). */
   | { readonly type: 'text'; readonly value: string }
   /** One player by whole name, never a substring; optionally with a colour. */
-  | { readonly type: 'player'; readonly name: string; readonly color?: Color }
+  | {
+      readonly type: 'player';
+      readonly name: string;
+      readonly color?: Color;
+      /** The other player (ChessBase's Opponent); `color` stays the player's side. */
+      readonly opponent?: string;
+    }
   | { readonly type: 'result'; readonly value: GameResult }
   | { readonly type: 'year'; readonly from?: number; readonly to?: number }
   /** `YYYY-MM-DD`, inclusive; a year-only date counts by its year. */
@@ -162,7 +168,12 @@ function validateNode(value: unknown, depth: number): string | null {
     case 'text':
       return nonEmpty(value.value) ? null : 'A text condition needs text.';
     case 'player':
-      if (!nonEmpty(value.name)) return 'A player condition needs a name.';
+      if (!nonEmpty(value.name) && !nonEmpty(value.opponent)) {
+        return 'A player condition needs a name.';
+      }
+      if (value.opponent !== undefined && typeof value.opponent !== 'string') {
+        return 'An opponent is a name.';
+      }
       return value.color === undefined || COLOURS.has(String(value.color))
         ? null
         : 'A colour is "w" or "b".';
@@ -264,11 +275,12 @@ export function queryFromFilters(
 ): GameQuery {
   const all: QueryPredicate[] = [];
   if (header.text?.trim()) all.push({ type: 'text', value: header.text.trim() });
-  if (header.player?.trim()) {
+  if (header.player?.trim() || header.opponent?.trim()) {
     all.push({
       type: 'player',
-      name: header.player.trim(),
+      name: header.player?.trim() ?? '',
       ...(header.playerColor ? { color: header.playerColor } : {}),
+      ...(header.opponent?.trim() ? { opponent: header.opponent.trim() } : {}),
     });
   }
   if (header.result) all.push({ type: 'result', value: header.result });
@@ -362,7 +374,9 @@ export function filtersFromQuery(query: GameQuery): {
       case 'player':
         ok =
           once(header, 'player', node.name) &&
-          (!node.color || once(header, 'playerColor', node.color));
+          (!node.color || once(header, 'playerColor', node.color)) &&
+          (!node.opponent || once(header, 'opponent', node.opponent));
+        if (!node.name) delete header.player;
         break;
       case 'result':
         ok = once(header, 'result', node.value);
@@ -468,8 +482,11 @@ function describePredicate(node: QueryPredicate): string {
   switch (node.type) {
     case 'text':
       return `mentions "${node.value}"`;
-    case 'player':
-      return `${node.name} played${node.color === 'w' ? ' White' : node.color === 'b' ? ' Black' : ''}`;
+    case 'player': {
+      const side = node.color === 'w' ? ' White' : node.color === 'b' ? ' Black' : '';
+      if (!node.name) return `${node.opponent} was the opponent${side ? ` of${side}` : ''}`;
+      return `${node.name} played${side}${node.opponent ? ` against ${node.opponent}` : ''}`;
+    }
     case 'result':
       return RESULT_WORDS[node.value];
     case 'year':

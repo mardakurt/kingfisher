@@ -146,10 +146,11 @@ function sqliteQuery(query: GameSearchQuery | null): Record<string, unknown> | n
   }
   const built: Record<string, unknown> = {};
   if (query.text?.trim()) built.text = query.text.trim();
-  if (query.player?.trim()) {
-    built.player = query.player.trim().toLowerCase().replace(/\s+/g, ' ');
-    if (query.playerColor) built.playerColor = query.playerColor;
+  if (query.player?.trim()) built.player = query.player.trim().toLowerCase().replace(/\s+/g, ' ');
+  if (query.opponent?.trim()) {
+    built.opponent = query.opponent.trim().toLowerCase().replace(/\s+/g, ' ');
   }
+  if ((built.player || built.opponent) && query.playerColor) built.playerColor = query.playerColor;
   if (query.result) built.result = query.result;
   if (query.fromYear) built.fromYear = query.fromYear;
   if (query.toYear) built.toYear = query.toYear;

@@ -421,3 +421,24 @@ describe('the mask’s position and annotations survive a saved query', () => {
     expect(parsed.ok).toBe(false);
   });
 });
+
+describe('the opponent survives a saved query', () => {
+  it('round-trips with the player and colour, and is described in words', () => {
+    const header = {
+      player: 'Carlsen, Magnus',
+      playerColor: 'w' as const,
+      opponent: 'Nakamura, Hikaru',
+    };
+    const saved = queryFromFilters(header);
+    expect(parseQuery(JSON.parse(JSON.stringify(saved))).ok).toBe(true);
+    expect(filtersFromQuery(saved)?.header).toEqual(header);
+    expect(describeNode(saved.where)).toBe('Carlsen, Magnus played White against Nakamura, Hikaru');
+  });
+
+  it('can stand alone, without a player', () => {
+    const saved = queryFromFilters({ opponent: 'Nakamura, Hikaru' });
+    expect(parseQuery(JSON.parse(JSON.stringify(saved))).ok).toBe(true);
+    expect(filtersFromQuery(saved)?.header).toEqual({ opponent: 'Nakamura, Hikaru' });
+    expect(describeNode(saved.where)).toBe('Nakamura, Hikaru was the opponent');
+  });
+});

@@ -289,6 +289,34 @@ describe('GameDatabase', () => {
     expect(found({ toDate: '2024-12-31' })).toEqual(['game-3']);
   });
 
+  it('finds the games between a player and an opponent, colour being the player’s', () => {
+    const game = (fingerprint, white, black, result) =>
+      entry({
+        fingerprint,
+        white,
+        black,
+        result,
+        year: 2025,
+        rating: 2700,
+        uci: 'e2e4',
+        san: 'e4',
+      });
+    database.insertGames([
+      game('a', 'Carlsen, Magnus', 'Nakamura, Hikaru', '1-0'),
+      game('b', 'Nakamura, Hikaru', 'Carlsen, Magnus', '1/2-1/2'),
+      game('c', 'Carlsen, Magnus', 'Caruana, Fabiano', '0-1'),
+      game('d', 'Caruana, Fabiano', 'Nakamura, Hikaru', '1-0'),
+    ]);
+    const count = (query) => database.search({ ...query, exactTotal: true }).total;
+    expect(count({ player: 'carlsen, magnus', opponent: 'nakamura, hikaru' })).toBe(2);
+    expect(
+      count({ player: 'carlsen, magnus', opponent: 'nakamura, hikaru', playerColor: 'w' }),
+    ).toBe(1);
+    expect(count({ opponent: 'nakamura, hikaru' })).toBe(3);
+    expect(count({ opponent: 'nakamura, hikaru', playerColor: 'w' })).toBe(2);
+    expect(count({ player: 'carlsen, magnus', playerColor: 'b' })).toBe(1);
+  });
+
   it('refuses a filter it cannot answer instead of ignoring it', () => {
     database.insertGames([
       entry({

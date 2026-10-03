@@ -75,6 +75,52 @@ describe('who a player filter means', () => {
   });
 });
 
+describe('the opponent filter', () => {
+  beforeEach(async () => {
+    await store({ White: 'Carlsen, Magnus', Black: 'Nakamura, Hikaru', Result: '1-0' });
+    await store({ White: 'Nakamura, Hikaru', Black: 'Carlsen, Magnus', Result: '1/2-1/2' });
+    await store({ White: 'Carlsen, Magnus', Black: 'Caruana, Fabiano', Result: '0-1' });
+    await store({ White: 'Caruana, Fabiano', Black: 'Nakamura, Hikaru', Result: '1-0' });
+  });
+
+  it('finds the games between a player and an opponent, on either side', async () => {
+    const both = await repositories.games.search({
+      player: 'Carlsen, Magnus',
+      opponent: 'nakamura,  hikaru',
+      exactTotal: true,
+    });
+    expect(both.total).toBe(2);
+    expect(both.games.every((g) => [g.white, g.black].includes('Nakamura, Hikaru'))).toBe(true);
+  });
+
+  it('keeps the colour the player’s, so the opponent is on the other side', async () => {
+    const white = await repositories.games.search({
+      player: 'Carlsen, Magnus',
+      opponent: 'Nakamura, Hikaru',
+      playerColor: 'w',
+      exactTotal: true,
+    });
+    expect(white.total).toBe(1);
+    expect(white.games[0]?.result).toBe('1-0');
+  });
+
+  it('alone, finds every game the opponent played, and only on the other side of a colour', async () => {
+    expect(
+      (await repositories.games.search({ opponent: 'Nakamura, Hikaru', exactTotal: true })).total,
+    ).toBe(3);
+    // The player had White, so the opponent had Black.
+    expect(
+      (
+        await repositories.games.search({
+          opponent: 'Nakamura, Hikaru',
+          playerColor: 'w',
+          exactTotal: true,
+        })
+      ).total,
+    ).toBe(2);
+  });
+});
+
 /**
  * The property a page must have: page 2 continues page 1 in the requested
  * order. An earlier version sorted only the rows it happened to be handed, so
