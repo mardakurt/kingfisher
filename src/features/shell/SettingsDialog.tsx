@@ -1652,6 +1652,7 @@ function SqliteDatabases() {
       notify({
         tone: 'success',
         message: `${plural(result.imported, 'game')} imported, ${plural(result.duplicates, 'duplicate')} skipped.`,
+        ...(result.refusedDetail ? { detail: result.refusedDetail } : {}),
       });
     } catch (error) {
       notify({

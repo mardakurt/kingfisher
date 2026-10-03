@@ -11,6 +11,9 @@ export interface PgnWorkerRun {
   readonly total: number;
   readonly issues: number;
   readonly cancelled: boolean;
+  /** Games the parser refused rather than imported; absent for a cancelled run. */
+  readonly refused?: number;
+  readonly refusedDetail?: string;
 }
 
 export interface PgnWorkerOptions<T> {
@@ -105,7 +108,14 @@ export function runPgnWorker<T extends PreparedLocalGame | PreparedSqliteGame>(
       if (message.type === 'done') {
         parsed = message.total;
         issues = message.issues;
-        succeed({ parsed, total: message.total, issues, cancelled: false });
+        succeed({
+          parsed,
+          total: message.total,
+          issues,
+          cancelled: false,
+          refused: message.refused,
+          refusedDetail: message.refusedDetail,
+        });
         return;
       }
 

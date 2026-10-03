@@ -63,5 +63,13 @@ export type PgnWorkerMessage =
       readonly issues: number;
       readonly batch: readonly PreparedLocalGame[] | readonly PreparedSqliteGame[];
     }
-  | { readonly type: 'done'; readonly total: number; readonly issues: number }
+  | {
+      readonly type: 'done';
+      readonly total: number;
+      readonly issues: number;
+      /** Games the parser refused (a variant, an unreadable [FEN]); never imported. */
+      readonly refused: number;
+      /** `describeRefusals` of them, or '' when there were none. */
+      readonly refusedDetail: string;
+    }
   | { readonly type: 'error'; readonly error: string };

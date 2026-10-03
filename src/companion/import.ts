@@ -13,7 +13,7 @@
  * the assumption the explorer's transposition handling rests on.
  */
 
-import { parsePgn } from '@/chess/pgn';
+import { describeRefusals, parsePgn } from '@/chess/pgn';
 import { serializePgn } from '@/chess/pgn';
 import { indexGame, normalizeGame, openingIndexOrNull } from '@/persistence/import-game';
 import { lineIndexForTree } from '@/search/line-index-encode';
@@ -36,6 +36,8 @@ export interface SqliteImportProgress {
    */
   readonly total: number;
   readonly cancelled?: boolean;
+  /** Games refused as not standard chess, in one sentence; see `describeRefusals`. */
+  readonly refusedDetail?: string;
 }
 
 /** Batches, because one transaction per game would spend its life in fsync. */
@@ -69,14 +71,20 @@ export async function importPgnIntoSqlite(
   });
   if (worker) {
     const result = await worker;
-    if (result.total === 0 && !result.cancelled)
-      throw new Error('No games were found in that PGN.');
+    if (result.total === 0 && !result.cancelled) {
+      throw new Error(
+        result.refusedDetail
+          ? `No standard chess games were found in that PGN. ${result.refusedDetail}`
+          : 'No games were found in that PGN.',
+      );
+    }
     return {
       parsed: result.parsed,
       imported,
       duplicates,
       total: result.total,
       cancelled: result.cancelled,
+      ...(result.refusedDetail ? { refusedDetail: result.refusedDetail } : {}),
     };
   }
 
@@ -143,5 +151,13 @@ export async function importPgnIntoSqlite(
   }
 
   await flush();
-  return { parsed: done, imported, duplicates, total, cancelled: signal?.aborted ?? false };
+  const refusedDetail = describeRefusals(parsed.refused);
+  return {
+    parsed: done,
+    imported,
+    duplicates,
+    total,
+    cancelled: signal?.aborted ?? false,
+    ...(refusedDetail ? { refusedDetail } : {}),
+  };
 }

@@ -129,10 +129,13 @@ describe('parsePgn', () => {
     expect(mainline(game.tree)).toEqual(['e4', 'Kd7']);
   });
 
-  it('falls back to the start position when the FEN tag is broken', () => {
-    const game = unwrap(parseSingleGame('[FEN "not a fen"]\n\n1. e4 *'));
-    expect(game.issues[0]?.severity).toBe('error');
-    expect(mainline(game.tree)).toEqual(['e4']);
+  it('refuses a game whose FEN tag is broken, and reads the next one', () => {
+    // Replaying "1. e4" from the standard start would be a different game.
+    const single = parseSingleGame('[FEN "not a fen"]\n\n1. e4 *');
+    expect(single.ok).toBe(false);
+    const { games, refused } = parsePgn('[FEN "not a fen"]\n\n1. e4 *\n\n[White "B"]\n\n1. d4 *');
+    expect(refused.map((refusal) => refusal.reason)).toEqual(['start-position']);
+    expect(games.map((game) => mainline(game.tree))).toEqual([['d4']]);
   });
 
   it('truncates an illegal variation and keeps the rest of the game', () => {

@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-import { createPgnParser } from '@/chess/pgn';
+import { createPgnParser, describeRefusals } from '@/chess/pgn';
 import { indexGame, normalizeGame } from '@/persistence/prepare-game';
 import { classifyTree } from '@/theory/classify-games';
 import { loadOpeningIndex, type OpeningIndex } from '@/theory/openings';
@@ -117,7 +117,13 @@ async function run(request: Extract<PgnWorkerRequest, { type: 'start' }>) {
     post({ type: 'batch', batchId: id, parsed, issues, batch });
     await acknowledged(id);
   }
-  post({ type: 'done', total: parsed, issues: issues + parser.issues.length });
+  post({
+    type: 'done',
+    total: parsed,
+    issues: issues + parser.issues.length,
+    refused: parser.refused.length,
+    refusedDetail: describeRefusals(parser.refused),
+  });
 }
 
 function acknowledged(batchId: number): Promise<void> {

@@ -30,6 +30,29 @@ export interface ParsedGame {
 export interface ParsePgnResult {
   readonly games: readonly ParsedGame[];
   readonly issues: readonly PgnIssue[];
+  /** Games read and deliberately not returned; see `PgnRefusal`. */
+  readonly refused: readonly PgnRefusal[];
+}
+
+/**
+ * A game the parser read and would not return.
+ *
+ * Kingfisher plays standard chess only, and a game it cannot play from the
+ * position it was played from has no honest tree. The parser used to build
+ * one anyway: an unreadable `[FEN]` became the standard start, and a
+ * `[Variant "Chess960"]` tag was never looked at, so a Lichess export of
+ * Chess960 games was replayed from RNBQKBNR until the first move that did not
+ * fit, stored, classified ("A00 Ware Opening") and indexed into the explorer.
+ * Refusing here is what makes every importer — the browser, the companion,
+ * the kit — refuse it too.
+ */
+export interface PgnRefusal {
+  readonly reason: 'variant' | 'start-position';
+  /** The `[Variant]` tag as written, for `variant`. */
+  readonly variant?: string;
+  readonly message: string;
+  /** "White – Black", when the tags name them. */
+  readonly game?: string;
 }
 
 /**
@@ -44,12 +67,14 @@ export interface PgnParserSession {
   readonly done: boolean;
   readonly parsedGames: number;
   readonly issues: readonly PgnIssue[];
+  readonly refused: readonly PgnRefusal[];
   next(): ParsedGame | null;
 }
 
 export function createPgnParser(source: string): PgnParserSession {
   const tokens = tokenize(source);
   const issues: PgnIssue[] = [];
+  const refused: PgnRefusal[] = [];
   let cursor = 0;
   let parsedGames = 0;
   let finalized = false;
@@ -58,7 +83,13 @@ export function createPgnParser(source: string): PgnParserSession {
     if (finalized) return;
     finalized = true;
     if (parsedGames === 0) {
-      issues.push({ severity: 'error', message: 'No games found in this PGN.' });
+      issues.push({
+        severity: 'error',
+        message:
+          refused.length > 0
+            ? `No standard chess games found in this PGN. ${describeRefusals(refused)}`
+            : 'No games found in this PGN.',
+      });
     }
   };
 
@@ -74,6 +105,9 @@ export function createPgnParser(source: string): PgnParserSession {
     get issues() {
       return issues;
     },
+    get refused() {
+      return refused;
+    },
     next() {
       while (cursor < tokens.length) {
         const before = cursor;
@@ -81,6 +115,7 @@ export function createPgnParser(source: string): PgnParserSession {
         cursor = parsed.nextIndex;
         // Defensive: never loop on a token the game parser refused to consume.
         if (cursor <= before) cursor = before + 1;
+        if (parsed.refused) refused.push(parsed.refused);
         if (parsed.game) {
           parsedGames += 1;
           return parsed.game;
@@ -100,20 +135,102 @@ export function parsePgn(source: string): ParsePgnResult {
     const game = parser.next();
     if (game) games.push(game);
   }
-  return { games, issues: parser.issues };
+  return { games, issues: parser.issues, refused: parser.refused };
 }
 
 /** Parse exactly one game, failing when the text contains none. */
 export function parseSingleGame(source: string): Result<ParsedGame> {
-  const { games } = parsePgn(source);
+  const { games, refused } = parsePgn(source);
   const first = games[0];
-  if (!first) return fail('invalid-pgn', 'No games found in this PGN.');
+  if (!first) {
+    return fail('invalid-pgn', refused[0] ? refused[0].message : 'No games found in this PGN.');
+  }
   return ok(first);
+}
+
+/**
+ * One sentence for an import summary: how many games were refused and why,
+ * grouped by variant so a file of Chess960 says "33 Chess960 games", not
+ * thirty-three lines.
+ */
+export function describeRefusals(refused: readonly PgnRefusal[]): string {
+  if (refused.length === 0) return '';
+  const groups = new Map<string, number>();
+  for (const refusal of refused) {
+    const label =
+      refusal.reason === 'variant' ? (refusal.variant ?? 'variant') : 'unreadable start position';
+    groups.set(label, (groups.get(label) ?? 0) + 1);
+  }
+  const parts = [...groups].map(([label, count]) =>
+    label === 'unreadable start position'
+      ? `${count} game${count === 1 ? '' : 's'} with an unreadable [FEN] tag`
+      : `${count} ${label} game${count === 1 ? '' : 's'}`,
+  );
+  return `${parts.join(', ')} not imported: Kingfisher plays standard chess only, from a position it can read.`;
+}
+
+/** `[Variant]` values that mean standard chess. Lichess writes "From Position" for a standard game set up from a FEN. */
+const STANDARD_VARIANTS = new Set([
+  '',
+  'standard',
+  'chess',
+  'normal',
+  'from position',
+  'fromposition',
+]);
+
+function refusalOf(headers: Record<string, string>): PgnRefusal | null {
+  const players =
+    headers.White || headers.Black
+      ? `${headers.White ?? '?'} – ${headers.Black ?? '?'}`
+      : undefined;
+  const variant = (headers.Variant ?? '').trim();
+  if (!STANDARD_VARIANTS.has(variant.toLowerCase())) {
+    return {
+      reason: 'variant',
+      variant,
+      message: `This is a ${variant} game. Kingfisher plays standard chess only, so it was not imported.`,
+      ...(players ? { game: players } : {}),
+    };
+  }
+  const declared = headers.FEN;
+  if (declared) {
+    const parsed = Position.fromFen(declared);
+    if (!parsed.ok) {
+      return {
+        reason: 'start-position',
+        message: `The game's [FEN] tag is not a position Kingfisher can play (${parsed.error.message}), so it was not imported. Replaying its moves from the standard start would invent a different game.`,
+        ...(players ? { game: players } : {}),
+      };
+    }
+  }
+  return null;
 }
 
 interface GameParse {
   readonly game: ParsedGame | null;
   readonly nextIndex: number;
+  readonly refused?: PgnRefusal;
+}
+
+/**
+ * Step over a refused game's movetext without playing it: to its result
+ * outside any variation, or to the next game's tags.
+ */
+function skipMovetext(tokens: readonly Token[], start: number): number {
+  let index = start;
+  let depth = 0;
+  let sawMovetext = false;
+  while (index < tokens.length) {
+    const token = tokens[index] as Token;
+    if (token.type === 'tag' && sawMovetext) return index;
+    index += 1;
+    if (token.type === 'variation-start') depth += 1;
+    else if (token.type === 'variation-end') depth = Math.max(0, depth - 1);
+    else if (token.type === 'result' && depth === 0) return index;
+    else if (token.type !== 'tag') sawMovetext = true;
+  }
+  return index;
 }
 
 interface Frame {
@@ -133,7 +250,10 @@ function parseOneGame(tokens: readonly Token[], start: number): GameParse {
     index += 1;
   }
 
-  const startFen = resolveStartPosition(headers, issues);
+  const refused = refusalOf(headers);
+  if (refused) return { game: null, nextIndex: skipMovetext(tokens, index), refused };
+
+  const startFen = resolveStartPosition(headers);
   let tree = createTree(startFen.fen, headers);
 
   let cursor: NodeId = tree.rootId;
@@ -371,22 +491,12 @@ function applyCommentData(
   };
 }
 
-function resolveStartPosition(
-  headers: Record<string, string>,
-  issues: PgnIssue[],
-): { fen: typeof START_FEN } {
+/** The game's start position. `refusalOf` has already refused a `[FEN]` that does not parse. */
+function resolveStartPosition(headers: Record<string, string>): { fen: typeof START_FEN } {
   const declared = headers.FEN;
   if (!declared) return { fen: START_FEN };
-
   const parsed = Position.fromFen(declared);
-  if (!parsed.ok) {
-    issues.push({
-      severity: 'error',
-      message: `The FEN tag is invalid (${parsed.error.message}); the standard start position was used.`,
-    });
-    return { fen: START_FEN };
-  }
-  return { fen: parsed.value.fen };
+  return { fen: parsed.ok ? parsed.value.fen : START_FEN };
 }
 
 const truncate = (text: string, max = 24): string =>

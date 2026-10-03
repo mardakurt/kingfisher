@@ -1,4 +1,4 @@
-import { parsePgn, type ParsedGame } from '@/chess/pgn';
+import { describeRefusals, parsePgn, type ParsedGame } from '@/chess/pgn';
 import { classifyTree } from '@/theory/classify-games';
 import { loadOpeningIndex, type OpeningIndex } from '@/theory/openings';
 
@@ -93,7 +93,13 @@ export async function importGames(
 
   if (worker) {
     const run = await worker;
-    if (run.total === 0 && !run.cancelled) throw new Error('No games were found in that PGN.');
+    if (run.total === 0 && !run.cancelled) {
+      throw new Error(
+        run.refusedDetail
+          ? `No standard chess games were found in that PGN. ${run.refusedDetail}`
+          : 'No games were found in that PGN.',
+      );
+    }
     options.onProgress?.({ stage: 'complete', completed: run.parsed, total: run.total });
     return {
       games: run.total,
@@ -102,6 +108,7 @@ export async function importGames(
       indexedPositions,
       issues: run.issues,
       cancelled: run.cancelled,
+      ...(run.refused ? { refused: run.refused, refusedDetail: run.refusedDetail ?? '' } : {}),
       ...(firstGame ? { firstGame } : {}),
     };
   }
@@ -119,7 +126,14 @@ async function importGamesOnMainThread(
 ): Promise<PersistentImportSummary> {
   const parsed = parsePgn(source);
   const total = parsed.games.length;
-  if (total === 0) throw new Error('No games were found in that PGN.');
+  const refusedDetail = describeRefusals(parsed.refused);
+  if (total === 0) {
+    throw new Error(
+      refusedDetail
+        ? `No standard chess games were found in that PGN. ${refusedDetail}`
+        : 'No games were found in that PGN.',
+    );
+  }
 
   // Same rule as the worker: classify while the tree is already in hand, and
   // import unclassified rather than not at all if the index will not load.
@@ -181,6 +195,7 @@ async function importGamesOnMainThread(
     indexedPositions,
     issues: parsed.games.reduce((sum, game) => sum + game.issues.length, 0) + parsed.issues.length,
     cancelled,
+    ...(parsed.refused.length > 0 ? { refused: parsed.refused.length, refusedDetail } : {}),
     ...(firstGame ? { firstGame } : {}),
   };
 }

@@ -115,6 +115,7 @@ function ImportForm() {
             summary.indexedPositions > 0
               ? `${summary.indexedPositions.toLocaleString()} positions indexed.`
               : null,
+            summary.refusedDetail ? summary.refusedDetail : null,
             summary.issues > 0 ? `${summary.issues} part(s) could not be read.` : null,
             summary.cancelled
               ? 'Importing the same file again will skip what is already there.'

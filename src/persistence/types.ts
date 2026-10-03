@@ -497,6 +497,14 @@ export interface PersistentImportSummary {
   /** Games or fragments the parser could not read. They were not imported. */
   readonly issues: number;
   /**
+   * Games read and refused because Kingfisher cannot play them from where
+   * they start — a Chess960 or other variant game, or an unreadable `[FEN]`.
+   * Counted apart from `issues` so a summary can say which games and why.
+   */
+  readonly refused?: number;
+  /** One sentence naming them, from `describeRefusals`. */
+  readonly refusedDetail?: string;
+  /**
    * True when the user stopped the import part-way.
    *
    * Reported rather than thrown. Batches are committed as they go, so a

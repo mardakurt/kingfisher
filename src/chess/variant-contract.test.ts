@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseFen, START_FEN } from './fen';
-import { parseSingleGame } from './pgn/parse';
-import { expect as unwrap } from './result';
+import { parseFen } from './fen';
+import { describeRefusals, parsePgn, parseSingleGame } from './pgn/parse';
 import { Position } from './position';
 
 /**
@@ -98,15 +97,58 @@ describe('the standard-chess contract', () => {
     /*
       The reachable path. A PGN carrying such a position in its FEN tag is the
       one way a user gets one without typing it — the position setup dialog has
-      always refused to build one. The importer must fall back to the standard
-      start and record why, rather than quietly analysing an illegal position.
+      always refused to build one. Until 1.4.3 the importer replayed the moves
+      from the standard start instead, which is a different game wearing this
+      one's tags; it is now refused, and says why.
     */
-    const game = unwrap(
-      parseSingleGame('[SetUp "1"]\n[FEN "4k3/8/8/8/8/8/8/R4K1R w KQ - 0 1"]\n\n1. Kf2 Ke7 *'),
+    const pgn = '[SetUp "1"]\n[FEN "4k3/8/8/8/8/8/8/R4K1R w KQ - 0 1"]\n\n1. Kf2 Ke7 *';
+    const single = parseSingleGame(pgn);
+    expect(single.ok).toBe(false);
+    if (!single.ok) expect(single.error.message).toMatch(/king on e1/);
+    const parsed = parsePgn(pgn);
+    expect(parsed.games).toHaveLength(0);
+    expect(parsed.refused.map((refusal) => refusal.reason)).toEqual(['start-position']);
+  });
+
+  it('refuses a Chess960 game from a Lichess export rather than replaying it from RNBQKBNR', () => {
+    // The tags and the first moves of a real Lichess Chess960 export
+    // (lichess.org/2vUNiLP8). Its first four moves are also legal from the
+    // standard start, which is exactly how it used to be stored as an A00.
+    const chess960 = [
+      '[Event "Chess960 Titled Arena"]',
+      '[White "DrNykterstein"]',
+      '[Black "Vladimirovich9000"]',
+      '[Result "1-0"]',
+      '[Variant "Chess960"]',
+      '[FEN "rkbnrnqb/pppppppp/8/8/8/8/PPPPPPPP/RKBNRNQB w KQkq - 0 1"]',
+      '[SetUp "1"]',
+      '',
+      '1. a4 g6 2. a5 f5 3. g4 a6 4. g5 Nc6 5. Bxc6 dxc6 1-0',
+    ].join('\n');
+    const standard =
+      '[Event "Standard"]\n[White "A"]\n[Black "B"]\n[Result "1-0"]\n[Variant "Standard"]\n\n1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7# 1-0';
+    // A standard game set up from a position: Lichess writes "From Position".
+    const fromPosition =
+      '[Event "Study"]\n[Result "*"]\n[Variant "From Position"]\n[SetUp "1"]\n[FEN "4k3/8/8/8/8/8/4P3/4K3 w - - 0 1"]\n\n1. e4 *';
+    const parsed = parsePgn([standard, chess960, fromPosition].join('\n\n'));
+    expect(parsed.games.map((game) => game.tree.headers.Event)).toEqual(['Standard', 'Study']);
+    expect(parsed.refused).toEqual([
+      expect.objectContaining({
+        reason: 'variant',
+        variant: 'Chess960',
+        game: 'DrNykterstein – Vladimirovich9000',
+      }),
+    ]);
+    expect(describeRefusals(parsed.refused)).toBe(
+      '1 Chess960 game not imported: Kingfisher plays standard chess only, from a position it can read.',
     );
-    expect(game.tree.startFen).toBe(START_FEN);
-    expect(game.issues.some((issue) => /FEN tag is invalid/.test(issue.message))).toBe(true);
-    expect(game.issues.some((issue) => /king on e1/.test(issue.message))).toBe(true);
+    // A Chess960 game whose arrangement happens to be legal for the FEN parser
+    // (no castling rights claimed) is still not standard chess.
+    const noCastling = parsePgn(
+      '[Variant "Chess960"]\n[FEN "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w - - 0 1"]\n\n1. e4 *',
+    );
+    expect(noCastling.games).toHaveLength(0);
+    expect(noCastling.issues[0]?.message).toMatch(/No standard chess games found.*1 Chess960 game/);
   });
 
   it('still plays a normal game of chess', () => {
