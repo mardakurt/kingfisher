@@ -34,11 +34,14 @@ const SECTIONS: readonly { id: Section; label: string }[] = [
 
 export function DossierPanel({
   name,
+  aliases = [],
   games,
   color,
   onOpenGames,
 }: {
   readonly name: string;
+  /** Every spelling the games carry this player under. */
+  readonly aliases?: readonly string[];
   readonly games: readonly GameRecord[];
   /** Which colour the opponent has; the user's colour is the other one. */
   readonly color: 'w' | 'b';
@@ -47,19 +50,20 @@ export function DossierPanel({
   const [section, setSection] = useState<Section>('plays');
   const recentFromYear = new Date().getFullYear() - 2;
 
+  const names = useMemo(() => [name, ...aliases], [name, aliases]);
   const dossier = useMemo(
-    () => buildDossier(name, games, { recentFromYear }),
-    [name, games, recentFromYear],
+    () => buildDossier(name, games, { recentFromYear, aliases }),
+    [name, aliases, games, recentFromYear],
   );
   const periods = useMemo(
-    () => comparePeriods(games, name, color, recentFromYear),
-    [games, name, color, recentFromYear],
+    () => comparePeriods(games, names, color, recentFromYear),
+    [games, names, color, recentFromYear],
   );
   const fingerprints = useMemo(
-    () => moveOrderFingerprints(games, name, color, recentFromYear),
-    [games, name, color, recentFromYear],
+    () => moveOrderFingerprints(games, names, color, recentFromYear),
+    [games, names, color, recentFromYear],
   );
-  const form = useMemo(() => recentForm(games, name, color, 20), [games, name, color]);
+  const form = useMemo(() => recentForm(games, names, color, 20), [games, names, color]);
 
   if (dossier.games === 0) {
     return (

@@ -29,6 +29,13 @@ import type {
   RepertoireComparison,
 } from '@/preparation';
 import { buildStyleReport, type StyleReport } from '@/preparation/style';
+import {
+  buildDossier,
+  openingFamilyOf,
+  playerKeys,
+  type DossierChoice,
+  type DossierSide,
+} from '@/preparation/dossier';
 import { cn } from '@/lib/cn';
 
 import { CostlyMovesView } from './CostlyMovesView';
@@ -82,8 +89,20 @@ const VIEWS: readonly { id: ReportView; label: string }[] = [
   { id: 'sheet', label: 'Sheet' },
 ];
 
+/** One opening family with one colour: the Games tab narrowed to it. */
+interface FamilyFilter {
+  readonly color: 'w' | 'b';
+  readonly family: string;
+}
+
 export function PreparationReport(props: PreparationReportProps) {
   const [view, setView] = useState<ReportView>('openings');
+  // Kept with the player it was chosen for, so another opponent's report
+  // never opens on this one's family.
+  const [chosenFamily, setFamilyFilter] = useState<(FamilyFilter & { player: string }) | null>(
+    null,
+  );
+  const familyFilter = chosenFamily?.player === props.name ? chosenFamily : null;
   const style = useMemo(
     () => buildStyleReport(props.games, props.aliases),
     [props.games, props.aliases],
@@ -116,8 +135,29 @@ export function PreparationReport(props: PreparationReportProps) {
         </div>
 
         <div role="tabpanel" aria-label={views.find((entry) => entry.id === view)?.label}>
-          {view === 'openings' ? <OpeningsView {...props} /> : null}
-          {view === 'games' ? <GamesView games={props.games} onOpen={props.onOpenGame} /> : null}
+          {view === 'openings' ? (
+            <>
+              <OpeningFamilies
+                name={props.name}
+                aliases={props.aliases}
+                games={props.games}
+                onOpen={(filter) => {
+                  setFamilyFilter({ ...filter, player: props.name });
+                  setView('games');
+                }}
+              />
+              <OpeningsView {...props} />
+            </>
+          ) : null}
+          {view === 'games' ? (
+            <GamesView
+              games={props.games}
+              names={[props.name, ...props.aliases]}
+              filter={familyFilter}
+              onClearFilter={() => setFamilyFilter(null)}
+              onOpen={props.onOpenGame}
+            />
+          ) : null}
           {view === 'style' ? <StyleView style={style} /> : null}
           {view === 'costly' ? (
             <CostlyMovesView
@@ -128,7 +168,12 @@ export function PreparationReport(props: PreparationReportProps) {
             />
           ) : null}
           {view === 'dossier' ? (
-            <DossierPanel name={props.name} games={props.games} color={props.opponentColor} />
+            <DossierPanel
+              name={props.name}
+              aliases={props.aliases}
+              games={props.games}
+              color={props.opponentColor}
+            />
           ) : null}
           {view === 'sheet' ? props.sheet : null}
         </div>
@@ -494,75 +539,246 @@ const GAME_PAGE = 200;
 
 function GamesView({
   games,
+  names,
+  filter,
+  onClearFilter,
   onOpen,
 }: {
   readonly games: readonly GameRecord[];
+  readonly names: readonly string[];
+  readonly filter: FamilyFilter | null;
+  readonly onClearFilter: () => void;
   readonly onOpen: (game: GameRecord) => void;
 }) {
   const [shown, setShown] = useState(GAME_PAGE);
+  const filtered = useMemo(() => {
+    if (!filter) return games;
+    const keys = playerKeys(names);
+    return games.filter(
+      (game) =>
+        keys.has(filter.color === 'w' ? game.whiteKey : game.blackKey) &&
+        openingFamilyOf(game) === filter.family,
+    );
+  }, [games, names, filter]);
   const sorted = useMemo(
     () =>
-      [...games].sort(
+      [...filtered].sort(
         (a, b) =>
           (b.date ?? String(b.year ?? '')).localeCompare(a.date ?? String(a.year ?? '')) ||
           a.id.localeCompare(b.id),
       ),
-    [games],
+    [filtered],
   );
+  const chip = filter ? (
+    <div className="mb-2 flex items-center gap-2 text-xs" data-preparation-family-filter>
+      <span className="rounded-full bg-accent-muted px-2.5 py-0.5 text-primary">
+        {filter.family} · as {filter.color === 'w' ? 'White' : 'Black'} ·{' '}
+        {filtered.length.toLocaleString()} {filtered.length === 1 ? 'game' : 'games'}
+      </span>
+      <Button size="sm" variant="subtle" onClick={onClearFilter}>
+        All games
+      </Button>
+    </div>
+  ) : null;
   if (sorted.length === 0) {
-    return <EmptyState title="No games." description="The selected set holds no games." />;
+    return (
+      <>
+        {chip}
+        <EmptyState title="No games." description="The selected set holds no games." />
+      </>
+    );
   }
   return (
-    <div className="overflow-hidden rounded-[var(--radius-panel)] border border-line-subtle">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] border-collapse text-xs" data-preparation-games>
-          <thead>
-            <tr className="border-b border-line-subtle bg-surface-2/60 text-left text-[11px] text-tertiary">
-              <th className="px-3 py-1.5 font-medium">White</th>
-              <th className="px-2 py-1.5 text-right font-medium">Elo</th>
-              <th className="px-3 py-1.5 font-medium">Black</th>
-              <th className="px-2 py-1.5 text-right font-medium">Elo</th>
-              <th className="px-2 py-1.5 font-medium">Result</th>
-              <th className="px-2 py-1.5 font-medium">ECO</th>
-              <th className="px-3 py-1.5 font-medium">Event</th>
-              <th className="px-3 py-1.5 text-right font-medium">Date</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-line-subtle">
-            {sorted.slice(0, shown).map((game) => (
-              <tr
-                key={game.id}
-                tabIndex={0}
-                onClick={() => onOpen(game)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') onOpen(game);
-                }}
-                className="cursor-pointer text-secondary hover:bg-surface-2 active:bg-surface-press/70 focus:bg-accent-muted focus:outline-none"
-              >
-                <td className="max-w-[180px] truncate px-3 py-1.5 text-primary">{game.white}</td>
-                <td className="px-2 py-1.5 text-right tabular">{game.whiteRating ?? ''}</td>
-                <td className="max-w-[180px] truncate px-3 py-1.5 text-primary">{game.black}</td>
-                <td className="px-2 py-1.5 text-right tabular">{game.blackRating ?? ''}</td>
-                <td className="px-2 py-1.5 tabular">
-                  {game.result === '1/2-1/2' ? '½' : game.result}
-                </td>
-                <td className="px-2 py-1.5 tabular">{game.eco ?? ''}</td>
-                <td className="max-w-[220px] truncate px-3 py-1.5">{game.event ?? ''}</td>
-                <td className="px-3 py-1.5 text-right tabular">{game.date ?? game.year ?? ''}</td>
+    <>
+      {chip}
+      <div className="overflow-hidden rounded-[var(--radius-panel)] border border-line-subtle">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] border-collapse text-xs" data-preparation-games>
+            <thead>
+              <tr className="border-b border-line-subtle bg-surface-2/60 text-left text-[11px] text-tertiary">
+                <th className="px-3 py-1.5 font-medium">White</th>
+                <th className="px-2 py-1.5 text-right font-medium">Elo</th>
+                <th className="px-3 py-1.5 font-medium">Black</th>
+                <th className="px-2 py-1.5 text-right font-medium">Elo</th>
+                <th className="px-2 py-1.5 font-medium">Result</th>
+                <th className="px-2 py-1.5 font-medium">ECO</th>
+                <th className="px-3 py-1.5 font-medium">Event</th>
+                <th className="px-3 py-1.5 text-right font-medium">Date</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {sorted.length > shown ? (
-        <div className="border-t border-line-subtle px-3 py-2 text-center">
-          <Button size="sm" onClick={() => setShown((count) => count + GAME_PAGE)}>
-            Show {Math.min(GAME_PAGE, sorted.length - shown)} more of{' '}
-            {sorted.length.toLocaleString()}
-          </Button>
+            </thead>
+            <tbody className="divide-y divide-line-subtle">
+              {sorted.slice(0, shown).map((game) => (
+                <tr
+                  key={game.id}
+                  tabIndex={0}
+                  onClick={() => onOpen(game)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') onOpen(game);
+                  }}
+                  className="cursor-pointer text-secondary hover:bg-surface-2 active:bg-surface-press/70 focus:bg-accent-muted focus:outline-none"
+                >
+                  <td className="max-w-[180px] truncate px-3 py-1.5 text-primary">{game.white}</td>
+                  <td className="px-2 py-1.5 text-right tabular">{game.whiteRating ?? ''}</td>
+                  <td className="max-w-[180px] truncate px-3 py-1.5 text-primary">{game.black}</td>
+                  <td className="px-2 py-1.5 text-right tabular">{game.blackRating ?? ''}</td>
+                  <td className="px-2 py-1.5 tabular">
+                    {game.result === '1/2-1/2' ? '½' : game.result}
+                  </td>
+                  <td className="px-2 py-1.5 tabular">{game.eco ?? ''}</td>
+                  <td className="max-w-[220px] truncate px-3 py-1.5">{game.event ?? ''}</td>
+                  <td className="px-3 py-1.5 text-right tabular">{game.date ?? game.year ?? ''}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      ) : null}
+        {sorted.length > shown ? (
+          <div className="border-t border-line-subtle px-3 py-2 text-center">
+            <Button size="sm" onClick={() => setShown((count) => count + GAME_PAGE)}>
+              Show {Math.min(GAME_PAGE, sorted.length - shown)} more of{' '}
+              {sorted.length.toLocaleString()}
+            </Button>
+          </div>
+        ) : null}
+      </div>
+    </>
+  );
+}
+
+// --- opening families --------------------------------------------------------
+
+/** Families shown per colour before "more", as ChessBase shows eight. */
+const FAMILIES_SHOWN = 8;
+
+/**
+ * What the player opens with, by family and colour, at a glance: ChessBase's
+ * Openings tab. Each bar is that family's games split into the player's wins,
+ * draws and losses, and the figures beside it are the games and their score.
+ * The family is the source's own `Opening` tag (or the ECO code where there is
+ * none) — `openingFamilyOf`, never a classification Kingfisher invented.
+ */
+function OpeningFamilies({
+  name,
+  aliases,
+  games,
+  onOpen,
+}: {
+  readonly name: string;
+  readonly aliases: readonly string[];
+  readonly games: readonly GameRecord[];
+  readonly onOpen: (filter: FamilyFilter) => void;
+}) {
+  const dossier = useMemo(
+    () => buildDossier(name, games, { aliases, limit: Number.MAX_SAFE_INTEGER }),
+    [name, aliases, games],
+  );
+  if (dossier.white.games + dossier.black.games === 0) return null;
+  return (
+    <section className="mb-6 grid gap-6 md:grid-cols-2" data-opening-families>
+      <FamilyColumn side={dossier.white} onOpen={onOpen} />
+      <FamilyColumn side={dossier.black} onOpen={onOpen} />
+    </section>
+  );
+}
+
+function FamilyColumn({
+  side,
+  onOpen,
+}: {
+  readonly side: DossierSide;
+  readonly onOpen: (filter: FamilyFilter) => void;
+}) {
+  const [all, setAll] = useState(false);
+  const label = side.color === 'w' ? 'As White' : 'As Black';
+  const unlabelled = side.games - side.openings.reduce((sum, choice) => sum + choice.games, 0);
+  const shown = all ? side.openings : side.openings.slice(0, FAMILIES_SHOWN);
+  return (
+    <div className="min-w-0" data-opening-families-side={side.color}>
+      <div className="mb-1.5 flex items-baseline gap-2">
+        <h3 className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+          <span
+            aria-hidden
+            className={cn(
+              'size-2.5 rounded-full border border-line-strong',
+              side.color === 'w' ? 'bg-white' : 'bg-black',
+            )}
+          />
+          {label}
+        </h3>
+        <span className="ml-auto text-[11px] text-tertiary tabular">
+          {side.games.toLocaleString()} {side.games === 1 ? 'game' : 'games'}
+          {side.games ? ` · ${side.score}%` : ''}
+        </span>
+      </div>
+      {side.openings.length === 0 ? (
+        <p className="text-[11px] text-tertiary">
+          {side.games
+            ? 'These games carry no opening name or ECO code.'
+            : `No games ${label.toLowerCase()}.`}
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-0.5">
+          {shown.map((choice) => (
+            <FamilyRow
+              key={choice.label}
+              choice={choice}
+              onOpen={() => onOpen({ color: side.color, family: choice.label })}
+            />
+          ))}
+        </ul>
+      )}
+      <div className="mt-1 flex items-center gap-3 text-[11px] text-tertiary">
+        {side.openings.length > FAMILIES_SHOWN ? (
+          <button
+            type="button"
+            onClick={() => setAll(!all)}
+            className="rounded-[var(--radius-control)] px-1 hover:text-primary"
+          >
+            {all ? 'Fewer' : `+ ${side.openings.length - FAMILIES_SHOWN} more`}
+          </button>
+        ) : null}
+        {unlabelled > 0 ? (
+          <span>
+            {unlabelled.toLocaleString()} {unlabelled === 1 ? 'game has' : 'games have'} no opening
+            name or ECO code
+          </span>
+        ) : null}
+      </div>
     </div>
+  );
+}
+
+function FamilyRow({
+  choice,
+  onOpen,
+}: {
+  readonly choice: DossierChoice;
+  readonly onOpen: () => void;
+}) {
+  const share = (part: number) => (choice.games ? (part / choice.games) * 100 : 0);
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onOpen}
+        title={`${choice.label}: ${choice.games} games, +${choice.wins} =${choice.draws} −${choice.losses} for the player — show these games`}
+        className="group grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-[var(--radius-control)] px-1.5 py-1 text-left hover:bg-surface-2"
+        data-opening-family={choice.label}
+      >
+        <span className="truncate text-xs text-primary">{choice.label}</span>
+        <span className="text-[11px] text-tertiary tabular">
+          {choice.games.toLocaleString()} · {choice.score}%
+        </span>
+        <span
+          aria-hidden
+          className="col-span-2 flex h-1.5 overflow-hidden rounded-full bg-surface-3"
+        >
+          <span className="bg-positive" style={{ width: `${share(choice.wins)}%` }} />
+          <span className="bg-line-strong" style={{ width: `${share(choice.draws)}%` }} />
+          <span className="bg-negative" style={{ width: `${share(choice.losses)}%` }} />
+        </span>
+      </button>
+    </li>
   );
 }
 

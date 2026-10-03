@@ -25,6 +25,15 @@ import type { San } from '@/chess/types';
 import type { GameRecord } from '@/persistence/types';
 import { playerKey } from '@/persistence/schema/migrations';
 
+/**
+ * The keys a player's games may carry: one name, or every spelling a source
+ * merged under them.
+ */
+export function playerKeys(name: string | readonly string[]): ReadonlySet<string> {
+  const names = typeof name === 'string' ? [name] : name;
+  return new Set(names.map(playerKey).filter(Boolean));
+}
+
 /** Half of one opponent's practice: their games with one colour. */
 export interface DossierSide {
   readonly color: 'w' | 'b';
@@ -65,6 +74,13 @@ export interface DossierOptions {
   readonly recentFromYear?: number;
   /** Cap on how many choices each list reports. */
   readonly limit?: number;
+  /**
+   * Every spelling the games carry this player under — a source that merged
+   * "Carlsen, M." and "Carlsen, Magnus" hands the report both. Matching the
+   * one name alone left the other spelling's games out of every figure while
+   * the header counted them.
+   */
+  readonly aliases?: readonly string[];
 }
 
 /**
@@ -80,15 +96,15 @@ export function buildDossier(
   games: readonly GameRecord[],
   options: DossierOptions = {},
 ): OpponentDossier {
-  const key = playerKey(name);
+  const keys = new Set([name, ...(options.aliases ?? [])].map(playerKey).filter(Boolean));
   const recentFromYear = options.recentFromYear ?? new Date().getFullYear() - 2;
   const limit = options.limit ?? 8;
 
-  const mine = games.filter((game) => game.whiteKey === key || game.blackKey === key);
+  const mine = games.filter((game) => keys.has(game.whiteKey) || keys.has(game.blackKey));
   const ratings: number[] = [];
   const years: number[] = [];
   for (const game of mine) {
-    const rating = game.whiteKey === key ? game.whiteRating : game.blackRating;
+    const rating = keys.has(game.whiteKey) ? game.whiteRating : game.blackRating;
     if (rating !== undefined) ratings.push(rating);
     if (game.year !== undefined) years.push(game.year);
   }
@@ -100,20 +116,20 @@ export function buildDossier(
       ? { ratingRange: { low: Math.min(...ratings), high: Math.max(...ratings) } }
       : {}),
     ...(years.length ? { dateRange: { from: Math.min(...years), to: Math.max(...years) } } : {}),
-    white: buildSide(mine, key, 'w', recentFromYear, limit),
-    black: buildSide(mine, key, 'b', recentFromYear, limit),
+    white: buildSide(mine, keys, 'w', recentFromYear, limit),
+    black: buildSide(mine, keys, 'b', recentFromYear, limit),
     recentFromYear,
   };
 }
 
 function buildSide(
   games: readonly GameRecord[],
-  key: string,
+  keys: ReadonlySet<string>,
   color: 'w' | 'b',
   recentFromYear: number,
   limit: number,
 ): DossierSide {
-  const side = games.filter((game) => (color === 'w' ? game.whiteKey : game.blackKey) === key);
+  const side = games.filter((game) => keys.has(color === 'w' ? game.whiteKey : game.blackKey));
   return {
     color,
     games: side.length,
@@ -205,13 +221,13 @@ export const THIN_SAMPLE = 10;
 
 export function comparePeriods(
   games: readonly GameRecord[],
-  name: string,
+  name: string | readonly string[],
   color: 'w' | 'b',
   recentFromYear: number,
   label: (game: GameRecord) => string | null = openingFamilyOf,
 ): PeriodComparisonResult {
-  const key = playerKey(name);
-  const side = games.filter((game) => (color === 'w' ? game.whiteKey : game.blackKey) === key);
+  const keys = playerKeys(name);
+  const side = games.filter((game) => keys.has(color === 'w' ? game.whiteKey : game.blackKey));
   const recent = side.filter((game) => (game.year ?? 0) >= recentFromYear);
   const historical = side.filter((game) => (game.year ?? 0) < recentFromYear);
 
@@ -377,12 +393,12 @@ export const FINGERPRINT_RULES: readonly FingerprintRule[] = [
 
 export function moveOrderFingerprints(
   games: readonly GameRecord[],
-  name: string,
+  name: string | readonly string[],
   color: 'w' | 'b',
   recentFromYear: number,
 ): readonly MoveOrderFingerprint[] {
-  const key = playerKey(name);
-  const side = games.filter((game) => (color === 'w' ? game.whiteKey : game.blackKey) === key);
+  const keys = playerKeys(name);
+  const side = games.filter((game) => keys.has(color === 'w' ? game.whiteKey : game.blackKey));
   if (side.length === 0) return [];
 
   const openings = new Map<string, readonly San[]>();
@@ -523,13 +539,13 @@ export interface RecentForm {
  */
 export function recentForm(
   games: readonly GameRecord[],
-  name: string,
+  name: string | readonly string[],
   color: 'w' | 'b',
   limit = 20,
 ): RecentForm {
-  const key = playerKey(name);
+  const keys = playerKeys(name);
   const mine = games
-    .filter((game) => (color === 'w' ? game.whiteKey : game.blackKey) === key)
+    .filter((game) => keys.has(color === 'w' ? game.whiteKey : game.blackKey))
     .sort((a, b) => {
       const yearDiff = (b.year ?? 0) - (a.year ?? 0);
       // A stable tiebreak so the order does not flicker between renders

@@ -256,3 +256,50 @@ describe('recent form', () => {
     expect(form.losses).toBe(0);
   });
 });
+
+describe('a player under more than one spelling', () => {
+  /*
+    A reference pack merges spellings into one person, and the Preparation
+    report fetches every one. The dossier matched the typed name alone, so the
+    games under the other spelling were in the header count and missing from
+    every table below it.
+  */
+  const games = [
+    game({
+      white: 'Carlsen, Magnus',
+      black: 'Other, O',
+      year: 2026,
+      moves: '1. e4 c5',
+      result: '1-0',
+    }),
+    game({ white: 'Carlsen, M.', black: 'Other, O', year: 2026, moves: '1. e4 e5', result: '1-0' }),
+    game({
+      white: 'Other, O',
+      black: 'Carlsen, M.',
+      year: 2025,
+      moves: '1. d4 Nf6',
+      result: '0-1',
+    }),
+  ];
+
+  it('counts every spelling it is given, in every view', () => {
+    const names = ['Carlsen, Magnus', 'Carlsen, M.'];
+    const dossier = buildDossier('Carlsen, Magnus', games, {
+      recentFromYear: 2025,
+      aliases: ['Carlsen, M.'],
+    });
+    expect(dossier.games).toBe(3);
+    expect(dossier.white.games).toBe(2);
+    expect(dossier.black.games).toBe(1);
+    expect(dossier.white.firstMoves).toEqual([
+      expect.objectContaining({ label: 'e4', games: 2, wins: 2 }),
+    ]);
+    expect(recentForm(games, names, 'w', 20).games).toHaveLength(2);
+    expect(comparePeriods(games, names, 'w', 2026).recentTotal).toBe(2);
+    expect(moveOrderFingerprints(games, names, 'b', 2025).length).toBeGreaterThan(0);
+  });
+
+  it('still matches one name alone, as before', () => {
+    expect(buildDossier('Carlsen, Magnus', games).games).toBe(1);
+  });
+});
