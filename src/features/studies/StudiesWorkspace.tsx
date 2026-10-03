@@ -10,7 +10,10 @@
  * board.
  */
 
-import { workspaceRestored } from '@/features/persistence/useWorkspacePersistence';
+import {
+  flushWorkspaceForNavigation,
+  workspaceRestored,
+} from '@/features/persistence/useWorkspacePersistence';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
@@ -51,7 +54,10 @@ import { useUi } from '@/stores/ui-store';
 
 import { exportStudyPgn } from './export';
 import { ChapterReferences } from './ChapterReferences';
+import { VideoLesson } from './VideoLesson';
+import { showTool } from '@/features/workspace/select-tool';
 import { plural } from '@/lib/plural';
+import { getRepositories } from '@/persistence/repositories';
 
 type Prompt =
   | { readonly kind: 'create-study' }
@@ -105,6 +111,7 @@ export function StudiesWorkspace() {
   const [chapterTags, setChapterTags] = useState<readonly string[]>([]);
   const [publishing, setPublishing] = useState(false);
   const [solving, setSolving] = useState(false);
+  const [videoLesson, setVideoLesson] = useState(false);
   /*
     Filtering the list the picker reads, not a second list beside it: a
     selected study that the filter excludes falls out of the picker, and the
@@ -269,30 +276,57 @@ export function StudiesWorkspace() {
       (e2e/study-reload.spec.ts, Phase 85). The tab switcher waits for the
       same promise for the same reason.
     */
-    void workspaceRestored().then(() => {
-      if (cancelled || loadedChapter.current === chapter.id) return;
-      loadedChapter.current = chapter.id;
-      /*
+    void workspaceRestored()
+      .then(async () => {
+        if (cancelled || loadedChapter.current === chapter.id) return;
+        /*
         The board already holds this chapter — put back by the draft restore
         after a reload, or still being edited when the page was left — and what
         it holds is newer than the stored record. Opening the record over it
         threw away the moves of the last second before a reload (Phase 84).
       */
-      const onBoard = useAnalysis.getState().document;
-      if (onBoard.kind === 'study-chapter' && onBoard.chapterId === chapter.id) {
+        const onBoard = useAnalysis.getState().document;
+        if (onBoard.kind === 'study-chapter' && onBoard.chapterId === chapter.id) {
+          loadedChapter.current = chapter.id;
+          if (paramNode && chapter.id === paramChapter && chapter.tree.nodes[paramNode])
+            goTo(paramNode);
+          return;
+        }
+        if (!(await flushWorkspaceForNavigation())) {
+          if (cancelled) return;
+          if (onBoard.kind === 'study-chapter') {
+            setChosenStudyId(onBoard.studyId);
+            setChosenChapterId(onBoard.chapterId);
+          }
+          notify({
+            tone: 'error',
+            message:
+              'The current work could not be saved. Resolve the save error before changing chapters.',
+          });
+          return;
+        }
+        if (cancelled) return;
+        // The selected record may have been cached before the outgoing save.
+        const repositories = await getRepositories();
+        const fresh = await repositories.studies.getChapter(chapter.id);
+        if (cancelled || !fresh) return;
+        loadedChapter.current = chapter.id;
+        open(fresh);
+        // The node a search hit named, when the chapter is the one it named.
         if (paramNode && chapter.id === paramChapter && chapter.tree.nodes[paramNode])
           goTo(paramNode);
-        return;
-      }
-      open(chapter);
-      // The node a search hit named, when the chapter is the one it named.
-      if (paramNode && chapter.id === paramChapter && chapter.tree.nodes[paramNode])
-        goTo(paramNode);
-    });
+      })
+      .catch((error: unknown) => {
+        if (!cancelled)
+          notify({
+            tone: 'error',
+            message: error instanceof Error ? error.message : 'The chapter could not be opened.',
+          });
+      });
     return () => {
       cancelled = true;
     };
-  }, [chapter, open, paramNode, paramChapter, goTo]);
+  }, [chapter, open, paramNode, paramChapter, goTo, notify]);
 
   const exportStudy = async () => {
     if (!study.data) return;
@@ -574,6 +608,16 @@ export function StudiesWorkspace() {
       */
       routeActions={[
         {
+          id: 'video-lesson',
+          label: videoLesson ? 'References' : 'Video lesson',
+          shortLabel: videoLesson ? 'References' : 'Video',
+          disabled: !chapter,
+          onClick: () => {
+            setVideoLesson((value) => !value);
+            showTool('/studies', 'document');
+          },
+        },
+        {
           id: 'create',
           label: 'New study',
           shortLabel: 'New',
@@ -636,8 +680,16 @@ export function StudiesWorkspace() {
         ) : undefined
       }
       board={{ mode: 'interactive', showEvaluationArtifacts: true }}
-      contextLabel="References"
-      contextPanel={chapter ? <ChapterReferences chapter={chapter} /> : undefined}
+      contextLabel={videoLesson ? 'Video lesson' : 'References'}
+      contextPanel={
+        chapter ? (
+          videoLesson ? (
+            <VideoLesson key={chapter.id} chapterId={chapter.id} />
+          ) : (
+            <ChapterReferences chapter={chapter} />
+          )
+        ) : undefined
+      }
     >
       {prompt?.kind === 'create-study' && (
         <PromptDialog

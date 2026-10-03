@@ -1,5 +1,16 @@
 # Public claims
 
+## 1.4.5 source additions
+
+README describes local video lessons with timed board cues, recorded PGN
+metadata filters and frequent movers in My games. Implementations:
+`features/studies/VideoLesson.tsx`, `chess/tree/video-cues.ts`,
+`features/games/SearchMask.tsx`, `search/game-scan.ts` and
+`database/local-aggregate.ts`. Video bytes stay local and outside backups;
+only filename and cues are portable. Frequency counts are source-specific
+distinct games. These are not claims of Fritztrainer compatibility, a
+licensed video catalogue, complete reference player lists or ChessBase parity.
+
 A register of the meaningful claims the public surface
 (marketing site, README, install guide, security page) makes
 about Kingfisher. Each claim records the wording on the
@@ -21,7 +32,7 @@ to follow.
 | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Kingfisher is a local-first chess research workstation.                                                        | Landing hero, README lede, install guide           | `src/persistence/`, the `local-first` section of the landing, the security policy.                                                                                                                                                                                       |
 | The current public macOS release is Kingfisher 1.4.4.                                                          | Landing download card, README, install guide       | `src/release/macos-download.json` names the exact public release build, SHA-256 and trust state. The descriptor changes only after publication and byte verification.                                                                                                    |
-| The web source is Kingfisher 1.4.4.                                                                            | Security page, SECURITY.md                         | `package.json` names the source version deployed from master. It may be ahead of the public macOS download during release preparation.                                                                                                                                   |
+| The web source is Kingfisher 1.4.5.                                                                            | Security page, SECURITY.md                         | `package.json` names the source version deployed from master. It may be ahead of the public macOS download during release preparation.                                                                                                                                   |
 | The macOS build needs macOS 13 (Ventura) or later.                                                             | Landing download card, install page, install guide | `desktop/src/platform-floor.mjs` — Electron 44's own floor, read from its plist by `platform-floor.test.mjs`; the descriptor's `minimumMacOS`; `docs:check` compares the documents to it. **Not** macOS 11, which the 1.1.0 release page and bundle stated.              |
 | The supported desktop platform is Apple Silicon.                                                               | Landing download card, install guide, README       | `npm run desktop:smoke` is run on darwin-arm64; `vercel.json` does not deploy a desktop artefact.                                                                                                                                                                        |
 | The supported desktop architecture is arm64.                                                                   | Install guide, landing download card               | `desktop/electron-builder.yml` builds `arm64` only; `desktop/src/builder-config.test.mjs` pins it; the descriptor records `arm64`.                                                                                                                                       |

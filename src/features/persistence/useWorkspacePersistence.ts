@@ -17,6 +17,7 @@ import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { autosaveDelay } from '@/persistence/autosave';
+import { sameGameTree } from '@/chess/tree/equal';
 import {
   continuesUnload,
   newerDraft,
@@ -54,6 +55,13 @@ const restoreSettled = new Promise<void>((resolve) => {
   settleRestore = resolve;
 });
 export const workspaceRestored = (): Promise<void> => restoreSettled;
+let flushMountedWorkspace: (() => Promise<boolean>) | null = null;
+
+/** Drain the debounced and in-flight save before replacing a study chapter. */
+export const flushWorkspaceForNavigation = async (): Promise<boolean> => {
+  await workspaceRestored();
+  return flushMountedWorkspace ? flushMountedWorkspace() : !selectDirty(useAnalysis.getState());
+};
 const sessionStore = () => (typeof window === 'undefined' ? null : window.sessionStorage);
 /**
  * The unload draft, taken once per page load. The restore effect runs twice
@@ -194,7 +202,7 @@ export function useWorkspacePersistence(): void {
       timer = null;
     };
 
-    const save = async () => {
+    const saveOne = async () => {
       const state = useAnalysis.getState();
       const dirty = selectDirty(state);
       // A refused write would only be refused again; the user has to choose.
@@ -220,10 +228,11 @@ export function useWorkspacePersistence(): void {
         // Nothing has changed, so a chapter write would only inflate its
         // revision and wake other tabs; the draft is the whole point here.
         const written = await writeWorkspace(repositories, state, { draftOnly: !dirty });
-        draftStale.current = false;
         if (disposed) return;
+        const sameDocument = useAnalysis.getState().generation === state.generation;
+        if (sameDocument) draftStale.current = false;
         if (written) {
-          useAnalysis.getState().setDocumentRevision(written.revision);
+          if (sameDocument) useAnalysis.getState().setDocumentRevision(written.revision);
           announceChapterSaved(written.id, written.revision);
           /*
             Autosave is the only writer that used to change chapters without
@@ -233,12 +242,12 @@ export function useWorkspacePersistence(): void {
           */
           invalidateStudies(client, written.studyId);
         }
-        useAnalysis.getState().markSaved(revision);
+        if (sameDocument) useAnalysis.getState().markSaved(revision);
         // The person has now authored something worth keeping — a draft
         // counts, an untitled analysis is work — so ask the browser, once,
         // to keep this origin's storage out of eviction.
         void ensurePersistenceForAuthoredWork();
-        firstUnsavedAt.current = null;
+        if (sameDocument) firstUnsavedAt.current = null;
       } catch (error) {
         if (disposed) return;
         if (error instanceof StaleChapterWriteError) {
@@ -253,6 +262,24 @@ export function useWorkspacePersistence(): void {
         useAnalysis.getState().markSaveFailed(describe(error));
       }
     };
+
+    let pendingSave: Promise<void> | null = null;
+    const save = (): Promise<void> => {
+      if (pendingSave) return pendingSave;
+      pendingSave = saveOne().finally(() => {
+        pendingSave = null;
+      });
+      return pendingSave;
+    };
+    const flushBeforeNavigation = async (): Promise<boolean> => {
+      clear();
+      await save();
+      // An edit made during the write needs the revision the write just returned.
+      if (selectDirty(useAnalysis.getState()) && !useAnalysis.getState().conflict) await save();
+      const current = useAnalysis.getState();
+      return !selectDirty(current) && !current.conflict && !current.saveError;
+    };
+    flushMountedWorkspace = flushBeforeNavigation;
 
     const schedule = () => {
       clear();
@@ -379,6 +406,7 @@ export function useWorkspacePersistence(): void {
 
     return () => {
       disposed = true;
+      if (flushMountedWorkspace === flushBeforeNavigation) flushMountedWorkspace = null;
       clear();
       unsubscribe();
       unsubscribeTabs();
@@ -506,7 +534,7 @@ async function restoreDraft(
         options.continuation &&
         draft.unsaved &&
         draft.document.revision === chapter.revision &&
-        !sameTree(draft.tree, chapter.tree)
+        !sameGameTree(draft.tree, chapter.tree)
       ) {
         analysis.openDocument({
           tree: draft.tree,
@@ -517,7 +545,7 @@ async function restoreDraft(
         });
         return;
       }
-      if (draft.unsaved && !sameTree(draft.tree, chapter.tree)) {
+      if (draft.unsaved && !sameGameTree(draft.tree, chapter.tree)) {
         analysis.openDocument({
           tree: chapter.tree,
           document: { ...draft.document, title: chapter.title, revision: chapter.revision },
@@ -561,26 +589,6 @@ async function restoreDraft(
     currentId: draft.currentId,
     orientation: draft.orientation,
   });
-}
-
-/**
- * Cheap enough to run on every start, exact enough to avoid a false offer.
- *
- * Node count first because it settles almost every case without walking
- * anything; the id comparison then catches an edit that replaced a move
- * without changing the size of the tree.
- */
-function sameTree(a: DraftRecord['tree'], b: DraftRecord['tree']): boolean {
-  const left = Object.keys(a.nodes);
-  const right = Object.keys(b.nodes);
-  if (left.length !== right.length) return false;
-  for (const id of left) {
-    const one = a.nodes[id];
-    const other = b.nodes[id];
-    if (!other || one?.move?.san !== other.move?.san) return false;
-    if (one?.comment !== other.comment) return false;
-  }
-  return true;
 }
 
 /*

@@ -78,6 +78,8 @@ export interface NodeMeta {
    */
   readonly questionPoints?: number;
   readonly questionSeconds?: number;
+  /** Author's cue in a local lesson video, in seconds. PGN: [%kfvideo …]. */
+  readonly videoSeconds?: number;
 }
 
 export interface MoveNode {

@@ -77,6 +77,11 @@ export type QueryPredicate =
   | { readonly type: 'route'; readonly text: string; readonly colour?: Color }
   /** Text in any comment, variations included. */
   | { readonly type: 'comment'; readonly contains: string }
+  | {
+      readonly type: 'metadata';
+      readonly field: 'annotator' | 'source' | 'team';
+      readonly contains: string;
+    }
   /** An annotation symbol ($1 = !, $2 = ?, …) on any move, variations included. */
   | { readonly type: 'nag'; readonly code: number }
   /**
@@ -218,6 +223,11 @@ function validateNode(value: unknown, depth: number): string | null {
       return value.value === 'annotated' || value.value === 'commented'
         ? null
         : 'Annotations is "annotated" or "commented".';
+    case 'metadata':
+      return ['annotator', 'source', 'team'].includes(value.field as string) &&
+        nonEmpty(value.contains)
+        ? null
+        : 'Metadata needs an annotator, source or team field and text.';
     case 'position':
       return typeof value.key === 'string' && value.key.trim().split(/\s+/).length === 4
         ? null
@@ -330,6 +340,10 @@ export function queryFromFilters(
   if (deep.comment?.trim()) all.push({ type: 'comment', contains: deep.comment.trim() });
   if (deep.position) all.push({ type: 'position', key: deep.position });
   if (deep.annotations) all.push({ type: 'annotations', value: deep.annotations });
+  for (const field of ['annotator', 'source', 'team'] as const) {
+    const contains = deep.metadata?.[field]?.trim();
+    if (contains) all.push({ type: 'metadata', field, contains });
+  }
   return {
     version: QUERY_VERSION,
     where: { type: 'and', of: all },
@@ -354,6 +368,7 @@ export function filtersFromQuery(query: GameQuery): {
     readonly comment?: string;
     readonly position?: string;
     readonly annotations?: 'annotated' | 'commented';
+    readonly metadata?: DeepQuery['metadata'];
   };
 } | null {
   const all = query.where.type === 'and' ? query.where.of : [query.where];
@@ -443,6 +458,12 @@ export function filtersFromQuery(query: GameQuery): {
       case 'annotations':
         ok = once(moves, 'annotations', node.value);
         break;
+      case 'metadata': {
+        const metadata = (moves.metadata ?? {}) as Record<string, string>;
+        ok = once(metadata, node.field, node.contains);
+        moves.metadata = metadata;
+        break;
+      }
       default:
         return null;
     }
@@ -533,6 +554,8 @@ function describePredicate(node: QueryPredicate): string {
       return `annotated $${node.code}`;
     case 'annotations':
       return node.value === 'commented' ? 'has a text comment' : 'is annotated';
+    case 'metadata':
+      return `PGN ${node.field} contains "${node.contains}"`;
   }
 }
 

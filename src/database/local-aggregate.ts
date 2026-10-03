@@ -44,6 +44,7 @@ export function aggregateLocalExplorer(
         ratingSum: 0,
         ratingCount: 0,
         players: new Set(),
+        frequencies: new Map(),
       };
       byMove.set(record.moveUci, move);
     }
@@ -57,6 +58,14 @@ export function aggregateLocalExplorer(
     }
     const player = record.mover === 'w' ? game.white : game.black;
     if (player) move.players.add(player);
+    if (player && player !== '?') {
+      const key = record.mover === 'w' ? game.whiteKey : game.blackKey;
+      const previous = move.frequencies.get(key);
+      move.frequencies.set(key, {
+        name: previous?.name ?? player,
+        games: (previous?.games ?? 0) + 1,
+      });
+    }
     if (game.year && (!move.lastYear || game.year > move.lastYear)) move.lastYear = game.year;
   }
 
@@ -75,6 +84,9 @@ export function aggregateLocalExplorer(
         ...(averageRating ? { averageRating } : {}),
         ...(move.lastYear ? { lastPlayedYear: move.lastYear } : {}),
         ...(move.players.size ? { notablePlayers: [...move.players].slice(0, 8) } : {}),
+        frequentPlayers: [...move.frequencies.values()]
+          .sort((a, b) => b.games - a.games || a.name.localeCompare(b.name))
+          .slice(0, 3),
       };
       const performance = averageRating
         ? performanceRating(moveScore(base, sideToMove), averageRating)
@@ -110,17 +122,16 @@ function matchesExplorer(game: GameSummary, filters: ExplorerFilters): boolean {
   }
   if (filters.sinceYear && (!game.year || game.year < filters.sinceYear)) return false;
   if (filters.untilYear && (!game.year || game.year > filters.untilYear)) return false;
-  if (filters.minRating) {
-    const ratings = [game.whiteRating, game.blackRating].filter(
-      (rating): rating is number => rating !== undefined,
-    );
-    if (!ratings.length || Math.max(...ratings) < filters.minRating) return false;
-  }
-  if (filters.maxRating) {
-    const ratings = [game.whiteRating, game.blackRating].filter(
-      (rating): rating is number => rating !== undefined,
-    );
-    if (!ratings.length || Math.min(...ratings) > filters.maxRating) return false;
+  if (filters.minRating !== undefined || filters.maxRating !== undefined) {
+    if (
+      ![game.whiteRating, game.blackRating].some(
+        (rating) =>
+          rating !== undefined &&
+          (filters.minRating === undefined || rating >= filters.minRating) &&
+          (filters.maxRating === undefined || rating <= filters.maxRating),
+      )
+    )
+      return false;
   }
   return true;
 }
@@ -135,6 +146,7 @@ interface MutableMove {
   ratingSum: number;
   ratingCount: number;
   readonly players: Set<string>;
+  readonly frequencies: Map<string, { name: string; games: number }>;
   lastYear?: number;
 }
 

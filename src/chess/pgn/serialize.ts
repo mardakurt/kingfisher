@@ -50,7 +50,11 @@ export function serializePgn(tree: GameTree, options: SerializeOptions = {}): st
     // The starting position can carry arrows and highlights of its own; the
     // parser reads them from a comment before the first move, so they are
     // written back the same way rather than lost on the way out.
-    const rootComment = formatComment({ text: root.comment ?? '', shapes: root.shapes });
+    const rootComment = formatComment({
+      text: root.comment ?? '',
+      shapes: root.shapes,
+      ...(root.meta.videoSeconds !== undefined ? { videoSeconds: root.meta.videoSeconds } : {}),
+    });
     if (rootComment) tokens.push(`{ ${rootComment} }`);
   }
 
@@ -211,6 +215,7 @@ function writeMove(
           ? { elapsedSeconds: node.meta.elapsedSeconds }
           : {}),
         ...(node.meta.question !== undefined ? { question: node.meta.question } : {}),
+        ...(node.meta.videoSeconds !== undefined ? { videoSeconds: node.meta.videoSeconds } : {}),
         ...(node.meta.question !== undefined && node.meta.questionPoints !== undefined
           ? { questionPoints: node.meta.questionPoints }
           : {}),

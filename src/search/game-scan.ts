@@ -25,6 +25,12 @@ import { materialMatches, type MaterialQuery } from './material-query';
 import { findRoute, type Route, type RouteMove } from './route';
 
 export interface DeepQuery {
+  /** Imported PGN metadata, never inferred from comments or player names. */
+  readonly metadata?: {
+    readonly annotator?: string;
+    readonly source?: string;
+    readonly team?: string;
+  };
   readonly material?: { readonly query: MaterialQuery; readonly colour?: Color };
   readonly theme?: string;
   readonly route?: { readonly route: Route; readonly colour?: Color };
@@ -46,7 +52,10 @@ export interface DeepQuery {
 
 /** True when a query needs the game's whole tree, not only its main line. */
 export const needsTree = (query: DeepQuery): boolean =>
-  Boolean(query.comment?.trim() || query.annotations);
+  Boolean(query.comment?.trim() || query.annotations || hasMetadata(query));
+
+const hasMetadata = (query: DeepQuery): boolean =>
+  Object.values(query.metadata ?? {}).some((value) => value?.trim());
 
 export interface ScanHit {
   /** Ply of the position to open: the game is shown right after this half-move. */
@@ -61,7 +70,8 @@ export const hasDeepFilters = (query: DeepQuery): boolean =>
     query.route ||
     query.comment?.trim() ||
     query.position ||
-    query.annotations,
+    query.annotations ||
+    hasMetadata(query),
   );
 
 /**
@@ -79,7 +89,7 @@ export interface LinePosition {
 export function scanGame(tree: GameTree, query: DeepQuery): ScanHit | null {
   const path = mainlinePath(tree);
   const nodes = path.map((id) => tree.nodes[id]!).filter(Boolean);
-  return scanLine(nodes, query, Object.values(tree.nodes), new Set(path));
+  return scanLine(nodes, query, Object.values(tree.nodes), new Set(path), tree.headers);
 }
 
 type AnnotatedNode = Pick<MoveNode, 'ply' | 'comment' | 'preComment'> &
@@ -95,8 +105,21 @@ export function scanLine(
   query: DeepQuery,
   commented: readonly AnnotatedNode[] = [],
   mainline: ReadonlySet<string> = new Set(),
+  headers: Readonly<Record<string, string>> = {},
 ): ScanHit | null {
   const moments: number[] = [];
+  const includes = (text: string | undefined, wanted: string) =>
+    (text ?? '').toLocaleLowerCase('en-US').includes(wanted.trim().toLocaleLowerCase('en-US'));
+  const metadata = query.metadata;
+  if (metadata?.annotator?.trim() && !includes(headers.Annotator, metadata.annotator)) return null;
+  if (metadata?.source?.trim() && !includes(headers.Source, metadata.source)) return null;
+  if (
+    metadata?.team?.trim() &&
+    !includes(headers.WhiteTeam, metadata.team) &&
+    !includes(headers.BlackTeam, metadata.team)
+  )
+    return null;
+  if (hasMetadata(query)) moments.push(0);
 
   if (query.position) {
     const node = nodes.find((candidate) => positionKey(candidate.fen) === query.position);

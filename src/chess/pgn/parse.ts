@@ -340,6 +340,19 @@ function parseOneGame(tokens: readonly Token[], start: number): GameParse {
         if (lastMove) {
           tree = applyCommentData(tree, lastMove, data, token.value);
         } else if (cursor === tree.rootId && stack.length === 0) {
+          if (data.videoSeconds !== undefined) {
+            const root = mustGetNode(tree, tree.rootId);
+            tree = {
+              ...tree,
+              nodes: {
+                ...tree.nodes,
+                [tree.rootId]: {
+                  ...root,
+                  meta: { ...root.meta, videoSeconds: data.videoSeconds },
+                },
+              },
+            };
+          }
           // Commentary before the first move belongs to the game, not a move.
           const existing = tree.nodes[tree.rootId]?.comment;
           tree = setComment(tree, tree.rootId, [existing, data.text].filter(Boolean).join(' '));
@@ -463,7 +476,8 @@ function applyCommentData(
     data.elapsedSeconds !== undefined ||
     data.question !== undefined ||
     data.questionPoints !== undefined ||
-    data.questionSeconds !== undefined;
+    data.questionSeconds !== undefined ||
+    data.videoSeconds !== undefined;
   const text = data.text || (understood ? '' : raw.trim());
   const merged = [node.comment, text].filter(Boolean).join(' ').trim();
 
@@ -485,6 +499,7 @@ function applyCommentData(
           ...(data.question !== undefined ? { question: data.question } : {}),
           ...(data.questionPoints !== undefined ? { questionPoints: data.questionPoints } : {}),
           ...(data.questionSeconds !== undefined ? { questionSeconds: data.questionSeconds } : {}),
+          ...(data.videoSeconds !== undefined ? { videoSeconds: data.videoSeconds } : {}),
         },
       },
     },

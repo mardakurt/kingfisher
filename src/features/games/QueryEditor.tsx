@@ -51,6 +51,7 @@ const KINDS: readonly { readonly type: PredicateType; readonly label: string }[]
   { type: 'comment', label: 'Comment text' },
   { type: 'nag', label: 'Annotation symbol' },
   { type: 'annotations', label: 'Annotations' },
+  { type: 'metadata', label: 'PGN annotator, source or team' },
 ];
 
 const NAGS = [
@@ -102,6 +103,8 @@ function blank(type: PredicateType, boardKey: string): QueryPredicate {
       return { type, code: 1 };
     case 'annotations':
       return { type, value: 'annotated' };
+    case 'metadata':
+      return { type, field: 'annotator', contains: '' };
   }
 }
 
@@ -399,6 +402,26 @@ function PredicateFields({
           <option value="annotated">annotated (comments, symbols, variations, arrows)</option>
           <option value="commented">commented (text comments)</option>
         </select>
+      );
+    case 'metadata':
+      return (
+        <>
+          <select
+            aria-label="PGN metadata field"
+            value={node.field}
+            className={FIELD}
+            onChange={(event) =>
+              onChange({ ...node, field: event.target.value as 'annotator' | 'source' | 'team' })
+            }
+          >
+            <option value="annotator">Annotator</option>
+            <option value="source">Source</option>
+            <option value="team">Either team</option>
+          </select>
+          {text('PGN metadata contains', node.contains, (contains) =>
+            onChange({ ...node, contains }),
+          )}
+        </>
       );
   }
 }

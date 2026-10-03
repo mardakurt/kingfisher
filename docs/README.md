@@ -1,5 +1,10 @@
 # Kingfisher documentation
 
+- [1.4.5 release notes](release/1.4.5.md)
+- [ChessBase Mac comparison for 1.4.5](product/chessbase-mac-comparison-1.4.5.md)
+- [Local video lessons](design/video-lessons.md)
+- [1.4.5 release validation](reports/2026-10-03-1.4.5-release-handover.md)
+
 Every Markdown file in this repository is listed here, in one of four
 sections, so nobody has to guess whether a document describes the product as
 it is or as it was.

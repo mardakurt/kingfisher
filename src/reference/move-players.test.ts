@@ -27,7 +27,7 @@ const game = (id: string, white: string, whiteElo: number, black: string): PackG
   whiteElo,
   blackElo: 2700,
   url: '',
-  moves: '',
+  moves: '1. e4 c5',
 });
 
 describe('movePlayers', () => {
@@ -68,5 +68,25 @@ describe('movePlayers', () => {
     const found = await movePlayers(black, fen, ['c5', 'Ke2']);
     expect(found.get('c5')).toEqual([{ name: 'Nepomniachtchi, Ian', rating: 2700 }]);
     expect(found.has('Ke2')).toBe(false);
+  });
+  it('does not credit a player who reached only the resulting position by another move', async () => {
+    const start = Position.fromFen(START_FEN);
+    if (!start.ok) throw new Error('start');
+    let position = start.value;
+    for (const san of ['Nf3', 'Nf6', 'd4', 'd5']) {
+      const played = position.advanceSan(san);
+      if (!played.ok) throw new Error('move');
+      position = played.value.next;
+    }
+    const reader: MovePlayersReader = {
+      position: async () => ({ key: '', moves: [], games: ['right', 'wrong', 'missing'] }),
+      games: async () => [
+        { ...game('right', 'Played c4', 2500, 'B'), moves: '1. Nf3 Nf6 2. d4 d5 3. c4' },
+        { ...game('wrong', 'Played Nf3', 2800, 'B'), moves: '1. d4 d5 2. c4 Nf6 3. Nf3' },
+        { ...game('missing', 'No moves', 2900, 'B'), moves: '' },
+      ],
+    };
+    const result = await movePlayers(reader, position.fen, ['c4']);
+    expect(result.get('c4')).toEqual([{ name: 'Played c4', rating: 2500 }]);
   });
 });

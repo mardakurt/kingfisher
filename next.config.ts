@@ -159,6 +159,8 @@ const nextConfig: NextConfig = {
               "worker-src 'self' blob:",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob:",
+              // Local lesson videos chosen by the person; no remote media or frames.
+              "media-src 'self' blob:",
               "font-src 'self' data:",
               // The runtime connects to:
               //   - itself (the Next.js API)

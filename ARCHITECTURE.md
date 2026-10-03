@@ -1,5 +1,27 @@
 # Architecture
 
+## Local video lessons and study navigation
+
+Studies' local video panel navigates the existing analysis tree and canonical
+board. A lesson's filename is a PGN header, its timed cues are node metadata
+(`chess/tree/video-cues.ts`, `[%kfvideo seconds]`), and existing chapter
+autosave and portable backups carry them. Video files remain outside the
+database; transient blob URLs are revoked on detach. There is no second chess
+state, native arbitrary-path reader, video upload or new persistence store.
+Before Studies replaces a chapter, the persistence hook drains pending and
+in-flight autosave and the selection rereads the target record. An outgoing
+write can only mark the same document generation saved.
+Draft recovery uses `chess/tree/equal.ts` to compare all authored tree content,
+including cues and annotations, independently of object property order.
+
+Library metadata predicates read imported PGN tags through the existing
+cancellable deep-search path. Annotator, Source and either team are not
+inferred and are not claimed to exist in the compact line index. Saved query
+AST metadata predicates remain residual until the full game has been read.
+My games' Explorer aggregation counts frequent movers by distinct game in the
+filtered population; optional player-frequency fields are absent where a
+provider lacks that evidence.
+
 ## Opening research exports
 
 `theory/opening-survey.ts` receives one provider query boundary and builds an

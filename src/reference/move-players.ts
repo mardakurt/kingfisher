@@ -6,14 +6,17 @@
  * each position, the strongest few games that reached it (`PackPosition.games`,
  * ranked by the strength of the game at build time). So this answers the
  * narrower question it can: in the strongest games the pack keeps for the
- * position after the move, who was the player who made it? A game that
- * reached that position by another order counts, as it does everywhere a
- * pack speaks of a position, and the panel says so. It is never presented as
+ * position after the move, who actually played this move from this position?
+ * A transposition into the starting position counts; reaching only the
+ * resulting position with a different move does not. It is never presented as
  * "everyone who plays it".
  */
 
 import { positionKey } from '@/chess/fen';
 import { Position } from '@/chess/position';
+import { parseSingleGame } from '@/chess/pgn';
+import { mainlinePath } from '@/chess/tree/tree';
+import type { GameTree } from '@/chess/tree/types';
 
 import type { PackGame, PackPosition } from './pack';
 
@@ -46,6 +49,8 @@ export async function movePlayers(
   const result = new Map<string, readonly MovePlayer[]>();
   if (!start.ok) return result;
   const mover = fen.split(' ')[1] === 'b' ? 'b' : 'w';
+  const before = positionKey(start.value.fen);
+  const parsedGames = new Map<string, GameTree | null>();
   for (const san of moves) {
     const next = start.value.advanceSan(san);
     if (!next.ok) continue;
@@ -57,6 +62,22 @@ export async function movePlayers(
     const games = await reader.games(entry.games.slice(0, GAMES_READ));
     const best = new Map<string, MovePlayer>();
     for (const game of games) {
+      if (!parsedGames.has(game.id)) {
+        const parsed = parseSingleGame(`${game.moves} ${game.result}`);
+        parsedGames.set(game.id, parsed.ok ? parsed.value.tree : null);
+      }
+      const tree = parsedGames.get(game.id);
+      if (
+        !tree ||
+        !mainlinePath(tree).some((id) => {
+          const node = tree.nodes[id];
+          const parent = node?.parentId ? tree.nodes[node.parentId] : undefined;
+          return (
+            parent && node?.move?.uci === next.value.move.uci && positionKey(parent.fen) === before
+          );
+        })
+      )
+        continue;
       const name = mover === 'w' ? game.white : game.black;
       const rating = mover === 'w' ? game.whiteElo : game.blackElo;
       if (!name || name === '?') continue;

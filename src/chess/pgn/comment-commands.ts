@@ -25,6 +25,7 @@ export interface CommentData {
   readonly question?: string;
   readonly questionPoints?: number;
   readonly questionSeconds?: number;
+  readonly videoSeconds?: number;
 }
 
 const BRUSH_BY_LETTER: Readonly<Record<string, Brush>> = {
@@ -51,10 +52,18 @@ export function parseComment(raw: string): CommentData {
   let question: string | undefined;
   let questionPoints: number | undefined;
   let questionSeconds: number | undefined;
+  let videoSeconds: number | undefined;
 
   const text = raw
     .replace(COMMAND, (_match, key: string, value: string) => {
       switch (key.toLowerCase()) {
+        case 'kfvideo': {
+          const trimmed = value.trim();
+          const parsed = Number(trimmed);
+          if (/^\d+(?:\.\d+)?$/.test(trimmed) && Number.isFinite(parsed) && parsed <= 86_400)
+            videoSeconds = parsed;
+          return '';
+        }
         case 'cal':
           shapes.push(...parseArrows(value));
           return '';
@@ -106,6 +115,7 @@ export function parseComment(raw: string): CommentData {
     ...(question !== undefined ? { question } : {}),
     ...(questionPoints !== undefined ? { questionPoints } : {}),
     ...(questionSeconds !== undefined ? { questionSeconds } : {}),
+    ...(videoSeconds !== undefined ? { videoSeconds } : {}),
   };
 }
 
@@ -211,6 +221,7 @@ export function formatComment(data: CommentData): string {
   }
   if (data.questionPoints !== undefined) parts.push(`[%kfqpoints ${data.questionPoints}]`);
   if (data.questionSeconds !== undefined) parts.push(`[%kfqtime ${data.questionSeconds}]`);
+  if (data.videoSeconds !== undefined) parts.push(`[%kfvideo ${data.videoSeconds}]`);
 
   return parts.join(' ');
 }

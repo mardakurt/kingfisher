@@ -63,8 +63,10 @@ test('a saved query keeps the move filter, reruns with what is new, and fills th
   const filters = page.locator('[data-library-filters]');
   await filters.getByLabel('Min Elo').fill('2400');
   await filters.getByLabel('Comment', { exact: true }).fill('sharp');
-  page.once('dialog', (dialog) => dialog.accept('Sharp and strong'));
   await filters.getByRole('button', { name: 'Save query' }).click();
+  const naming = page.getByRole('dialog', { name: 'Save query', exact: true });
+  await naming.getByLabel('Name', { exact: true }).fill('Sharp and strong');
+  await naming.getByRole('button', { name: 'Save query', exact: true }).click();
   await expect(page.getByText('Saved query “Sharp and strong”.')).toBeVisible();
 
   const saved = page.locator('[data-saved-query="Sharp and strong"]');

@@ -4,6 +4,23 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## 1.4.5 — 2026-10-03
+
+- **Video lesson** in Studies: local video playback with timed chapter
+  positions, cue seeking and independent exploration. Filename and cues
+  travel with PGN and backups; reattach the local video after reopening.
+- **Annotator, PGN source and Team** filters in the Library and query builder.
+- **Frequent players** per move in My games, with distinct game counts, also
+  readable in narrow Explorer docks.
+- Fixed: rapid chapter switching could lose pending edits; strongest-player
+  samples could credit a different move into the resulting position.
+- Fixed: a reload before autosave could miss cue-only or annotation-only
+  changes when comparing the recovery draft with the saved chapter.
+- Fixed: Save query failed in the Mac app because Electron does not support
+  browser prompts. Naming now uses the shared accessible dialog.
+- Next.js and its ESLint package updated to 16.3.8; desktop brace-expansion
+  updates from both Dependabot PRs merged.
+
 ## 1.4.4 — 2026-10-03
 
 - **Annotation bar** under the notation: move glyphs, position judgements,

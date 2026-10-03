@@ -2,6 +2,13 @@
 
 A local-first chess research workstation for serious players.
 
+Source 1.4.5 adds **local video lessons in Studies** with timed board cues,
+**PGN annotator, source and team filters** in the Library, and **frequent
+players per move in My games**. Video files stay local and are reattached on
+reopening; the filename and cues travel in PGN and workspace backups. See the
+[1.4.5 comparison](docs/product/chessbase-mac-comparison-1.4.5.md) for the
+remaining ChessBase data and service boundaries.
+
 > **Public release · 1.4.4** (macOS, Developer ID signed and notarised)
 > Research remains opt-in under Layout.
 > No account. No cookies. No subscription.

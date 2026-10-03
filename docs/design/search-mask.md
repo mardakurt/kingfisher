@@ -1,5 +1,13 @@
 # The search mask — your games, asked the questions ChessBase users ask
 
+**1.4.5 addition (2026-10-03):** Annotator, PGN source and Team read the
+imported `Annotator`, `Source`, `WhiteTeam` and `BlackTeam` tags. Missing tags
+do not match. The fields combine with move and header filters, persist in
+saved queries and are available as metadata predicates in the query builder.
+They use the cancellable PGN search path, including in a companion database;
+the compact line index cannot answer them. A reference still searches only
+the bounded player-game population it retains.
+
 _Design, 2026-09-23 (Phase 81). The first item of "Next — parity after
 ChessBase 26" in `docs/product/market-research.md` §6. The record of what
 shipped is at the end._

@@ -55,6 +55,8 @@ export interface DatabaseMove {
   readonly opening?: OpeningInfo;
   /** Strong players who have used the move, most recent first. */
   readonly notablePlayers?: readonly string[];
+  /** Most frequent movers in this exact filtered population, with distinct game counts. */
+  readonly frequentPlayers?: readonly { readonly name: string; readonly games: number }[];
   /** Most recent year the move appears, for spotting revivals. */
   readonly lastPlayedYear?: number;
   /**

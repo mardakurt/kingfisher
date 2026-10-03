@@ -36,6 +36,7 @@ import { PageHeader } from '@/features/shell/PageHeader';
 import { SheetBoard } from '@/features/preparation/SheetBoard';
 import { Button, IconButton } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { PromptDialog } from '@/components/ui/PromptDialog';
 import { EmptyState } from '@/components/ui/Panel';
 import {
   invalidateGames,
@@ -153,6 +154,7 @@ export function GamesWorkspace() {
   const [sortBy, setSortBy] = useState<SortField>('importedAt');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [queryToSave, setQueryToSave] = useState<{ query: GameQuery; source: string } | null>(null);
   const closeFilters = () => {
     setFiltersOpen(false);
     document.getElementById('library-filters-trigger')?.focus();
@@ -480,7 +482,7 @@ export function GamesWorkspace() {
     only the header half, in localStorage, which no backup read.
   */
   const queryClient = useQueryClient();
-  const saveCurrent = async () => {
+  const saveCurrent = () => {
     if (
       compiledMoves.errors.material ||
       compiledMoves.errors.route ||
@@ -489,19 +491,10 @@ export function GamesWorkspace() {
       notify({ tone: 'error', message: 'Correct the move filters before saving the query.' });
       return;
     }
-    const name = window.prompt('Name this query');
-    if (!name?.trim()) return;
-    try {
-      await saveQuery(
-        name.trim(),
-        queryFromFilters(headerOnly, compiledMoves.query),
-        local ? 'local' : source.id,
-      );
-      await queryClient.invalidateQueries({ queryKey: SAVED_QUERIES_KEY });
-      notify({ tone: 'success', message: `Saved query “${name.trim()}”.` });
-    } catch (error) {
-      notify({ tone: 'error', message: error instanceof Error ? error.message : String(error) });
-    }
+    setQueryToSave({
+      query: queryFromFilters(headerOnly, compiledMoves.query),
+      source: local ? 'local' : source.id,
+    });
   };
 
   const applyQuery = (saved: GameQuery) => {
@@ -521,6 +514,9 @@ export function GamesWorkspace() {
       route: fields.moves.route?.text ?? '',
       routeColour: fields.moves.route?.colour ?? 'either',
       comment: fields.moves.comment ?? '',
+      annotator: fields.moves.metadata?.annotator ?? '',
+      source: fields.moves.metadata?.source ?? '',
+      team: fields.moves.metadata?.team ?? '',
       position: fields.moves.position ?? '',
       annotations: fields.moves.annotations ?? 'any',
     });
@@ -1354,6 +1350,22 @@ export function GamesWorkspace() {
           </Button>
         )}
       </footer>
+
+      {queryToSave ? (
+        <PromptDialog
+          open
+          title="Save query"
+          label="Name"
+          confirmLabel="Save query"
+          onCancel={() => setQueryToSave(null)}
+          onSubmit={async (name) => {
+            await saveQuery(name, queryToSave.query, queryToSave.source);
+            await queryClient.invalidateQueries({ queryKey: SAVED_QUERIES_KEY });
+            setQueryToSave(null);
+            notify({ tone: 'success', message: `Saved query “${name}”.` });
+          }}
+        />
+      ) : null}
 
       <ConfirmDialog
         open={confirmation === 'selected'}

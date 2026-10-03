@@ -213,6 +213,9 @@ export function HeaderMaskFields({
 // --- moves ------------------------------------------------------------------
 
 export interface MoveMask {
+  readonly annotator: string;
+  readonly source: string;
+  readonly team: string;
   readonly material: string;
   readonly materialColour: Color | 'either';
   readonly theme: string;
@@ -225,6 +228,9 @@ export interface MoveMask {
 }
 
 export const EMPTY_MOVES: MoveMask = {
+  annotator: '',
+  source: '',
+  team: '',
   material: '',
   materialColour: 'either',
   theme: '',
@@ -285,6 +291,15 @@ export function compileMoves(mask: MoveMask): CompiledMoves {
   }
   return {
     query: {
+      ...(mask.annotator.trim() || mask.source.trim() || mask.team.trim()
+        ? {
+            metadata: {
+              ...(mask.annotator.trim() ? { annotator: mask.annotator.trim() } : {}),
+              ...(mask.source.trim() ? { source: mask.source.trim() } : {}),
+              ...(mask.team.trim() ? { team: mask.team.trim() } : {}),
+            },
+          }
+        : {}),
       ...(material ? { material } : {}),
       ...(mask.theme ? { theme: mask.theme } : {}),
       ...(route ? { route } : {}),
@@ -410,6 +425,27 @@ export function MoveMaskFields({
           <option value="commented">Commented</option>
         </select>
       </Field>
+      {(['annotator', 'source', 'team'] as const).map((key) => (
+        <Field
+          key={key}
+          label={key === 'annotator' ? 'Annotator' : key === 'source' ? 'PGN source' : 'Team'}
+          wide
+        >
+          <input
+            value={mask[key]}
+            onChange={(event) => set(key, event.target.value)}
+            className={FIELD}
+            placeholder={
+              key === 'annotator' ? 'Capablanca' : key === 'source' ? 'Source tag' : 'Either team'
+            }
+            title={
+              key === 'team'
+                ? 'Text in the imported WhiteTeam or BlackTeam PGN tag. No team is inferred.'
+                : `Text in the imported ${key === 'annotator' ? 'Annotator' : 'Source'} PGN tag. A missing tag does not match.`
+            }
+          />
+        </Field>
+      ))}
       <div className="flex w-[268px] shrink-0 flex-col gap-1 text-[10px] text-tertiary">
         <label htmlFor="search-mask-position">Position</label>
         <div className="flex gap-1">

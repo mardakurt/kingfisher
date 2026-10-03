@@ -267,6 +267,9 @@ export function ExplorerPanel() {
 
   // Who made each move in the strongest games an installed pack keeps after it.
   const moveSans = evidence.slice(0, 12).map((entry) => entry.san);
+  const showFrequentPlayers = evidence.some(
+    (entry) => entry.database.frequentPlayers !== undefined,
+  );
   const movers = useQuery({
     queryKey: ['explorer-move-players', provider?.id ?? '', node.fen, moveSans.join(' ')],
     enabled: Boolean(provider && packReader(provider.id)) && moveSans.length > 0,
@@ -721,9 +724,17 @@ export function ExplorerPanel() {
                       */
                       <th
                         className="@max-[559px]:hidden px-1.5 py-1.5 font-medium"
-                        title={`Who made the move in the ${GAMES_READ} strongest games ${provider?.name ?? 'the source'} keeps after it, by any move order — not everyone who plays it`}
+                        title={`Players verified to have made this move from this position in up to ${GAMES_READ} strongest games ${provider?.name ?? 'the source'} keeps after it. This is a bounded sample, not everyone who plays it.`}
                       >
                         Strongest players
+                      </th>
+                    ) : null}
+                    {showFrequentPlayers ? (
+                      <th
+                        className="@max-[559px]:hidden px-1.5 py-1.5 font-medium"
+                        title="The three most frequent players who made each move in this filtered source. Counts are distinct games, not visits to the position."
+                      >
+                        Frequent players
                       </th>
                     ) : null}
                     <th className="@max-[559px]:hidden px-1.5 py-1.5 font-medium">Opening</th>
@@ -736,6 +747,7 @@ export function ExplorerPanel() {
                       key={entry.uci}
                       entry={entry}
                       showRecent={showRecent}
+                      showFrequentPlayers={showFrequentPlayers}
                       selected={selected.includes(entry.uci)}
                       onToggle={() => toggleSelected(entry.uci)}
                       onPlay={() => playMove(entry.database)}
@@ -989,6 +1001,7 @@ function Row({
   onToggle,
   onPlay,
   players,
+  showFrequentPlayers,
 }: {
   readonly entry: MoveEvidence;
   readonly showRecent: boolean;
@@ -997,6 +1010,7 @@ function Row({
   readonly onPlay: () => void;
   /** Present only when the source can say (see the column's header). */
   readonly players?: readonly MovePlayer[];
+  readonly showFrequentPlayers: boolean;
 }) {
   const trend = trendOf(entry);
   /*
@@ -1044,6 +1058,16 @@ function Row({
         >
           {entry.san}
         </button>
+        {entry.database.frequentPlayers?.length ? (
+          <span
+            className="@min-[560px]:hidden mt-0.5 block max-w-[160px] truncate text-[10px] font-normal text-tertiary"
+            title={`Most frequent movers in this filtered source: ${entry.database.frequentPlayers.map((player) => `${player.name}: ${player.games} games`).join(', ')}`}
+          >
+            {entry.database.frequentPlayers
+              .map((player) => `${player.name.split(',')[0]} (${player.games})`)
+              .join(', ')}
+          </span>
+        ) : null}
         {entry.engineRank !== undefined ? (
           <span className="ml-1 text-[9px] text-tertiary">#{entry.engineRank}</span>
         ) : null}
@@ -1111,6 +1135,21 @@ function Row({
           title={players.map((p) => (p.rating ? `${p.name} (${p.rating})` : p.name)).join(', ')}
         >
           {players.length ? players.map((p) => p.name.split(',')[0]).join(', ') : '—'}
+        </td>
+      ) : null}
+      {showFrequentPlayers ? (
+        <td
+          className="@max-[559px]:hidden max-w-[220px] truncate px-1.5 py-1.5 text-secondary"
+          data-explorer-frequent-players
+          title={entry.database.frequentPlayers
+            ?.map((player) => `${player.name}: ${player.games} games`)
+            .join(', ')}
+        >
+          {entry.database.frequentPlayers?.length
+            ? entry.database.frequentPlayers
+                .map((player) => `${player.name.split(',')[0]} (${player.games})`)
+                .join(', ')
+            : '—'}
         </td>
       ) : null}
       <td className="@max-[559px]:hidden max-w-[150px] truncate px-1.5 py-1.5 text-tertiary">
