@@ -21,6 +21,7 @@ import type { Square } from '@/chess/types';
 import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
 
 import { useAnalysisPosition } from './useAnalysisPosition';
+import { SafetySection } from './SafetySection';
 import { StructureSearchPanel } from './StructureSearchPanel';
 
 export function FeaturesPanel() {
@@ -54,6 +55,7 @@ export function FeaturesPanel() {
           <Side title="White" side={features.white} />
           <Side title="Black" side={features.black} />
         </div>
+        {position ? <SafetySection fen={node.fen} parts={position.parts} /> : null}
         <RelationInspector parts={position?.parts ?? null} />
         <StructureSearchPanel fen={node.fen} />
       </PanelBody>

@@ -6,7 +6,7 @@ import type { Shape } from '@/chess/annotations';
 import type { Score } from '@/chess/evaluation';
 import { outcomeAt } from '@/chess/game';
 import type { EngineArrow } from '@/features/board/engine-arrows';
-import type { MoveIntent } from '@/chess/types';
+import type { MoveIntent, Square } from '@/chess/types';
 import { Chessboard } from '@/features/board/Chessboard';
 import { boardFrameVariables, boardTheme } from '@/features/board/themes';
 import { useEngineArrows } from '@/features/board/engine-arrows';
@@ -79,6 +79,14 @@ export function CanonicalBoardSurface({
   const engineRunning = useEngine((state) => state.primary.running);
   const engineName = useEngine((state) => state.primary.identity?.name ?? null);
   const engineArrows = useEngineArrows(node.fen);
+  const boardEmphasis = useUi((state) => state.boardEmphasis);
+  const emphasis = useMemo(
+    () =>
+      boardEmphasis && boardEmphasis.fen === node.fen
+        ? (boardEmphasis.squares as readonly Square[])
+        : EMPTY_SQUARES,
+    [boardEmphasis, node.fen],
+  );
   const boardContainer = useRef<HTMLDivElement>(null);
   const [frameSize, setFrameSize] = useState(320);
   /*
@@ -335,6 +343,7 @@ export function CanonicalBoardSurface({
                   promotionColor={position.turn}
                   shapes={shapes}
                   engineArrows={caps.showEvaluation ? engineArrows : EMPTY_ARROWS}
+                  emphasis={emphasis}
                   onShapeToggle={caps.allowAnnotations ? onShapeToggle : undefined}
                   onShapesClear={caps.allowAnnotations ? () => clearShapes(currentId) : undefined}
                   theme={fallback.theme ?? prefs.boardTheme}
@@ -406,3 +415,4 @@ const sameScore = (a: Score, b: Score): boolean =>
 const EMPTY = new Map<never, never>() as never;
 const EMPTY_SHAPES: readonly Shape[] = [];
 const EMPTY_ARROWS: readonly EngineArrow[] = [];
+const EMPTY_SQUARES: readonly Square[] = [];

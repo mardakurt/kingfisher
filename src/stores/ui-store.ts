@@ -49,6 +49,15 @@ interface UiState {
   settingsOpen: boolean;
   /** Phase 86: the Analysis jobs list. */
   jobsOpen: boolean;
+  /**
+   * Squares a panel wants emphasised on the canonical board while it is
+   * hovered — a piece the safety section names, a threat's two squares.
+   * Keyed by the position it was about, so it never lands on another one.
+   */
+  boardEmphasis: { readonly fen: string; readonly squares: readonly string[] } | null;
+  setBoardEmphasis(
+    emphasis: { readonly fen: string; readonly squares: readonly string[] } | null,
+  ): void;
   setJobsOpen(open: boolean): void;
   /**
    * Which settings section to show when the dialog next opens.
@@ -119,6 +128,8 @@ interface UiState {
 let noticeId = 0;
 
 export const useUi = create<UiState>((set) => ({
+  boardEmphasis: null,
+  setBoardEmphasis: (boardEmphasis) => set({ boardEmphasis }),
   commandPaletteOpen: false,
   commandPalettePrefill: '',
   shortcutsOpen: false,
