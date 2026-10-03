@@ -93,6 +93,12 @@ export function PositionSetupDialog() {
       title="Set up position"
       description="Build a legal position with the same pieces and rules used by the analysis board."
       width="w-[880px]"
+      /*
+        The window's height, not the dialog default's 56%: a 460px board, its
+        hint and the FEN do not fit 504px, so at 1440×900 the hint was cut
+        mid-sentence and the FEN sat below a scroll nobody saw.
+      */
+      bodyClassName="max-h-[calc(100dvh-11rem)] overflow-y-auto px-4 py-3"
       footer={
         <>
           <Button variant="subtle" onClick={() => setOpen(false)}>
