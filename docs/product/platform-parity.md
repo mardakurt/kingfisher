@@ -10,6 +10,16 @@ been published or certified during this audit.
 
 # Platform parity — the web application and the macOS application
 
+**Published revision check (2026-10-03, 1.4.3).** The public Mac download is
+1.4.3 build 1055 from `b9a155feb7125774d85f9774c1f3dfb6c6510436`, stable and
+clean at packaging. The app and DMG are Developer ID signed, notarised and
+stapled. Public bytes match the certified artifact. Both products share the
+1.4.3 application implementation; subsequent publication metadata changes
+the website's download and security claims. The immutable package's embedded
+download descriptor still names 1.4.2. See
+[release handover](../reports/2026-10-03-1.4.3-release-handover.md) for exact
+validation and the Firefox and remote-CI coverage limitations.
+
 **Published revision check (2026-10-03, 1.4.2).** The public Mac download is
 1.4.2 build 1039 from `bf6a8abe0f09ce074b16de1d71ceeb4a0fe6bb30`, stable and
 clean at packaging, application and DMG each notarised and stapled. It is the

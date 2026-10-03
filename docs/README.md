@@ -404,7 +404,7 @@ with [`AGENTS.md`](../AGENTS.md).
   [`release/1.0.0-rc.3.md`](release/1.0.0-rc.3.md),
   [`release/1.0.0-rc.4.md`](release/1.0.0-rc.4.md),
   [`release/1.0.0-rc.5.md`](release/1.0.0-rc.5.md) — release-candidate notes.
-  The current notes are [`release/1.1.9.md`](release/1.1.9.md).
+  The current notes are [`release/1.4.3.md`](release/1.4.3.md).
 - [`../.github/ISSUE_TEMPLATE/`](../.github/ISSUE_TEMPLATE) — issue templates;
   current, and listed here so nothing is unaccounted for.
 - [`../marketing/README.md`](../marketing/README.md) and
@@ -422,3 +422,5 @@ not add a "last updated" line; `git log` already says.
 
 - [Large databases and external storage](operations/large-databases.md)
 - [Independent ChessBase acceptance](operations/independent-chessbase-acceptance.md)
+
+- [`reports/2026-10-03-1.4.3-release-handover.md`](reports/2026-10-03-1.4.3-release-handover.md) — public release identities, source and packaged gates, update evidence and coverage limits.

@@ -1,6 +1,6 @@
-# Launch kit — Kingfisher 1.4.2
+# Launch kit — Kingfisher 1.4.3
 
-Draft copy for the current public release: Kingfisher 1.4.2 on the web and
+Draft copy for the current public release: Kingfisher 1.4.3 on the web and
 macOS (Apple Silicon, macOS 13 or later, Developer ID signed and notarised).
 This kit contains no user counts, endorsements or claims of complete ChessBase
 parity. Check [`marketing-facts.md`](../product/marketing-facts.md) before posting.
@@ -16,11 +16,10 @@ page-view and performance analytics do not run in the Mac application.
 
 ## Release announcement draft
 
-> Kingfisher 1.4.2 adds rated tactics puzzles (24,587 from the CC0 Lichess
-> database, offline, with a solver rating kept from your own attempts),
-> tournament tables for any event in a database, a threats-and-safety view,
-> diagram export, engine matches with an honest Elo interval, and a rating
-> history on every player page.
+> Kingfisher 1.4.3 adds Explorer rating classes and board arrows, Library
+> position and annotation filters, collection players and tournaments, public
+> game downloads from Lichess and Chess.com, Preparation's Costly moves,
+> licensed Wikimedia player photos, and analysis help from a stuck puzzle.
 >
 > Stockfish 18 runs in the browser. The Apple Silicon application offers real
 > native Stockfish, Stormphrax, Viridithas, Halogen, PlentyChess and Lc0 engines,
@@ -31,7 +30,7 @@ page-view and performance analytics do not run in the Mac application.
 > events. Other installed or remote sources retain separate counts, licences
 > and provenance. No combined statistic is presented as a single population.
 >
-> `Kingfisher-1.4.2-arm64.dmg` is Developer ID signed and notarised by Apple.
+> `Kingfisher-1.4.3-arm64.dmg` is Developer ID signed and notarised by Apple.
 > Sparkle checks quietly at launch; Check for Updates opens its native interface.
 > Download and installation require a user action. Work remains in the profile.
 >
