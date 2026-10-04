@@ -74,6 +74,7 @@ export function EnginePanel({ compact = false }: { readonly compact?: boolean })
   const showEngineArrows = usePreferences((state) => state.showEngineArrows);
 
   const prefs = usePreferences();
+  const capabilities = useEngine((state) => state.primary.capabilities);
   const insertUciLine = useAnalysis((state) => state.insertUciLine);
   const attachEvaluation = useAnalysis((state) => state.attachEvaluation);
   const notify = useUi((state) => state.notify);
@@ -220,6 +221,30 @@ export function EnginePanel({ compact = false }: { readonly compact?: boolean })
           label="Engine"
           className={compact ? 'w-28 min-w-0 shrink' : 'w-40 shrink-0'}
         />
+        {/*
+          What the engine is running with, as ChessBase's engine strip says
+          "5 cores · 4 GB": the threads it can actually use (1 for a build
+          that cannot use more, never more than it declares) and its hash,
+          from the engine's own declared capabilities — not the request.
+        */}
+        {capabilities && !compact ? (
+          <span className="shrink-0 tabular text-tertiary" data-engine-resources>
+            {capabilities.threads
+              ? `${Math.max(1, Math.min(prefs.engineThreads, capabilities.maxThreads))} ${
+                  Math.min(prefs.engineThreads, capabilities.maxThreads) === 1
+                    ? 'thread'
+                    : 'threads'
+                }`
+              : '1 thread'}
+            {capabilities.hash
+              ? ` · ${
+                  Math.min(prefs.engineHashMb, capabilities.maxHashMb) >= 1024
+                    ? `${(Math.min(prefs.engineHashMb, capabilities.maxHashMb) / 1024).toFixed(1)} GB`
+                    : `${Math.min(prefs.engineHashMb, capabilities.maxHashMb)} MB`
+                }`
+              : ''}
+          </span>
+        ) : null}
         {analysis && !stale && analysis.depth > 0 && (
           <span className={cn('tabular', stale ? 'text-tertiary/60' : 'text-tertiary')}>
             depth {analysis.depth}
