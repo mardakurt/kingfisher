@@ -14,6 +14,7 @@ real users notice.
   rating, photograph and country flag, result, event and date.
 - **Opening families by colour** and **recent opponents** in Preparation.
 - **Back to the Library / preparation** from an opened game.
+- **Several databases searched together** from the Library; **database icons**.
 - **Frequent players** in companion databases; **figurine notation**; the
   engine's threads and hash beside its name.
 - Fixed: tournament links opened games that merely shared words with the

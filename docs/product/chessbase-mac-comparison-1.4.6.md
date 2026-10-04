@@ -35,6 +35,15 @@ and 1,014 imported games.
 | Figurine moves in the reference table (screenshots 1, 2)                                                                             | Settings → Board → Piece notation: figures from the user's own piece set in the notation and move tables; PGN and copies keep letters                                                                                                                                                                                      |
 | "Fritz 21 · 5 cores · 4 GB" (screenshots 1, 7)                                                                                       | The engine panel shows the threads and hash the engine actually runs with, from its declared capabilities                                                                                                                                                                                                                  |
 
+Also closed, after the owner's second request to close every buildable gap:
+
+- **"Databases 2 of 5"** (screenshot 6): the Library searches several
+  databases together — every row naming its database, nothing merged — and
+  any row opens on the board, a companion database's too. The Databases
+  page's multi-search, which refused to open those games, now opens them.
+- **Database pictures** (screenshot 8): each database can have its own glyph
+  and colour, on the grid and in the sidebar.
+
 ## Defects found and fixed on the way
 
 - A tournament link opened the wrong games (above).
@@ -59,6 +68,4 @@ and 1,014 imported games.
 | Game Title, Text titles, Analysis tabs                                                             | ChessBase-specific record types; the ChessBase reader's preservation matrix says what each becomes                                                            |
 | Style evaluations (Low → Very High), theme games                                                   | A grade needs a reference population and a model of the word; the Style tab states measured facts with their samples                                          |
 | Complete best/frequent players for reference packs                                                 | A pack keeps aggregates and a bounded sample of games per player, not every game's movers                                                                     |
-| Several databases searched from the Library itself                                                 | Databases → tick several → Search searches them together; the Library reads one database                                                                      |
-| Custom database icons                                                                              | Not built; tiles distinguish browser and SQLite collections                                                                                                   |
 | DGT board                                                                                          | The owner's decision                                                                                                                                          |
