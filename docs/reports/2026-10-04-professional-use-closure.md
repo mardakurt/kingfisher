@@ -230,3 +230,45 @@ draft keeps the work, and a resumed page saves again at once. Evidence:
   24 direct routes plus refresh, and 1024×700 layouts.
 - Persistence specs on the production build 42/42 (Chrome + WebKit); the two
   specs that need the development-only repository seam 12/12 on `next dev`.
+
+### G7 — real Lichess corpora, imported and queried (pre-fix measurements)
+
+Imported through the companion's own `/db/import-file` (compact index,
+publisher SHA-256 verified), `scripts/large-db-import.mjs`:
+
+| Archive (CC0)                 | Games accepted | Publisher count | Wall time | Games/s | Peak companion RSS | On disk |
+| ----------------------------- | -------------- | --------------- | --------- | ------- | ------------------ | ------- |
+| 2013-06 (after stop + resume) | 224,679        | 224,679         | 425 s     | 529     | 4.47 GB            | 1.11 GB |
+| 2013-12                       | 578,262        | 578,262         | 763 s     | 758     | 4.24 GB            | 2.68 GB |
+| 2014-07                       | 1,048,440      | 1,048,440       | 1,319 s   | 795     | 5.04 GB            | 5.16 GB |
+
+Stop was honoured in 2.0 s with 40,800 games committed; the resumed import
+added 183,879 and recognised the 40,800 as duplicates. Status polls saw
+occasional `ECONNRESET` on reused keep-alive sockets during import; one retry
+always succeeded and the companion never exited (`companionExit: null`).
+
+Chrome against a production build (`scripts/large-db-ui.mjs`), 43/48 first
+run: open with exact count 44 / 67 / 57 ms; next page 101 / 75 / 72 ms; player
+search 39 / 36 / 36 ms; six rapid queries ending on the last ≈ 300 ms; explorer
+at the start 33–36 ms; collection switch 5 ms. Three defects and two harness
+faults followed:
+
+- **D6 — Lichess archive games had no date (fixed).** The archives carry only
+  `UTCDate`; `normalizeGame` read only `Date`, so all 1,851,381 games were
+  undated and date filters, year windows and date sorts left them out. Now
+  `UTCDate` is used when `Date` names no year; the fingerprint still hashes
+  `Date`, so re-imports still deduplicate. `prepare-game.test.ts` 6/6; with
+  the old rule 3 fail. Collections imported earlier stay undated (re-import).
+- **D7 — the Library footer said "0–0 of N games" while a query ran (fixed).**
+  Seen for 110 ms before the Event filter's correct 213,660 on the 578k
+  collection. It now reads "Reading …" like the list. Browser regression with
+  a 1.5 s delayed companion search: fails without the change, passes with it.
+- **D8 — sorting by player scanned the whole table (fixed).** Sort by White
+  took 4.8 s on 578k games (1.8 s at 225k) because it ordered by the
+  unindexed display column; the indexed player key takes 22 ms on the same
+  file and orders case-insensitively. Opening (79 ms) and date (132 ms) sorts
+  are full sorts but within target and left as they are. Companion case test
+  fails with the old column; 49/49 pass.
+- Harness: the preview/open and post-restart checks failed because the date
+  filter the script set was never cleared (all dates were empty before D6);
+  rerun pending after re-import with dates.

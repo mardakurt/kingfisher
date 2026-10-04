@@ -1447,8 +1447,14 @@ export class GameDatabase {
     const SORTS = {
       importedAt: 'imported_at',
       date: 'date',
-      white: 'white',
-      black: 'black',
+      /*
+        Players sort by their key — the name as matching normalises it — which
+        is indexed. Sorting by the display column scanned and sorted the whole
+        table for a page of 100: 4.8 s on a 578,262-game Lichess collection,
+        against 22 ms through the key's index (closure audit).
+      */
+      white: 'white_key',
+      black: 'black_key',
       rating: 'max_rating',
       opening: 'opening',
     };

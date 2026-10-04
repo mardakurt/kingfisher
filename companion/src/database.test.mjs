@@ -788,7 +788,13 @@ describe('a text search pages exactly as the one-step query would', () => {
     }
   };
 
-  const SORTS = { importedAt: 'imported_at', white: 'white', black: 'black', rating: 'max_rating' };
+  // Players sort by their indexed key (database.mjs `SORTS`), so the oracle does too.
+  const SORTS = {
+    importedAt: 'imported_at',
+    white: 'white_key',
+    black: 'black_key',
+    rating: 'max_rating',
+  };
 
   for (const [sortBy, column] of Object.entries(SORTS)) {
     for (const direction of ['asc', 'desc']) {
@@ -806,7 +812,7 @@ describe('a text search pages exactly as the one-step query would', () => {
     const page = database
       .search({ text: 'test', sortBy: 'white', sortDirection: 'asc', limit: 10, offset: 15 })
       .games.map((game) => game.fingerprint);
-    expect(page).toEqual(oneStep('white', 'ASC', 10, 15));
+    expect(page).toEqual(oneStep('white_key', 'ASC', 10, 15));
   });
 
   it('walks every game exactly once across pages, and no game twice', () => {
@@ -920,4 +926,56 @@ describe('a text search chooses its plan by how many games match, and the page d
       }
     }
   }
+});
+
+/*
+  Sorting players read the display column, which has no index: SQLite scanned
+  and sorted the whole table for one page — 4.8 s on a 578,262-game Lichess
+  collection. The player key is indexed (22 ms on the same file) and is the
+  name as matching normalises it, so the order is alphabetical whatever the
+  case: by the display column, "Bob" came before "alice".
+*/
+describe('sorting by player', () => {
+  let directory;
+  let database;
+
+  beforeEach(() => {
+    directory = mkdtempSync(path.join(tmpdir(), 'kingfisher-player-sort-'));
+    database = new GameDatabase(path.join(directory, 'sort.sqlite'));
+    const names = ['carol', 'Bob', 'alice', 'Dave'];
+    database.insertGames(
+      names.map((white, index) =>
+        entry({
+          fingerprint: `sort-${index}`,
+          white,
+          black: 'Opponent',
+          result: '1-0',
+          year: 2020,
+          rating: 2000,
+          uci: 'e2e4',
+          san: 'e4',
+        }),
+      ),
+    );
+  });
+
+  afterEach(() => {
+    database.close();
+    rmSync(directory, { recursive: true, force: true });
+  });
+
+  it('is alphabetical regardless of case', () => {
+    const page = database.search({ sortBy: 'white', sortDirection: 'asc', limit: 10 });
+    expect(page.games.map((game) => game.white)).toEqual(['alice', 'Bob', 'carol', 'Dave']);
+  });
+
+  it('has an index that serves that order without sorting the table', () => {
+    const plan = new DatabaseSync(path.join(directory, 'sort.sqlite'))
+      .prepare(`EXPLAIN QUERY PLAN SELECT * FROM games ORDER BY white_key ASC, id ASC LIMIT 101`)
+      .all()
+      .map((row) => row.detail)
+      .join(' ');
+    expect(plan).toContain('games_white_key');
+    expect(plan).not.toContain('TEMP B-TREE');
+  });
 });
