@@ -17,7 +17,6 @@ import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { autosaveDelay } from '@/persistence/autosave';
-import { sameGameTree } from '@/chess/tree/equal';
 import {
   continuesUnload,
   newerDraft,
@@ -30,8 +29,10 @@ import { getRepositories } from '@/persistence/repositories';
 import { announceChapterSaved, subscribeCrossTab } from '@/persistence/cross-tab';
 import type { AppRepositories, ChapterRecord, DraftRecord } from '@/persistence/types';
 import { StaleChapterWriteError } from '@/persistence/types';
-import { useAnalysis, selectDirty, UNTITLED_DOCUMENT } from '@/stores/analysis-store';
+import { useAnalysis, selectDirty } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
+import { beginDocumentRequest, observeDocumentRequest } from '@/stores/document-request';
+import { restoreWorkspaceDraft } from '@/stores/restore-draft';
 
 import { invalidateStudies } from './queries';
 
@@ -90,11 +91,11 @@ const freshLaunch = (): boolean => {
  * Returns whether a draft was restored.
  */
 export async function continueStoredDraft(): Promise<boolean> {
+  const isCurrent = beginDocumentRequest();
   const repositories = await getRepositories();
   const draft = await repositories.drafts.get();
-  if (!draft) return false;
-  if (useAnalysis.getState().revision !== 0) return false;
-  await restoreDraft(repositories, draft);
+  if (!draft || !isCurrent() || useAnalysis.getState().revision !== 0) return false;
+  if (!(await restoreWorkspaceDraft(repositories, draft, { isCurrent }))) return false;
   // From here this session is working on it again, so a reload restores it.
   releaseHeldDraft(sessionStore());
   return true;
@@ -103,6 +104,9 @@ export async function continueStoredDraft(): Promise<boolean> {
 /** Wired once, in the shell, so every route keeps the same session alive. */
 export function useWorkspacePersistence(): void {
   const client = useQueryClient();
+  // Capture before child effects can request a document. Boot observes rather
+  // than claiming ownership, so it can never cancel an explicit route load.
+  const restoreOwner = useRef(observeDocumentRequest('workspace'));
   /** Set on mount rather than at render time, so the hook stays pure. */
   const lastChangeAt = useRef(0);
   const firstUnsavedAt = useRef<number | null>(null);
@@ -124,7 +128,9 @@ export function useWorkspacePersistence(): void {
    * "gone". The first move, import or open here releases it — the draft is
    * one slot, "what is on screen", and from then on this is what is.
    */
-  const heldDraft = useRef(false);
+  // Until storage has answered, an untouched initial board must not overwrite
+  // a draft that may still be loading.
+  const heldDraft = useRef(true);
 
   useEffect(() => {
     /*
@@ -137,6 +143,7 @@ export function useWorkspacePersistence(): void {
       revision check below actually tests, at the moment it matters.
     */
     let active = true;
+    const isCurrent = restoreOwner.current;
 
     /*
       Phase 72: a fresh launch opens on the initial position. The draft is
@@ -162,7 +169,15 @@ export function useWorkspacePersistence(): void {
         // The stored draft may be the same work, written by the save pagehide started.
         const continuation = continuesUnload(unload, draft);
         if (continuation && draft) await repositories.drafts.save(draft);
-        if (!active || !draft) return;
+        if (!active) return;
+        if (!draft) {
+          heldDraft.current = false;
+          return;
+        }
+        if (!isCurrent()) {
+          heldDraft.current = useAnalysis.getState().revision === 0;
+          return;
+        }
 
         // Checked here rather than on mount: storage takes a moment to open,
         // and anything the user played in the meantime outranks the draft.
@@ -172,7 +187,11 @@ export function useWorkspacePersistence(): void {
           heldDraft.current = true;
           return;
         }
-        await restoreDraft(repositories, draft, { continuation });
+        const restored = await restoreWorkspaceDraft(repositories, draft, {
+          continuation,
+          isCurrent,
+        });
+        heldDraft.current = !restored && useAnalysis.getState().revision === 0;
       } catch (error) {
         if (!active) return;
         useUi.getState().notify({
@@ -354,14 +373,14 @@ export function useWorkspacePersistence(): void {
     const flushOnHide = () => {
       const state = useAnalysis.getState();
       /*
-        Only work that is really unsaved, and never from a session holding a
-        draft it has not touched: a fresh launch keeps the last session's draft
-        without showing it, and an unload draft of its empty board, taken on
-        the next load as "newer", replaced the held work. `e2e/launch-board`
-        caught it.
+        Cursor, orientation and a newly opened clean document are session
+        work too, even when no authored edit is dirty. Capture them before
+        the asynchronous save can be interrupted. A held or still-loading
+        draft outranks the untouched initial board: never replace it with
+        an unload copy of that empty board (`e2e/launch-board`).
       */
       const holding = heldDraft.current && state.revision === 0;
-      if (selectDirty(state) && !holding) {
+      if (!holding) {
         writeUnloadDraft(localStore(), {
           id: 'active',
           document: state.document,
@@ -500,95 +519,6 @@ async function writeWorkspace(
     unsaved: false,
   });
   return written;
-}
-
-/**
- * Reopen what was on screen.
- *
- * For a chapter the stored chapter normally wins over the draft copy of its
- * tree: the chapter is the record the user believes in. The exception is a
- * draft still marked `unsaved`, which means the last chapter write never
- * landed — a crash, a refused revision, a full disk. That draft holds work the
- * chapter does not, so it is offered rather than silently discarded, and
- * silently *applied* would be just as wrong: the user has to be told which
- * version they are looking at.
- */
-async function restoreDraft(
-  repositories: AppRepositories,
-  draft: DraftRecord,
-  options: { readonly continuation?: boolean } = {},
-): Promise<void> {
-  const analysis = useAnalysis.getState();
-
-  if (draft.document.kind === 'study-chapter') {
-    const chapter = await repositories.studies.getChapter(draft.document.chapterId);
-    if (chapter) {
-      /*
-        A draft this session wrote as the page went away, on a chapter nobody
-        has written since (the revision it was edited from is still the
-        chapter's): it is the same document a moment later, not a rival
-        version, so it is put back as the work in progress — dirty, so
-        autosave writes it to the chapter — rather than offered as a recovery.
-      */
-      if (
-        options.continuation &&
-        draft.unsaved &&
-        draft.document.revision === chapter.revision &&
-        !sameGameTree(draft.tree, chapter.tree)
-      ) {
-        analysis.openDocument({
-          tree: draft.tree,
-          document: { ...draft.document, title: chapter.title, revision: chapter.revision },
-          currentId: draft.tree.nodes[draft.currentId] ? draft.currentId : draft.tree.rootId,
-          orientation: draft.orientation,
-          clean: false,
-        });
-        return;
-      }
-      if (draft.unsaved && !sameGameTree(draft.tree, chapter.tree)) {
-        analysis.openDocument({
-          tree: chapter.tree,
-          document: { ...draft.document, title: chapter.title, revision: chapter.revision },
-          currentId: chapter.tree.nodes[draft.currentId] ? draft.currentId : chapter.tree.rootId,
-          orientation: draft.orientation,
-        });
-        analysis.offerRecovery({
-          draft,
-          chapterTitle: chapter.title,
-          savedAt: chapter.updatedAt,
-        });
-        return;
-      }
-      analysis.openDocument({
-        tree: chapter.tree,
-        document: { ...draft.document, title: chapter.title, revision: chapter.revision },
-        currentId: draft.currentId,
-        orientation: draft.orientation,
-      });
-      return;
-    }
-    // The chapter was deleted elsewhere; keep the work rather than lose it.
-    analysis.openDocument({
-      tree: draft.tree,
-      document: UNTITLED_DOCUMENT,
-      currentId: draft.currentId,
-      orientation: draft.orientation,
-      clean: false,
-    });
-    useUi.getState().notify({
-      tone: 'info',
-      message: 'The chapter you were editing no longer exists.',
-      detail: 'Your analysis was reopened as an untitled analysis.',
-    });
-    return;
-  }
-
-  analysis.openDocument({
-    tree: draft.tree,
-    document: draft.document,
-    currentId: draft.currentId,
-    orientation: draft.orientation,
-  });
 }
 
 /*

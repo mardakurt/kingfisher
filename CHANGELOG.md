@@ -19,6 +19,11 @@ real users notice.
   One engine releases the secondary session.
 - Library database switching clears old header and move-search results. Obsolete
   companion searches are cancelled; companion filters no longer also scan My games.
+- Starting-position links outrank saved-draft restoration. A slow chapter restore
+  cannot overwrite an intervening edit or newer document choice, and initial
+  autosave waits for the stored draft to be read.
+- Immediate reload preserves newly opened clean documents, cursor and orientation,
+  as well as unsaved edits. Held drafts stay protected.
 - Direct FEN links keep their position if a route payload fails. URL cleanup is
   local, preserves other query parameters and the fragment, and permits handing
   the same FEN to the mounted route again.

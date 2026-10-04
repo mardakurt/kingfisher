@@ -7,7 +7,12 @@ and checks the analysis store's document generation, authored revision and immut
 tree before committing it. A newer request, intervening edit or route departure
 invalidates the old load. Autosave acknowledgements do not invalidate it. Game
 openers return whether they committed; callers navigate only on acceptance.
-The workspace provider cancels pending document requests when leaving a route.
+The workspace provider cancels route-bound document requests when leaving a route.
+Boot recovery observes workspace ownership before child effects and survives route
+changes, while explicit requests and authored edits still outrank it.
+`stores/restore-draft.ts` rechecks that ownership after chapter I/O. An untouched
+board holds its previous draft until storage answers. Explicit FEN inputs claim
+priority even when they match the initial board; their URL is consumed locally.
 
 Engine startup/configuration belongs to the active search request. Only its owner
 can clear the pending FEN; a pending search takes precedence over the last analysed
@@ -857,13 +862,15 @@ chain inside a `footer` — the same reason `layout-model.ts` holds no React.
 
 **A reload inside the autosave debounce.** Autosave writes 900 ms after a
 change, and an IndexedDB write does not outlive the page. Since Phase 84 a
-`pagehide` with unsaved work also writes the draft synchronously to
+`pagehide` also writes the live workspace synchronously to
 `localStorage` (`src/persistence/unload-draft.ts`); the next load takes it
 once, prefers it when it is newer than the stored draft, and — for a chapter
 whose revision is still the one it was edited from — puts it back as the work
 in progress rather than as a recovery offer. Before it, a move played just
 before a reload was lost while the header said "Saved"
-(`e2e/study-reload.spec.ts`).
+(`e2e/study-reload.spec.ts`). Clean document selection, cursor and orientation are
+also captured: none requires an authored edit to count as session work. A held or
+still-loading draft is never replaced by the untouched initial board.
 
 Every one of those versions now has a **historical migration fixture**: a real
 IndexedDB database opened at that version, seeded the way a session at that

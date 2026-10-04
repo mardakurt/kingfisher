@@ -94,7 +94,7 @@ export function RecentWorkspace() {
   const continueWork = async () => {
     if (heldDraft) {
       try {
-        await continueStoredDraft();
+        if (!(await continueStoredDraft())) return;
       } catch (error) {
         notify({
           tone: 'error',

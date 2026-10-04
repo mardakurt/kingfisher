@@ -68,6 +68,33 @@ against the previous implementation. All 11 workspace-frame/tab cases passed wit
 the fix. The final full suite now contains 512 cases; the failed 510-case run is
 not a green release gate. Build 1108 is superseded and will not be published.
 
+## Further reload and restoration failures
+
+A real production workflow then found that a starting-position FEN link was
+consumed but overwritten by the previous draft. The initial board matched the
+requested FEN, so the handoff skipped claiming the document before restoration.
+An explicit input now claims priority when the workspace revision is still zero.
+The browser regression also found the first correction insufficient on an
+immediate second reload: clean document changes were not included in the synchronous
+unload draft. Cursor and orientation navigation had the same gap. Pagehide now
+captures the live workspace, including clean state, except while the untouched
+initial board is holding or waiting for a draft.
+
+Chapter restoration also awaited its repository read without rechecking ownership.
+`stores/restore-draft.ts` now owns the restore commit and returns acceptance after
+checking the shared document guard. Boot observes ownership before child effects;
+it cannot supersede an explicit route load, survives route changes, and yields to
+new requests or authored edits. Recent's Continue navigates only on acceptance.
+An untouched initial board is protected from autosave until storage has answered.
+Seven service regressions cover edits, replacement, route departure, newer requests,
+ordinary restore and global boot ownership. Removing the guards made five fail;
+restoring them passed all seven. Two additional browser cases cover starting-FEN
+reload and preserving an existing tree, cursor and flipped orientation.
+
+The 512-case run was stopped at 408 passed, one interrupted and 103 not run to
+include these fixes. It is not a completed gate. The 1109 package is superseded
+and will not be published. The final full suite contains 514 cases.
+
 ## Architecture and data integrity
 
 The workspace remains one analysis store and one canonical board pipeline.
@@ -154,11 +181,12 @@ of this machine/run, not a change attributable to this patch.
 ## Verification status
 
 - Initial unit/integration suite: 398 files, 4,123 tests passed.
-- Final expanded unit/integration suite: 400 files, 4,144 tests passed, no skips.
+- Final expanded unit/integration suite: 401 files, 4,151 tests passed, no skips.
 - Typecheck, lint, format and diff checks passed after application edits.
 - Documentation check: 363/363 before final report linkage.
-- New browser regressions: 8/8 passed in targeted runs; the evolving audit suite passed 508/508 in 34.4 minutes. The subsequent frozen 510-case run failed the FEN handoff case above;
-  the final candidate must complete all 512 cases.
+- New browser regressions: 10/10 passed in targeted runs; 25 restoration, reload and tab cases passed together; the evolving audit suite passed 508/508 in 34.4 minutes. The subsequent frozen 510-case run failed the FEN handoff case above;
+  the 512-case candidate was subsequently stopped for the additional reload defects;
+  the final candidate (build 1110) must complete all 514 cases.
 - Native fleet verifier: Stockfish native 19, Stormphrax 8, Viridithas 20,
   Halogen 16.8, PlentyChess 8 and locally installed Lc0 each verified.
   Berserk, Koivisto and Obsidian have no published darwin-arm64 build.

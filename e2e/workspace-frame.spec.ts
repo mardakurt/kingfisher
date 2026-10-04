@@ -70,6 +70,54 @@ test('the same FEN can be explicitly handed to the mounted route again', async (
   await expect(board.getByRole('gridcell', { name: /^e4, White pawn/ })).toBeVisible();
 });
 
+test('a starting-position link outranks the draft restored on a reload', async ({ page }) => {
+  await page.goto('/analysis');
+  await ready(page);
+  const board = page.getByRole('grid', { name: 'Chessboard' }).first();
+  await board.getByRole('gridcell', { name: /^e2, White pawn/ }).click();
+  await board.getByRole('gridcell', { name: /^e4, empty/ }).click();
+  await expect(page.getByText('· unsaved', { exact: true })).toBeVisible();
+  await expect(page.getByText('· saved', { exact: true })).toBeVisible();
+  const starting = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  await page.goto(`/analysis?fen=${encodeURIComponent(starting)}`);
+  await ready(page);
+  await expect(page).not.toHaveURL(/fen=/);
+  await expect(page.locator('[data-fen-tooltip]')).toHaveText(starting);
+  // A second reload proves that the consumed input became the persisted work.
+  await page.reload();
+  await ready(page);
+  await expect(page.locator('[data-fen-tooltip]')).toHaveText(starting);
+});
+
+test('handing the live board its own FEN keeps the existing game tree', async ({ page }) => {
+  await page.goto('/analysis');
+  await ready(page);
+  await page.getByRole('button', { name: 'Import PGN or FEN', exact: true }).click();
+  const importer = page.getByRole('dialog', { name: 'Import a game or position' });
+  await importer.getByRole('textbox').fill('1. e4 {Keep this analysis} e5 (1... c5) 2. Nf3 *');
+  await importer.getByRole('button', { name: 'Import games', exact: true }).click();
+  await expect(importer).toBeHidden();
+  const fen = await page.locator('[data-fen-tooltip]').textContent();
+  await page.evaluate((position) => {
+    window.history.pushState(null, '', `/analysis?fen=${encodeURIComponent(position!)}`);
+  }, fen);
+  await expect(page).not.toHaveURL(/fen=/);
+  const notation = page.locator('[data-move-tree]').first();
+  await expect(notation).toContainText('Keep this analysis');
+  await expect(notation).toContainText('c5');
+  await expect(notation).toContainText('Nf3');
+  await page.getByRole('button', { name: 'End of line (End)', exact: true }).click();
+  const endFen = await page.locator('[data-fen-tooltip]').textContent();
+  await page.getByRole('button', { name: 'Flip board (F)', exact: true }).click();
+  await page.reload();
+  await ready(page);
+  await expect(page.locator('[data-fen-tooltip]')).toHaveText(endFen!);
+  await expect(
+    page.getByRole('grid', { name: 'Chessboard' }).first().getByRole('gridcell').first(),
+  ).toHaveAccessibleName(/^h1,/);
+  await expect(notation).toContainText('Keep this analysis');
+});
+
 test('every board route offers position setup from its header', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   for (const route of [

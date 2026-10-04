@@ -638,7 +638,14 @@ function PositionFromUrl({ onPosition }: { readonly onPosition?: () => void }) {
     } else {
       const current = useAnalysis.getState();
       const onBoard = current.tree.nodes[current.currentId]?.fen;
-      if (!onBoard || positionKey(onBoard) !== positionKey(parsed.value.fen)) {
+      // The initial board is not a restored document yet. Claim an explicit
+      // URL even when it is the starting position, so a pending draft read
+      // cannot replace it after the parameter has been consumed.
+      if (
+        current.revision === 0 ||
+        !onBoard ||
+        positionKey(onBoard) !== positionKey(parsed.value.fen)
+      ) {
         openDocument({
           tree: createTree(parsed.value.fen, { Event: 'Analysis', Result: '*' }),
           document: { kind: 'untitled', title: 'Untitled analysis' },
