@@ -1423,11 +1423,19 @@ export function GamesWorkspace() {
               : ''}
           </span>
         ) : (
-          <span className="tabular">
-            {filtered === null
-              ? `${visibleFrom.toLocaleString()}–${visibleTo.toLocaleString()} of ${stored.toLocaleString()} games`
-              : `${filtered.toLocaleString()} of ${stored.toLocaleString()} games`}
-            {filtered !== null && filtered > PAGE_SIZE
+          <span className="tabular" data-library-status>
+            {/*
+              While a query is out there is no answer yet, and "0–0 of 578,262
+              games" read as one: no matches. Seen for ~110 ms on a filtered
+              578k-game Lichess collection, and for as long as a slow query
+              takes. The list above already says it is reading; so does this.
+            */}
+            {games.isLoading
+              ? `Reading ${source.name}…`
+              : filtered === null
+                ? `${visibleFrom.toLocaleString()}–${visibleTo.toLocaleString()} of ${stored.toLocaleString()} games`
+                : `${filtered.toLocaleString()} of ${stored.toLocaleString()} games`}
+            {!games.isLoading && filtered !== null && filtered > PAGE_SIZE
               ? ` · ${visibleFrom.toLocaleString()}–${visibleTo.toLocaleString()}`
               : ''}
           </span>
