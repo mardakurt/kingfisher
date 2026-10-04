@@ -14,7 +14,8 @@ interface EvaluationBarProps {
   readonly stale?: boolean;
   /**
    * The score belongs to the position before this one, shown while the
-   * engine catches up. Drawn like a stale reading; the title says which.
+   * engine catches up. Its height is held, the label shows an ellipsis, and
+   * the accessible description identifies the previous position.
    */
   readonly catchingUp?: boolean;
   /** Search depth behind the score, for the title. */
@@ -63,7 +64,8 @@ export function EvaluationBar({
 }: EvaluationBarProps) {
   const layout = evaluationBarLayout(score, orientation, outcome);
   const bottomIsWhite = layout.bottomSide === 'w';
-  const dimmed = !outcome && (stale || catchingUp);
+  const historical = !outcome && (stale || catchingUp);
+  const label = catchingUp && !outcome ? '…' : layout.barLabel;
   const reading = outcome
     ? describeOutcome(outcome)
     : score
@@ -81,13 +83,10 @@ export function EvaluationBar({
       data-evaluation-bar
       data-leading={layout.leading ?? 'none'}
       data-bottom-side={layout.bottomSide}
-      data-stale={dimmed ? 'true' : undefined}
+      data-stale={historical ? 'true' : undefined}
       data-catching-up={catchingUp && !outcome ? 'true' : undefined}
       data-outcome={outcome?.kind}
-      className={cn(
-        'relative flex shrink-0 flex-col overflow-hidden rounded-[var(--radius-board)] bg-eval-black transition-opacity',
-        dimmed && 'opacity-60',
-      )}
+      className="relative flex shrink-0 flex-col overflow-hidden rounded-[var(--radius-board)] bg-eval-black"
       style={{
         width: EVALUATION_BAR_WIDTH,
         /*
@@ -105,7 +104,9 @@ export function EvaluationBar({
         marginBlock: 'calc(var(--eval-ring, 1px) - var(--board-frame-width, 0px))',
       }}
       title={reading}
-      aria-label={outcome ? reading : score ? `Evaluation ${layout.label}` : 'No evaluation'}
+      aria-label={
+        outcome || historical ? reading : score ? `Evaluation ${layout.label}` : 'No evaluation'
+      }
     >
       {/* The band of the side at the top fills the whole bar; the bottom side's band is drawn over it. */}
       <div className={cn('absolute inset-0', bottomIsWhite ? 'bg-eval-black' : 'bg-eval-white')} />
@@ -140,9 +141,9 @@ export function EvaluationBar({
           layout.labelAt === 'bottom' ? 'bottom-1' : 'top-1',
           layout.labelOn === 'w' ? 'text-eval-black' : 'text-eval-white',
         )}
-        style={{ fontSize: barLabelSize(layout.barLabel) }}
+        style={{ fontSize: barLabelSize(label) }}
       >
-        {layout.barLabel}
+        {label}
       </span>
     </div>
   );

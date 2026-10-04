@@ -177,8 +177,9 @@ export function CanonicalBoardSurface({
     the bar answered that window with an even split and "no evaluation",
     every move, for about a tenth of a second: with the 900 ms height
     transition that read as the evaluation collapsing and recovering after
-    each move. The bar now keeps the previous reading, dimmed and titled as
-    the previous position's, until the new search is worth showing. It does
+    each move. The bar now holds the previous geometry, labels it as updating
+    and titles it as the previous position's, until the new search is worth
+    showing. Its black/white bands stay opaque to avoid flashing grey. It does
     so only while a search is actually in flight (`engineRunning`): with the
     engine off, a position without an evaluation says so.
   */

@@ -27,6 +27,30 @@ or new chess feature was added.
 | Slow game opens could overwrite newer choices or edits                 | Async loaders had no ownership check before committing to the shared store                  | Shared document request guard checks token, generation, authored revision and tree; all callers honor acceptance |
 | A pending game could navigate back after leaving its route             | Caller navigated after any fulfilled load                                                   | Route departure cancels pending ownership; navigate only after an accepted load                                  |
 
+## Evaluation-bar flicker reported during the audit
+
+The user observed the black evaluation band flashing grey after each move in a
+Giri–Vachier-Lagrave game. The root cause was the bar's `opacity-60` class during
+engine catch-up and stored readings, rather than a change in which side led.
+The black/white bands now remain opaque. During catch-up the previous geometry
+is held, the score label reads `…`, and the tooltip and accessible description
+explicitly identify the previous position. Stored current-position readings stay
+visible; checkmate and rule-based draws still outrank engine updates.
+
+Two component regressions failed before the fix and pass after it. A real
+Stockfish browser regression imports the sourceable Marshall–Capablanca 1909
+game from the existing annotated corpus, steps 20 moves forward and 10 back,
+and samples DOM changes and animation frames. It observed actual catch-up,
+constant opacity and honest pending labels. It failed against the original bar
+because sampled opacity dropped below 1. After restoring the fix, all eight
+targeted engine browser tests passed, including orientation and engine arrows. The user's exact game/date was not
+identified; no claim to have replayed that specific game is made.
+
+The earlier 509-case candidate run was intentionally stopped at 190 passed,
+one interrupted and 318 not run to include this fix. The build-1107 packaging
+attempt was cancelled during signing and was never published. A new frozen
+candidate must complete all gates.
+
 ## Architecture and data integrity
 
 The workspace remains one analysis store and one canonical board pipeline.
@@ -113,17 +137,17 @@ of this machine/run, not a change attributable to this patch.
 ## Verification status
 
 - Initial unit/integration suite: 398 files, 4,123 tests passed.
-- Final expanded unit/integration suite: 399 files, 4,142 tests passed, no skips.
+- Final expanded unit/integration suite: 400 files, 4,144 tests passed, no skips.
 - Typecheck, lint, format and diff checks passed after application edits.
 - Documentation check: 363/363 before final report linkage.
-- New browser regressions: 5/5 passed; the evolving audit suite passed 508/508 in 34.4 minutes. A fresh frozen
-  candidate run includes all 509 cases.
+- New browser regressions: 6/6 passed; the evolving audit suite passed 508/508 in 34.4 minutes. A fresh frozen
+  candidate run includes all 510 cases after the evaluation-bar fix.
 - Native fleet verifier: Stockfish native 19, Stormphrax 8, Viridithas 20,
   Halogen 16.8, PlentyChess 8 and locally installed Lc0 each verified.
   Berserk, Koivisto and Obsidian have no published darwin-arm64 build.
 - Exploratory full browser run intentionally stopped after 342 passed cases (one interrupted and 161 not run) to build
   and restart against the final source. It is not a completed release gate.
-- Frozen 1.4.7 production build passed. Benchmark passed: 100,000-game PGN parsing
+- Frozen 1.4.7 production build passed again after the evaluation-bar fix. Benchmark passed: 100,000-game PGN parsing
   and aggregation, 20,000 rules operations, 10,000-game SQLite collections,
   preparation, seven performance tests and the bundle report. The live SQLite
   benchmark was skipped because no external companion token was configured;
@@ -143,6 +167,15 @@ of this machine/run, not a change attributable to this patch.
 | Repertoire, preparation, training and review | Existing full browser workflows are being rerun; default direct-route/reload scan passed                                                            |
 | Accessibility and panel layouts              | Existing keyboard, focus and resize browser gates plus a 1024×700 overflow scan; no radical restyle                                                 |
 | Long sessions and packaged Mac               | Extended leak soak, full packaged certification and wall-clock soak still pending                                                                   |
+
+## Build dependency maintenance
+
+GitHub reported GHSA-ch52-4w7c-c8xp in `http-cache-semantics` 4.2.0, a desktop
+build-only dependency through electron-builder's download tooling. The maintainer
+disputes the report in [upstream issue 56](https://github.com/kornelski/http-cache-semantics/issues/56).
+The compatible dependency was refreshed to 4.3.0; npm reports zero desktop
+vulnerabilities. This is dependency maintenance, not a reproduced runtime
+security fix or a full security audit.
 
 ## Remaining acceptance and technical debt
 

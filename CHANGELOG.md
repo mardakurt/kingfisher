@@ -6,6 +6,10 @@ real users notice.
 
 ## 1.4.7 — 2026-10-04
 
+- The evaluation bar keeps its black/white bands opaque between moves. While
+  the engine catches up, the previous geometry is held with an ellipsis instead
+  of flashing grey or presenting an old score as current.
+
 - Engine startup can be stopped immediately, unavailable engines can be retried,
   and startup/configuration failures dispose failed sessions. Rapid navigation
   cannot revive stopped searches or apply a previous position's evidence.
