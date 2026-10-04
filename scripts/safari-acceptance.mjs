@@ -138,6 +138,52 @@ async function button(name) {
 }
 const text = () => run('return document.body.innerText');
 
+/** What the page holds: board, session markers, drafts, notices. For a failure's report. */
+function pageState(done) {
+  const base = {
+    fen: (document.querySelector('[data-fen-tooltip]') || {}).textContent,
+    session: sessionStorage.getItem('kingfisher.session'),
+    held: sessionStorage.getItem('kingfisher.session.held'),
+    footer: ((document.querySelector('footer') || {}).innerText || '')
+      .replace(/\s+/g, ' ')
+      .slice(0, 160),
+    notices: Array.from(document.querySelectorAll('[role=alert],[role=status]'))
+      .map((e) => e.innerText)
+      .join(' | ')
+      .slice(0, 300),
+    url: location.href,
+  };
+  // An IndexedDB that does not answer is itself the finding; never wait for ever.
+  const timer = setTimeout(
+    () => done({ ...base, drafts: 'IndexedDB did not answer in 3 s' }),
+    3000,
+  );
+  const finish = done;
+  done = (value) => {
+    clearTimeout(timer);
+    finish(value);
+  };
+  const request = indexedDB.open('kingfisher');
+  request.onsuccess = () => {
+    const db = request.result;
+    if (!Array.from(db.objectStoreNames).includes('drafts')) return done(base);
+    const q = db.transaction('drafts').objectStore('drafts').getAll();
+    q.onsuccess = () =>
+      done({
+        ...base,
+        drafts: q.result.map(
+          (d) => `${d.id}:${Object.keys(d.tree.nodes).length}:${d.document.kind}`,
+        ),
+      });
+  };
+  request.onerror = () => done(base);
+}
+const state = () =>
+  wd('POST', '/session/:s/execute/async', {
+    script: `(${pageState.toString()})(arguments[0])`,
+    args: [],
+  });
+
 async function main() {
   const driver = spawn('safaridriver', ['-p', String(PORT)], { stdio: 'ignore' });
   await wait(1500);
@@ -214,10 +260,68 @@ async function main() {
     );
     await keys(KEY.End);
     await wait(2500); // autosave
+    const beforeReload = await state();
     await wd('POST', '/session/:s/refresh', {});
     await ready();
     await wait(1000);
-    check('the game survives a reload', (await fen()) === afterMoves, await fen());
+    const afterReload = await state();
+    check(
+      'the game survives a reload',
+      (await fen()) === afterMoves,
+      `${await fen()}\n      before: ${JSON.stringify(beforeReload)}\n      after:  ${JSON.stringify(afterReload)}`,
+    );
+
+    /*
+      Leaving by a full navigation with an unsaved edit, and coming back. Safari
+      keeps the page it left in its back-forward cache; before the fix, a write
+      that page had open held the drafts store locked, the edit was not
+      restored, the status bar said "saved" and later edits never saved.
+    */
+    const savedWithin = async (ms) => {
+      for (let waited = 0; waited < ms; waited += 250) {
+        const footer = await run(`return (document.querySelector('footer') || {}).innerText || ''`);
+        if (/· saved/.test(footer) && !/· (unsaved|saving…|not saved)/.test(footer)) return true;
+        await wait(250);
+      }
+      return false;
+    };
+    const fresh2 = await button('New analysis');
+    if (fresh2) await click(fresh2);
+    await wait(400);
+    await play('e2', 'e4');
+    const leftWith = await fen();
+    await go(`${BASE}/terms`);
+    await wait(1500);
+    await go(`${BASE}/analysis`);
+    await ready();
+    await wait(1500);
+    const cameBack = await fen();
+    check(
+      'an unsaved edit survives leaving by a full navigation and coming back',
+      cameBack === leftWith && (await savedWithin(6000)),
+      `${cameBack}\n      ${JSON.stringify(await state())}`,
+    );
+    await play('e7', 'e5');
+    check('and the next edit saves', await savedWithin(6000), JSON.stringify(await state()));
+    await play('g1', 'f3');
+    const beforeBack = await fen();
+    await go(`${BASE}/terms`);
+    await wait(1500);
+    await wd('POST', '/session/:s/back', {});
+    await wait(2000);
+    check(
+      'leaving and returning with Back resumes the page and saves its work',
+      (await fen()) === beforeBack && (await savedWithin(6000)),
+      JSON.stringify(await state()),
+    );
+    await go(`${BASE}/analysis`);
+    await ready();
+    await wait(1500);
+    check(
+      '…and a fresh load afterwards shows that work',
+      (await fen()) === beforeBack,
+      await fen(),
+    );
 
     const importButton = await button('Import PGN or FEN');
     await click(importButton);
@@ -259,10 +363,17 @@ async function main() {
     if (stop) await click(stop);
 
     // --- explorer on the bundled source -----------------------------------------
-    await go(`${BASE}/openings`);
+    await go(`${BASE}/analysis`);
     await ready();
-    const explorerMode = (await find(`//button[normalize-space(.)='Explorer']`))[0];
-    if (explorerMode) await click(explorerMode);
+    const newBoard = await button('New analysis');
+    if (newBoard) await click(newBoard);
+    const explorerTab = (
+      await wd('POST', '/session/:s/elements', {
+        using: 'css selector',
+        value: '[data-tab-id="explorer"]',
+      })
+    ).map((entry) => entry[ELEMENT])[0];
+    if (explorerTab) await click(explorerTab);
     let rows = 0;
     for (let i = 0; i < 60 && rows === 0; i++) {
       await wait(1000);

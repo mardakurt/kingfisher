@@ -223,8 +223,31 @@ class NativeTransaction implements PersistenceTransaction {
 export const UPGRADED_ELSEWHERE_MESSAGE =
   'Kingfisher was updated in another tab. Reload this tab to keep working.';
 
+/**
+ * What a write attempted while the page sits in the back-forward cache is told.
+ * The page cannot write until it is shown again; its work is in the unload
+ * draft (`unload-draft.ts`), and a resumed page saves again at once.
+ */
+export const SUSPENDED_MESSAGE =
+  'This page is suspended in the browser’s history cache; it saves again when it is shown.';
+
 class NativeDatabase implements PersistenceDatabase {
   private upgradedElsewhere = false;
+  /**
+   * Transactions not yet finished, and whether the page is frozen.
+   *
+   * Safari keeps a page it navigates away from in its back-forward cache, and
+   * freezes it with any IndexedDB transaction still open — holding that
+   * transaction's lock for as long as the page stays cached. The next page of
+   * the same origin then waited for ever on the `drafts` store: the work made
+   * before leaving was not restored, the status bar said "saved", and every
+   * later edit stayed at "saving…" (found driving Safari 27 for the closure
+   * audit; `scripts/safari-acceptance.mjs`). A page going into the cache now
+   * aborts what it has open — the work is in the synchronous unload draft —
+   * and opens nothing new until it is shown again.
+   */
+  private readonly open = new Set<IDBTransaction>();
+  private frozen = false;
 
   constructor(private readonly value: IDBDatabase) {}
 
@@ -233,9 +256,38 @@ class NativeDatabase implements PersistenceDatabase {
     this.upgradedElsewhere = true;
   }
 
-  private readonly(stores: readonly StoreName[]): NativeTransaction {
+  /** The page is entering the back-forward cache: release every lock it holds. */
+  freeze(): void {
+    this.frozen = true;
+    for (const native of [...this.open]) {
+      try {
+        native.abort();
+      } catch {
+        // Already finished between the event and here.
+      }
+    }
+    this.open.clear();
+  }
+
+  /** The page was shown again from the cache. */
+  thaw(): void {
+    this.frozen = false;
+  }
+
+  private begin(stores: readonly StoreName[], mode: IDBTransactionMode): IDBTransaction {
     if (this.upgradedElsewhere) throw new Error(UPGRADED_ELSEWHERE_MESSAGE);
-    return new NativeTransaction(this.value.transaction(stores, 'readonly'));
+    if (this.frozen) throw new Error(SUSPENDED_MESSAGE);
+    const native = this.value.transaction(stores, mode);
+    this.open.add(native);
+    const finished = () => this.open.delete(native);
+    native.addEventListener('complete', finished);
+    native.addEventListener('abort', finished);
+    native.addEventListener('error', finished);
+    return native;
+  }
+
+  private readonly(stores: readonly StoreName[]): NativeTransaction {
+    return new NativeTransaction(this.begin(stores, 'readonly'));
   }
 
   // `async`, so a connection that can no longer open a transaction rejects
@@ -285,8 +337,7 @@ class NativeDatabase implements PersistenceDatabase {
     mode: IDBTransactionMode,
     work: (transaction: PersistenceTransaction) => Promise<T>,
   ): Promise<T> {
-    if (this.upgradedElsewhere) throw new Error(UPGRADED_ELSEWHERE_MESSAGE);
-    const native = this.value.transaction(stores, mode);
+    const native = this.begin(stores, mode);
     const done = complete(native);
     try {
       const result = await work(new NativeTransaction(native));
@@ -407,6 +458,15 @@ export async function openPersistenceDatabaseAt(
     database.markUpgradedElsewhere();
     value.close();
   };
+  // Registered at open, so it runs before any later `pagehide` work tries to write.
+  if (typeof window !== 'undefined') {
+    window.addEventListener('pagehide', (event) => {
+      if (event.persisted) database.freeze();
+    });
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted) database.thaw();
+    });
+  }
   return database;
 }
 

@@ -202,3 +202,31 @@ Seeds after the fix (120 actions each, all **0 chapter moves missing**):
 D4's fix was the test's oracle, not the product: it recorded the chapter and
 position _before_ a move whose board a pending switch replaced between choice
 and click. The oracle now records where the move landed.
+
+### D5 — Safari: leaving and coming back lost the last edit and stalled saving (fixed)
+
+Found by the first real-Safari run (`scripts/safari-acceptance.mjs`, Safari
+27.0.1 via `safaridriver`). Minimal reproduction: play a move, leave Kingfisher
+by a full navigation while it is unsaved, come back by loading `/analysis`.
+On return the edit was gone (0 half-moves), the status bar said "· saved",
+every later edit stayed at "· saving…", and the app's `drafts.get` never
+answered while `studies.list` did. Safari had frozen the page it left in its
+back-forward cache (`pagehide.persisted === true`, even with an `unload`
+listener) with the draft write's IndexedDB transaction open, and that lock
+held the `drafts` store for every later page of the origin. WebKit automation
+under Playwright never navigates this way, which is why no earlier run saw it.
+
+Fix: `NativeDatabase` tracks open transactions; a `pagehide` with `persisted`
+aborts them and refuses new ones until `pageshow`; the synchronous unload
+draft keeps the work, and a resumed page saves again at once. Evidence:
+
+- Unit `database.back-forward-cache.test.ts` 3/3; with the freeze call
+  disabled, 2 fail.
+- Real Safari before: minimal flow lost the move and stalled (log above).
+  After: the move is restored, the store answers, the next edit saves.
+- `safari-acceptance.mjs` now **15/15** on a production build of the fix,
+  including leave-and-return by fresh load and by Back, reload, PGN import
+  with a variation and comment, browser Stockfish, the built-in explorer,
+  24 direct routes plus refresh, and 1024×700 layouts.
+- Persistence specs on the production build 42/42 (Chrome + WebKit); the two
+  specs that need the development-only repository seam 12/12 on `next dev`.

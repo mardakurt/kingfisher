@@ -550,6 +550,10 @@ async function offlineRound(n) {
     });
   });
   await route('Analysis');
+  // Inside the built-in reference's depth, so silence would mean it failed offline.
+  await p.evaluate(() => document.activeElement?.blur?.());
+  await p.keyboard.press('Home');
+  for (let i = 0; i < 4; i++) await p.keyboard.press('ArrowRight');
   await tool('Explorer');
   const offlineRows = await dock()
     .locator('[data-explorer-row]')

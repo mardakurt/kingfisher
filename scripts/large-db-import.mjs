@@ -42,7 +42,19 @@ mkdirSync(DIR, { recursive: true });
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const base = `http://127.0.0.1:${PORT}`;
-async function post(route, body) {
+async function post(route, body, attempts = 3) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await postOnce(route, body);
+    } catch (error) {
+      // A reset keep-alive socket is not a failed import; a dead companion fails every attempt.
+      if (attempt >= attempts || !/fetch failed/.test(String(error))) throw error;
+      console.log(`  ${route}: ${String(error.cause?.code ?? error)} — retrying (${attempt})`);
+      await wait(1000);
+    }
+  }
+}
+async function postOnce(route, body) {
   const response = await fetch(`${base}${route}`, {
     method: 'POST',
     headers: { authorization: `Bearer ${TOKEN}`, 'content-type': 'application/json' },
@@ -80,6 +92,11 @@ const companion = spawn(process.execPath, ['companion/src/server.mjs'], {
   stdio: ['ignore', 'ignore', 'inherit'],
 });
 const report = { startedAt: new Date().toISOString(), companionPid: companion.pid, tiers: [] };
+// If the companion ends, say how: a crash and a dropped connection look alike from fetch.
+companion.on('exit', (code, signal) => {
+  report.companionExit = { code, signal, at: new Date().toISOString() };
+  console.log(`  companion exited: code ${code} signal ${signal}`);
+});
 
 async function importInto(key, tier, { stopAt } = {}) {
   const { jobId } = await post('/db/import-file', {

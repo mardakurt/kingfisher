@@ -411,8 +411,17 @@ export function useWorkspacePersistence(): void {
       }
       void save();
     };
+    /*
+      Shown again from the back-forward cache: the write that was open when
+      the page was frozen was aborted (indexeddb/database.ts `freeze`), so the
+      work is still dirty. Save it now rather than at the next edit.
+    */
+    const resume = (event: PageTransitionEvent) => {
+      if (event.persisted) void save();
+    };
     document.addEventListener('visibilitychange', flush);
     window.addEventListener('pagehide', flushOnHide);
+    window.addEventListener('pageshow', resume);
 
     /*
       Another tab wrote the chapter this one is showing.
@@ -449,6 +458,7 @@ export function useWorkspacePersistence(): void {
       unsubscribeTabs();
       document.removeEventListener('visibilitychange', flush);
       window.removeEventListener('pagehide', flushOnHide);
+      window.removeEventListener('pageshow', resume);
     };
     // The query client is a stable per-application instance; listing it would
     // suggest this autosave session can be torn down and rebuilt, which is the
