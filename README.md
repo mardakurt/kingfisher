@@ -280,7 +280,7 @@ source-labelled variation tree of recorded practice and copy its PGN.
 
 The sections below are the record of what each phase set out to fix, kept
 because the reasons are still the reasons. They are history, not a status line:
-the source and the public Mac download are both **Kingfisher 1.4.6**. Current release status is in
+the source and the public Mac download are both **Kingfisher 1.4.7**. Current release status is in
 [`docs/product/platform-parity.md`](docs/product/platform-parity.md), and
 what changed is in [`CHANGELOG.md`](CHANGELOG.md); the 1.0.0 notes are in
 [`docs/release/1.0.0.md`](docs/release/1.0.0.md).
