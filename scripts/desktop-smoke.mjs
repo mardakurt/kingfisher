@@ -26,7 +26,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { argv, exit } from 'node:process';
 
-import { ROOT, alive, descendants, launchKingfisher } from './desktop-lib/launch.mjs';
+import { ROOT, alive, descendants, launchKingfisher, shellLog } from './desktop-lib/launch.mjs';
 
 const args = {
   packaged: argv.includes('--packaged'),
@@ -86,6 +86,29 @@ async function main() {
   }
   const { app, window, readyMs: ready, pid: shellPid, executable } = launched;
   console.log(`launched ${executable}\n`);
+  const rendererErrors = [];
+  window.on('console', (message) => {
+    if (message.type() === 'error') rendererErrors.push(message.text().slice(0, 300));
+  });
+  window.on('pageerror', (error) => rendererErrors.push(`pageerror: ${error.message}`));
+  /** When a check fails, what the page showed — so a remote failure is evidence, not a guess. */
+  const evidence = async (label) => {
+    const text = await window
+      .evaluate(() => document.body.innerText.slice(0, 700))
+      .catch(() => '?');
+    console.log(`    page text: ${text.replace(/\s+/g, ' ')}`);
+    if (rendererErrors.length) console.log(`    renderer errors: ${rendererErrors.join(' | ')}`);
+    const directory = process.env.KINGFISHER_SMOKE_ARTIFACTS;
+    if (directory) {
+      await window
+        .screenshot({ path: path.join(directory, `${label}.png`) })
+        .catch(() => undefined);
+      writeFileSync(
+        path.join(directory, `${label}-shell.log`),
+        shellLog(path.join(workspace, 'profile')),
+      );
+    }
+  };
   if (args.offline) check('the network is cut, loopback is not', true);
 
   // 1. A window, on the shell's own server.
@@ -152,6 +175,7 @@ async function main() {
     fromArgv !== null,
     fromArgv ?? 'the move list never showed the game the shell was launched with',
   );
+  if (!fromArgv) await evidence('pgn-from-argv');
 
   // 5. A document reaches the application.
   await app.evaluate(({ BrowserWindow }, file) => {
@@ -179,6 +203,7 @@ async function main() {
     opened !== null,
     opened ?? 'the move list never showed the game',
   );
+  if (!opened) await evidence('pgn-from-shell');
 
   /*
     5b. Offline: the local half of the workstation must still work.

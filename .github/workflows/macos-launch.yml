@@ -66,4 +66,15 @@ jobs:
           defaults read "$KINGFISHER_DESKTOP_APP/Contents/Info.plist" LSMinimumSystemVersion
 
       - name: Packaged smoke
-        run: node scripts/desktop-smoke.mjs --packaged
+        run: |
+          export KINGFISHER_SMOKE_ARTIFACTS="$RUNNER_TEMP/smoke"
+          mkdir -p "$KINGFISHER_SMOKE_ARTIFACTS"
+          node scripts/desktop-smoke.mjs --packaged
+
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: smoke-${{ matrix.os }}
+          path: ${{ runner.temp }}/smoke
+          if-no-files-found: ignore
