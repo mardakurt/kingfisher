@@ -166,8 +166,17 @@ async function main() {
   for (let attempt = 0; attempt < 60 && !fromArgv; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 100));
     fromArgv = await window.evaluate(() => {
+      /*
+        The status bar's half-move count is on screen at every width; the move
+        list is not — in a 1024-pixel window (a macOS 15 runner's screen) the
+        tools sit below the board with the Engine tab showing, and this check
+        reported a game that had opened as one that had not.
+      */
       const text = document.body.innerText;
-      return text.includes('Bb5') && text.includes('a6') ? 'the game is on the board' : null;
+      if (text.includes('Bb5') && text.includes('a6')) return 'the game is on the board';
+      return /\b6 half-moves\b/.test(document.querySelector('footer')?.innerText ?? '')
+        ? 'the game is on the board (6 half-moves)'
+        : null;
     });
   }
   check(
@@ -195,7 +204,11 @@ async function main() {
     await new Promise((resolve) => setTimeout(resolve, 100));
     opened = await window.evaluate(() => {
       const text = document.body.innerText;
-      return text.includes('Bb5') && text.includes('a6') ? 'the move list shows Bb5 … a6' : null;
+      if (text.includes('Bb5') && text.includes('a6')) return 'the move list shows Bb5 … a6';
+      // As above: the status bar, when the move list is not on screen.
+      return /\b6 half-moves\b/.test(document.querySelector('footer')?.innerText ?? '')
+        ? 'the status bar counts its 6 half-moves'
+        : null;
     });
   }
   check(
