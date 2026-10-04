@@ -10,6 +10,7 @@
  * seven-column table at 320px is a table nobody can read.
  */
 
+import { useResearchHistory } from '@/stores/research-history-store';
 import { CountryFlag } from '@/features/player/CountryFlag';
 import { PlayerPortrait } from '@/features/player/PlayerPortrait';
 import { siteLabel } from '@/features/movetree/GameHeaderCard';
@@ -219,30 +220,43 @@ export function GamesWorkspace() {
       restoreScrollTo.current = game;
     }
   }, []);
+  /** The search on screen, written into a set of address parameters. */
+  const withSearch = (params: URLSearchParams): URLSearchParams => {
+    const set = (key: string, value: string) =>
+      value ? params.set(key, value) : params.delete(key);
+    set('q', text.trim());
+    set('player', player.trim());
+    set('opponent', opponent.trim());
+    set('db', sourceId !== LOCAL_SOURCE.id ? sourceId : '');
+    set('event', header.event.trim());
+    set('from', header.fromDate);
+    set('to', header.toDate);
+    return params;
+  };
+  /**
+   * This list's address now, not after the typing debounce: a game opened
+   * within 400 ms of typing recorded a way back without the search in it.
+   */
+  const addressNow = (): string => {
+    const params = withSearch(new URLSearchParams(window.location.search));
+    if (page > 0) params.set('page', String(page + 1));
+    else params.delete('page');
+    if (previewId) params.set('game', previewId);
+    else params.delete('game');
+    const search = params.toString();
+    return `${window.location.pathname}${search ? `?${search}` : ''}`;
+  };
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      const params = new URLSearchParams(window.location.search);
-      if (text.trim()) params.set('q', text.trim());
-      else params.delete('q');
-      if (player.trim()) params.set('player', player.trim());
-      else params.delete('player');
-      if (opponent.trim()) params.set('opponent', opponent.trim());
-      else params.delete('opponent');
-      if (sourceId !== LOCAL_SOURCE.id) params.set('db', sourceId);
-      else params.delete('db');
-      if (header.event.trim()) params.set('event', header.event.trim());
-      else params.delete('event');
-      if (header.fromDate) params.set('from', header.fromDate);
-      else params.delete('from');
-      if (header.toDate) params.set('to', header.toDate);
-      else params.delete('to');
-      const search = params.toString();
+      const search = withSearch(new URLSearchParams(window.location.search)).toString();
       const next = `${window.location.pathname}${search ? `?${search}` : ''}`;
       if (next !== `${window.location.pathname}${window.location.search}`) {
         window.history.replaceState(window.history.state, '', next);
       }
     }, 400);
     return () => window.clearTimeout(timer);
+    // withSearch reads exactly these.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text, player, opponent, sourceId, header.event, header.fromDate, header.toDate]);
   /*
     The page and the previewed game go into the address at once, not after
@@ -448,6 +462,15 @@ export function GamesWorkspace() {
       const ply = at ?? foundAt.get(game.id);
       if (local) await openStoredGame(game.id, ply === undefined ? {} : { ply });
       else await openSourceGame(source, game, ply === undefined ? {} : { ply });
+      /*
+        "← Back to the Library", as ChessBase heads an opened game with
+        "‹ Library": the address holds the search, the page and the previewed
+        game, so going back is this exact list, with this game selected.
+      */
+      useResearchHistory.getState().push({
+        href: addressNow(),
+        label: text.trim() ? `the Library: “${text.trim()}”` : `the Library: ${source.name}`,
+      });
       router.push(destination);
     } catch (error) {
       notify({

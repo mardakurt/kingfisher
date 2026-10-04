@@ -1,5 +1,6 @@
 'use client';
 
+import { useResearchHistory } from '@/stores/research-history-store';
 import { useTabField } from '@/features/tabs/tab-fields';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -403,6 +404,11 @@ export function PreparationWorkspace({
         title: `${game.white} – ${game.black}${game.year ? `, ${game.year}` : ''}`,
       },
       orientation: side === 'b' ? 'w' : 'b',
+    });
+    // "← Back to preparation against …", to this report as it was.
+    useResearchHistory.getState().push({
+      href: `/preparation?${new URLSearchParams({ player: submitted, ...(side === 'any' ? {} : { side }) }).toString()}`,
+      label: `preparation against ${submitted}`,
     });
     router.push('/analysis');
   };
