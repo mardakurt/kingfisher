@@ -113,3 +113,65 @@ test('a failed chapter read keeps the current board and chapter selection', asyn
   await expect(page.getByRole('button', { name: 'e4', exact: true })).toBeHidden();
   await expect(page.locator('footer').filter({ hasText: 'half-moves' })).toContainText('Original');
 });
+
+/*
+  Found by e2e/cross-tab-stress.spec.ts. The board held a document that is not
+  a chapter (here a fresh analysis), a chapter read was pending, and a move was
+  played. The edit correctly cancelled the switch and stayed in its own
+  document — but the list kept the clicked chapter selected and the header kept
+  its title, so every later move went somewhere the screen said it did not.
+*/
+test('a switch cancelled over a non-chapter board names no chapter and opens none over the edit', async ({
+  page,
+}) => {
+  const sections = page.getByRole('navigation', { name: 'Sections' });
+  await sections.getByRole('link', { name: 'Analysis', exact: true }).click();
+  await page.getByRole('button', { name: 'New analysis' }).first().click();
+  await expect(page.locator('footer').filter({ hasText: 'half-moves' })).toContainText(
+    'Untitled analysis',
+  );
+  await page.evaluate(() => {
+    const probe = window as unknown as ReadProbeWindow;
+    const repository = probe.__kingfisher.studies;
+    const read = repository.getChapter.bind(repository);
+    const gate = new Promise<void>((resolve) => {
+      probe.__releaseChapterRead = resolve;
+    });
+    repository.getChapter = async (id) => {
+      probe.__chapterReadStarted = true;
+      await gate;
+      return read(id);
+    };
+  });
+  await sections.getByRole('link', { name: 'Studies', exact: true }).click();
+  await page.getByRole('button', { name: /Target 1 move$/ }).click();
+  await page.waitForFunction(() => (window as unknown as ReadProbeWindow).__chapterReadStarted);
+  await play(page, 'c2', 'c4');
+  await page.evaluate(() => (window as unknown as ReadProbeWindow).__releaseChapterRead!());
+
+  await expect(page.getByText('Chapter switch cancelled', { exact: false })).toBeVisible();
+  // The board keeps the edit, in the document the status bar names…
+  await expect(page.getByRole('button', { name: 'c4', exact: true })).toBeVisible();
+  await expect(page.locator('footer').filter({ hasText: 'half-moves' })).toContainText(
+    'Untitled analysis',
+  );
+  // …and no chapter claims to be what the board holds, now or a moment later.
+  for (const settleMs of [0, 2_000]) {
+    await page.waitForTimeout(settleMs);
+    await expect(
+      page
+        .locator('[data-chapter-row] [aria-current="true"], [aria-current="true"]')
+        .filter({ hasText: /Original|Target/ }),
+    ).toHaveCount(0);
+    await expect(page.getByText(/The board holds Untitled analysis, not a chapter/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'c4', exact: true })).toBeVisible();
+  }
+
+  // An explicit choice ends it: the chapter opens, and the analysis was kept.
+  await page.getByRole('button', { name: /Original 1 move$/ }).click();
+  await expect(page.getByRole('button', { name: /Original 1 move$/ })).toHaveAttribute(
+    'aria-current',
+    'true',
+  );
+  await expect(page.getByRole('button', { name: 'd4', exact: true })).toBeVisible();
+});

@@ -34,6 +34,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/Panel';
 import { PromptDialog } from '@/components/ui/PromptDialog';
 import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
+import { documentTitle } from '@/persistence/describe';
 import { StudySaveStatus } from '@/persistence/StudySaveStatus';
 import {
   invalidateStudies,
@@ -81,6 +82,18 @@ export function StudiesWorkspace() {
   */
   const [chosenStudyId, setChosenStudyId] = useState<StudyId | null>(null);
   const [chosenChapterId, setChosenChapterId] = useState<string | null>(null);
+  /*
+    The board holds something that is not a chapter of this study, after a
+    chapter switch was cancelled by an edit or failed. Nothing is selected and
+    the first-chapter fallback stays off: selecting a chapter here would name a
+    document the board does not hold, and opening one would replace the work
+    the cancellation protected. Ends with an explicit choice, or when the board
+    holds anything else, or another study is shown.
+  */
+  const [detachedFrom, setDetachedFrom] = useState<{
+    readonly document: unknown;
+    readonly studyId: StudyId | null;
+  } | null>(null);
   /*
     A link into a study — a position-search hit, `?study=…&chapter=…&node=…` —
     chooses the chapter it names, and the move in it. Read through
@@ -131,6 +144,11 @@ export function StudiesWorkspace() {
         ? activeStudyId
         : (list[0]?.id ?? null);
 
+  const detached =
+    detachedFrom !== null &&
+    detachedFrom.document === boardDocument &&
+    detachedFrom.studyId === studyId;
+
   const study = useStudy(studyId);
   const allChapters = useMemo(() => study.data?.chapters ?? [], [study.data]);
   const chapters = useMemo(
@@ -143,7 +161,9 @@ export function StudiesWorkspace() {
       ? chosenChapterId
       : activeChapterId && chapters.some((entry) => entry.id === activeChapterId)
         ? activeChapterId
-        : (chapters[0]?.id ?? null);
+        : detached
+          ? null
+          : (chapters[0]?.id ?? null);
 
   const chapter = chapters.find((candidate) => candidate.id === chapterId) ?? null;
   // The open chapter in view in the list: a new or chosen chapter far down a
@@ -297,6 +317,11 @@ export function StudiesWorkspace() {
       if (current.kind === 'study-chapter') {
         setChosenStudyId(current.studyId);
         setChosenChapterId(current.chapterId);
+      } else {
+        // Not a chapter: leaving the clicked chapter selected named a document
+        // the board did not hold, and every later edit went somewhere else.
+        setChosenChapterId(null);
+        setDetachedFrom({ document: current, studyId });
       }
     };
     /*
@@ -656,7 +681,13 @@ export function StudiesWorkspace() {
     <WorkspaceFrame
       workspace="studies"
       title={study.data?.study.title ?? 'Studies'}
-      subtitle={chapter ? chapter.title : 'Notebooks of chapters, saved on this device.'}
+      subtitle={
+        chapter
+          ? chapter.title
+          : detached
+            ? `The board holds ${documentTitle(boardDocument)}, not a chapter of this study.`
+            : 'Notebooks of chapters, saved on this device.'
+      }
       icon={<Notebook />}
       actions={
         <>
