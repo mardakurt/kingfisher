@@ -50,6 +50,15 @@ export const setDynamicDatabaseProviders = (
 
 export const databaseProviders = (): readonly ChessDatabaseProvider[] => current;
 
+/**
+ * What the server renders: the built-in providers only. Reference packs and
+ * companion databases are registered in the browser (from IndexedDB and the
+ * companion's status), so a hydrating component must start from this list
+ * and not from the browser's — a component that hydrates late, inside a
+ * Suspense boundary, otherwise renders sources the server never drew.
+ */
+export const serverDatabaseProviders = (): readonly ChessDatabaseProvider[] => builtIn;
+
 export const subscribeDatabaseProviders = (listener: () => void): (() => void) => {
   listeners.add(listener);
   return () => listeners.delete(listener);

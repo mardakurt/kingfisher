@@ -17,6 +17,7 @@
  * has already taught everybody.
  */
 
+import { useHydrated } from '@/lib/use-hydrated';
 import { DatabaseIconDialog } from './DatabaseIconDialog';
 import { DatabaseTileIcon } from './database-appearance';
 import { useTabField } from '@/features/tabs/tab-fields';
@@ -88,6 +89,16 @@ const LABELS: Record<ProviderHealthState, string> = {
 };
 
 type CentreTab = 'collection' | 'search' | 'duplicates' | 'sources';
+
+/**
+ * The workspace, drawn once the page has hydrated. Everything it shows comes
+ * from the browser — collections, sources, the companion — and drawn during a
+ * late hydration it differed from the server's HTML (four mismatches per
+ * browser run when `?db=` first put it under a Suspense boundary).
+ */
+export function HydratedDatabasesWorkspace() {
+  return useHydrated() ? <DatabasesWorkspace /> : null;
+}
 
 export function DatabasesWorkspace() {
   const queryClient = useQueryClient();

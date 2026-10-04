@@ -106,3 +106,23 @@ test('a companion database stays open across a reload, though its list arrives l
   await expect(tools.getByRole('button', { name })).toBeVisible();
   await expect(page).toHaveURL(/\/databases\?db=sqlite/);
 });
+
+test('the sidebar’s count follows an import, without a reload', async ({ page }) => {
+  // Found in the 1.4.6 package: three games imported, "My games 0" beside them.
+  await page.goto('/games');
+  await page.locator('html[data-kingfisher-ready="true"]').waitFor();
+  const row = sidebar(page).locator('[data-sidebar-database="local"]');
+  await expect(row).toContainText('0');
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Import a game or position' });
+  await dialog
+    .getByRole('textbox')
+    .fill(
+      ['A', 'B', 'C']
+        .map((name) => `[White "${name}"]\n[Black "Z"]\n[Result "1-0"]\n\n1. e4 e5 1-0`)
+        .join('\n\n'),
+    );
+  await dialog.getByRole('button', { name: 'Import games' }).click();
+  await expect(page.getByText('3 games added to your database.')).toBeVisible();
+  await expect(row).toContainText('3');
+});

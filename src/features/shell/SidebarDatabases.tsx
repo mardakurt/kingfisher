@@ -10,6 +10,7 @@
  * same `listCollections` the grid reads — never an estimate.
  */
 
+import { useHydrated } from '@/lib/use-hydrated';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
@@ -60,7 +61,9 @@ export function SidebarDatabases({ onNavigate }: { readonly onNavigate?: () => v
   const shown = expanded ? list : list.slice(0, SIDEBAR_DATABASES_SHOWN);
   const onDatabases = pathname.startsWith('/databases');
 
-  if (list.length === 0) return null;
+  // Drawn after hydration: the server has no collection list to agree with.
+  const hydrated = useHydrated();
+  if (!hydrated || list.length === 0) return null;
 
   return (
     <ul

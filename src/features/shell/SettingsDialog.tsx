@@ -1672,6 +1672,8 @@ function SqliteDatabases() {
       );
       setPgn('');
       await queryClient.invalidateQueries({ queryKey: ['explorer', `sqlite:${selected}`] });
+      // Its game count, in the sidebar and on the Databases grid.
+      await queryClient.invalidateQueries({ queryKey: ['collections'] });
       await status.refetch();
       notify({
         tone: 'success',

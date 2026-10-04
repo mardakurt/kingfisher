@@ -63,6 +63,12 @@ export function invalidateGames(client: QueryClient): void {
   void client.invalidateQueries({ queryKey: ['transpositions'] });
   // Local and personal game counts, and the routes into this position.
   invalidatePositionContext(client);
+  /*
+    The collection list carries each database's game count — the sidebar's
+    and the Databases grid's. Without this an import left "My games 0" in
+    the sidebar beside a Library of new games (found in the 1.4.6 package).
+  */
+  void client.invalidateQueries({ queryKey: ['collections'] });
 }
 
 export function invalidateStudies(client: QueryClient, id?: StudyId): void {
