@@ -18,13 +18,31 @@
 import type { DraftRecord } from './types';
 
 export const UNLOAD_DRAFT_KEY = 'kingfisher.unload-draft';
+/**
+ * The session (`kingfisher.session`, one per tab) that wrote the unload draft.
+ *
+ * `localStorage` is shared by every tab, and so is the IndexedDB draft. A tab
+ * that reloaded inside the autosave window, while another tab was writing its
+ * own draft, came back with the other tab's work: the stored draft was newer,
+ * the unload draft — the only copy of the reloading tab's last edit — was
+ * taken, lost the comparison and was dropped (found by
+ * `e2e/cross-tab-stress.spec.ts`). Recording the owner lets a reload keep its
+ * own work, and lets another tab's load leave that work for its owner.
+ */
+export const UNLOAD_OWNER_KEY = 'kingfisher.unload-draft.session';
 
 type Storage = Pick<globalThis.Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
-export function writeUnloadDraft(storage: Storage | null, draft: DraftRecord): boolean {
+export function writeUnloadDraft(
+  storage: Storage | null,
+  draft: DraftRecord,
+  session: string | null = null,
+): boolean {
   if (!storage) return false;
   try {
     storage.setItem(UNLOAD_DRAFT_KEY, JSON.stringify(draft));
+    if (session) storage.setItem(UNLOAD_OWNER_KEY, session);
+    else storage.removeItem(UNLOAD_OWNER_KEY);
     return true;
   } catch {
     // Quota, or storage disabled: nothing better can be done synchronously.
@@ -58,6 +76,55 @@ export function takeUnloadDraft(storage: Storage | null): DraftRecord | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * The unload draft this load may take, and whether its own session wrote it.
+ *
+ * Another live tab's draft is left in place for that tab's reload — unless
+ * this is a fresh launch, when whatever the last page left is the previous
+ * session's work and is taken as before (it is then held, not restored).
+ * A draft written before owners were recorded is taken as before.
+ */
+export function takeOwnUnloadDraft(
+  storage: Storage | null,
+  session: string | null,
+  freshLaunch: boolean,
+): { readonly draft: DraftRecord | null; readonly own: boolean } {
+  if (!storage) return { draft: null, own: false };
+  let owner: string | null = null;
+  try {
+    owner = storage.getItem(UNLOAD_OWNER_KEY);
+  } catch {
+    return { draft: null, own: false };
+  }
+  const own = owner !== null && session !== null && owner === session;
+  if (owner !== null && !own && !freshLaunch) return { draft: null, own: false };
+  const draft = takeUnloadDraft(storage);
+  try {
+    storage.removeItem(UNLOAD_OWNER_KEY);
+  } catch {
+    /* The draft itself is gone; a stale owner names nothing. */
+  }
+  return { draft, own: own && draft !== null };
+}
+
+/**
+ * Which draft a reload restores.
+ *
+ * Ordinarily the newer. But this tab's own unload draft is its last work, and
+ * a newer stored draft that is *different* work can only have been written by
+ * another tab meanwhile — restoring that put the other tab's document on this
+ * tab's board and dropped this one's edit. The same work written a moment
+ * later by the save `pagehide` started is still preferred (`continuesUnload`).
+ */
+export function chooseDraft(
+  unload: DraftRecord | null,
+  stored: DraftRecord | null,
+  own: boolean,
+): DraftRecord | null {
+  if (own && unload && stored && !continuesUnload(unload, stored)) return unload;
+  return newerDraft(unload, stored);
 }
 
 /** The newer of two drafts; the unload one wins a tie, being the later write. */

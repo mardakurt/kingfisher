@@ -19,11 +19,16 @@ import { useQueryClient } from '@tanstack/react-query';
 import { autosaveDelay } from '@/persistence/autosave';
 import {
   continuesUnload,
-  newerDraft,
-  takeUnloadDraft,
+  chooseDraft,
+  takeOwnUnloadDraft,
   writeUnloadDraft,
 } from '@/persistence/unload-draft';
-import { beginSession, releaseHeldDraft, shouldHoldDraft } from '@/persistence/session-launch';
+import {
+  beginSession,
+  releaseHeldDraft,
+  SESSION_KEY,
+  shouldHoldDraft,
+} from '@/persistence/session-launch';
 import { ensurePersistenceForAuthoredWork } from '@/persistence/storage-persistence';
 import { getRepositories } from '@/persistence/repositories';
 import { announceChapterSaved, subscribeCrossTab } from '@/persistence/cross-tab';
@@ -69,9 +74,18 @@ const sessionStore = () => (typeof window === 'undefined' ? null : window.sessio
  * under StrictMode; the first pass is abandoned mid-flight, and a draft it
  * had taken (and removed from storage) was then missing for the second.
  */
-let unloadTaken: { readonly draft: DraftRecord | null } | null = null;
-const takeUnloadOnce = (): DraftRecord | null =>
-  (unloadTaken ??= { draft: takeUnloadDraft(localStore()) }).draft;
+let unloadTaken: { readonly draft: DraftRecord | null; readonly own: boolean } | null = null;
+const takeUnloadOnce = () =>
+  (unloadTaken ??= takeOwnUnloadDraft(localStore(), currentSession(), freshLaunch()));
+/** This tab's session id: set on its first load, kept across its reloads. */
+const currentSession = (): string | null => {
+  try {
+    freshLaunch();
+    return sessionStore()?.getItem(SESSION_KEY) ?? null;
+  } catch {
+    return null;
+  }
+};
 const localStore = () => {
   try {
     return typeof window === 'undefined' ? null : window.localStorage;
@@ -163,9 +177,9 @@ export function useWorkspacePersistence(): void {
           reload, which the IndexedDB write did not live to store. Stored
           straight away, so the one slot holds it however this load goes on.
         */
-        const unload = takeUnloadOnce();
+        const { draft: unload, own } = takeUnloadOnce();
         const stored = await repositories.drafts.get();
-        const draft = newerDraft(unload, stored);
+        const draft = chooseDraft(unload, stored, own);
         // The stored draft may be the same work, written by the save pagehide started.
         const continuation = continuesUnload(unload, draft);
         if (continuation && draft) await repositories.drafts.save(draft);
@@ -381,15 +395,19 @@ export function useWorkspacePersistence(): void {
       */
       const holding = heldDraft.current && state.revision === 0;
       if (!holding) {
-        writeUnloadDraft(localStore(), {
-          id: 'active',
-          document: state.document,
-          tree: state.tree,
-          currentId: state.currentId,
-          orientation: state.orientation,
-          updatedAt: Date.now(),
-          unsaved: state.document.kind === 'study-chapter' && selectDirty(state),
-        });
+        writeUnloadDraft(
+          localStore(),
+          {
+            id: 'active',
+            document: state.document,
+            tree: state.tree,
+            currentId: state.currentId,
+            orientation: state.orientation,
+            updatedAt: Date.now(),
+            unsaved: state.document.kind === 'study-chapter' && selectDirty(state),
+          },
+          currentSession(),
+        );
       }
       void save();
     };

@@ -124,3 +124,67 @@ of the board's FEN; read the master game before it loaded; prefetch cache made
 the offline step vacuous; sync text read from the wrong account row; an
 exception was swallowed by `exit` in `finally`). Final live run pending on the
 final candidate, including revocation.
+
+### G7 — targets, stated before any large-corpus measurement
+
+Interactive operations are judged as a person waiting at the screen; bulk
+import is judged by honesty and control, not speed.
+
+| Operation                                                                                                | Target at ≤ 600k games                                                                                                          | Target at ~1M games |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| Library: open collection with count; first page; next page; sort; filters by player, event, date, result | p95 ≤ 1 s                                                                                                                       | p95 ≤ 2 s           |
+| Explorer / opening summary at a position from the collection                                             | p95 ≤ 1 s                                                                                                                       | p95 ≤ 2 s           |
+| Open a returned game on the board                                                                        | ≤ 1 s                                                                                                                           | ≤ 1 s               |
+| Free-text search over all headers (no index-friendly prefix)                                             | may be slower; must show progress or stay cancellable, never freeze                                                             | same                |
+| Bulk import                                                                                              | progress at least every 5 s; Stop honoured within 10 s; committed games kept; reimport adds no duplicates; UI stays interactive | same                |
+| Companion memory during import                                                                           | bounded, no growth with games imported beyond batch working set                                                                 | same                |
+
+Anything that misses a target is reported as a miss, with its measurement.
+
+### G3 — sustained two-tab stress (`e2e/cross-tab-stress.spec.ts`)
+
+Two real tabs, one profile, one study of three chapters; seeded actions
+(open chapter, play a random legal move, race both tabs on one chapter, cursor
+keys, reload, fail the next chapter write); every chapter read and write in
+both tabs delayed 0–700 ms before and after at the repository boundary, with
+the real workspace. After every action: the tab settles (conflicts are always
+resolved with "Save my version as a copy"), the list selection and the status
+bar name the same document within 10 s, and the FEN is legal. At the end every
+authored chapter move — recorded by the test as (position before, SAN) — must
+be in a stored chapter of that name or a conflict copy.
+
+It found two defects.
+
+**D3 — a cancelled chapter switch kept naming the clicked chapter (fixed).**
+The board held a non-chapter document (Studies' first read still pending), a
+chapter was clicked, and a move was played. The edit correctly cancelled the
+switch and stayed in its own document, but the list kept the clicked chapter
+selected and the header kept its title for as long as anyone watched, so
+every later move went somewhere the screen said it did not. `restoreSelection`
+re-aligned only when the board held a study chapter. Now the page is
+_detached_ while that same document is on the board in that study: nothing is
+selected, the header says "The board holds Untitled analysis, not a chapter of
+this study", and the first-chapter fallback does not open a chapter over the
+edit. Regression `study-open-ownership.spec.ts` "…names no chapter and opens
+none over the edit": failed without the fix (a chapter row stayed current),
+passed with it; 17/17 neighbouring Studies/reliability cases passed.
+
+Not a defect, recorded: with reads slowed by up to 1.4 s, a reload shows the
+first chapter highlighted for up to ~840 ms before converging on the chapter
+actually restored (`reload-probe.log`). It always converges, and edits during
+the restore are already protected; with unslowed IndexedDB the first sample
+(219 ms) is already correct. Cosmetic; left as is.
+
+**D4 — a tab reloaded inside the autosave window could come back with the
+other tab's work, losing its last edit (fixed).** Seed 20261004, steps 98–99:
+tab A played b4 in Charlie, reloaded before the chapter write landed; tab B
+wrote its own draft meanwhile; A came back on B's document and b4 was nowhere.
+Both draft slots — the synchronous `localStorage` unload draft and the
+IndexedDB draft — are shared by every tab, and the restore kept the newer of
+the two, dropping A's unload draft, the only copy of its edit. Now the unload
+draft records its tab session (`kingfisher.session`); a reloading tab takes
+only its own (any, on a fresh launch, as before) and prefers it over a newer
+stored draft of different work. Regressions: `unload-draft.test.ts` (4 new
+cases) and `cross-tab-stress.spec.ts` "a tab reloaded mid-save comes back with
+its own work" — failed without the fix (A's move gone), passed with it.
+38/38 reload/launch/restore/tab neighbours passed after the change.
