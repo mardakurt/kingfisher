@@ -48,6 +48,13 @@ export function Dialog({
     closeRef.current?.focus();
     const dialog = dialogRef.current;
     const handOff = () => onCloseRef.current();
+    let backwards = false;
+    const ends = () => {
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+      );
+      return { first: focusable?.[0], last: focusable?.[focusable.length - 1] };
+    };
     if (allowCommandHandoff) dialog?.addEventListener(MODAL_HANDOFF_EVENT, handOff);
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -59,13 +66,9 @@ export function Dialog({
         return;
       }
       if (event.key !== 'Tab') return;
+      backwards = event.shiftKey;
 
-      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
-      );
-      if (!focusable || focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
+      const { first, last } = ends();
       if (!first || !last) return;
       if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
@@ -76,10 +79,31 @@ export function Dialog({
       }
     };
 
+    /*
+      The browser's own Tab order is not ours to assume. Safari, by default,
+      skips buttons and links ("Press Tab to highlight each item" is off), so
+      Tab never reached the last button the keydown check waits for: it left
+      the Settings dialog after its last text field and walked the page behind
+      the modal — the title, the board, the engine selector (found by the
+      WebKit run of accessibility.spec.ts). Wherever the browser sends focus,
+      if it lands outside this dialog it comes back. Another dialog, a menu or
+      a list popup opened from this one is left alone.
+    */
+    const handleFocusIn = (event: FocusEvent) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (!dialog || !target || dialog.contains(target)) return;
+      if (target.closest('[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]'))
+        return;
+      const { first, last } = ends();
+      (backwards ? last : first)?.focus();
+    };
+
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('focusin', handleFocusIn);
     return () => {
       dialog?.removeEventListener(MODAL_HANDOFF_EVENT, handOff);
       document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('focusin', handleFocusIn);
       previousFocus?.focus();
     };
   }, [open, allowCommandHandoff]);

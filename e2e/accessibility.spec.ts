@@ -378,6 +378,21 @@ test.describe('dialogs return focus where it came from', () => {
       return Boolean(active && dialogElement && dialogElement.contains(active));
     });
     expect(insideDialog, 'Tab escaped the settings dialog').toBe(true);
+
+    /*
+      Backwards too. And not only in Chrome: Safari's Tab skips buttons by
+      default, so its last stop in this dialog is a text field, not the button
+      the trap used to wait for, and focus walked onto the page behind it.
+    */
+    for (let index = 0; index < 20; index += 1) await page.keyboard.press('Shift+Tab');
+    expect(
+      await page.evaluate(() => {
+        const active = document.activeElement;
+        const dialogElement = document.querySelector('[role="dialog"]');
+        return Boolean(active && dialogElement && dialogElement.contains(active));
+      }),
+      'Shift+Tab escaped the settings dialog',
+    ).toBe(true);
   });
 });
 

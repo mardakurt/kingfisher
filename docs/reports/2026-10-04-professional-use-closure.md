@@ -272,3 +272,41 @@ faults followed:
 - Harness: the preview/open and post-restart checks failed because the date
   filter the script set was never cleared (all dates were empty before D6);
   rerun pending after re-import with dates.
+
+### G10 — performance, measured before changing anything
+
+Bundle (`npm run bundle:report`, `ad8f411`): application routes ship 396–532
+kB gzip; heaviest `/studies` 532.0 kB over 31 scripts (the previous audit
+recorded ≈620.8 kB; part of the difference is zod leaving the bundle, but no
+baseline build was made, so no figure is attributed). What a person waits for,
+Chrome, production build, cache disabled, median of 3, measured while a
+large import ran in the background (`route-load-perf.txt`):
+
+| CPU       | /analysis | /studies | /repertoire | /games | longest main-thread task |
+| --------- | --------- | -------- | ----------- | ------ | ------------------------ |
+| native    | 168 ms    | 143 ms   | 141 ms      | 127 ms | none over 50 ms          |
+| 4× slower | 707 ms    | 589 ms   | 588 ms      | 561 ms | 153 ms (/studies)        |
+
+No change is warranted to the Studies bundle on this evidence. Other measured
+workflows: key → board p95 42–48 ms with an engine running
+(`desktop-session.mjs` shakedown); Library at 1M games 36–101 ms; the one
+measured problem (player sort, 4.8 s) is D8, fixed. zod's removal (CSP) is
+incidental, not a performance claim.
+
+### G5 — browsers (focused professional set)
+
+Firefox 155 (Playwright): reliability, study reload, workspace frame / FEN
+links, live engine settings and the evaluation bar, explorer top games,
+Library databases, the main workflow spec, accessibility and provider states:
+**78/78** (`firefox-focused.log`). WebKit 26.6, same set: 77/78 — one real
+defect, D9 — then accessibility **132/132** across Chrome, Firefox and WebKit
+after the fix. Real Safari 27.0.1: `safari-acceptance.mjs` 15/15 (D5 above).
+
+**D9 — Safari: Tab left an open dialog for the page behind it (fixed).**
+Safari's default Tab skips buttons and links, so it never reached the
+dialog's last button, the only place the trap intercepted; from Settings'
+last text field focus walked to the analysis title, the board, the notation
+and the engine selector behind the modal. The dialog now also returns focus
+that lands outside it (leaving nested dialogs, menus and list popups alone).
+The trap test (now also Shift+Tab) fails in WebKit without the change; Settings
+spec 30/30 with it.
