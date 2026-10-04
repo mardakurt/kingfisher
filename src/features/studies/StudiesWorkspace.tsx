@@ -74,11 +74,9 @@ export function StudiesWorkspace() {
   const openDocument = useAnalysis((state) => state.openDocument);
 
   /*
-    Selection is derived, not synchronised. Storing "the user picked this" and
-    resolving it against the current data each render means a study deleted in
-    another tab, or a chapter that vanishes under a reorder, simply falls back
-    to the first available one — with no effect chasing the query cache and no
-    render where the screen points at something that no longer exists.
+    Resolve explicit choices against the current records. Without a choice,
+    follow the workspace's open chapter before falling back to the first one;
+    returning to Studies must not replace the restored document.
   */
   const [chosenStudyId, setChosenStudyId] = useState<StudyId | null>(null);
   const [chosenChapterId, setChosenChapterId] = useState<string | null>(null);
@@ -122,10 +120,15 @@ export function StudiesWorkspace() {
     [all, studyTags],
   );
 
+  const boardDocument = useAnalysis((state) => state.document);
+  const activeStudyId = boardDocument.kind === 'study-chapter' ? boardDocument.studyId : null;
+  const activeChapterId = boardDocument.kind === 'study-chapter' ? boardDocument.chapterId : null;
   const studyId =
     chosenStudyId && list.some((entry) => entry.id === chosenStudyId)
       ? chosenStudyId
-      : (list[0]?.id ?? null);
+      : activeStudyId && list.some((entry) => entry.id === activeStudyId)
+        ? activeStudyId
+        : (list[0]?.id ?? null);
 
   const study = useStudy(studyId);
   const allChapters = useMemo(() => study.data?.chapters ?? [], [study.data]);
@@ -137,7 +140,9 @@ export function StudiesWorkspace() {
   const chapterId =
     chosenChapterId && chapters.some((entry) => entry.id === chosenChapterId)
       ? chosenChapterId
-      : (chapters[0]?.id ?? null);
+      : activeChapterId && chapters.some((entry) => entry.id === activeChapterId)
+        ? activeChapterId
+        : (chapters[0]?.id ?? null);
 
   const chapter = chapters.find((candidate) => candidate.id === chapterId) ?? null;
   // The open chapter in view in the list: a new or chosen chapter far down a
@@ -153,7 +158,6 @@ export function StudiesWorkspace() {
     chapter as it is now, edits included, not as it was last saved.
   */
   const boardTree = useAnalysis((state) => state.tree);
-  const boardDocument = useAnalysis((state) => state.document);
   const questions = useMemo(
     () =>
       chapter && boardDocument.kind === 'study-chapter' && boardDocument.chapterId === chapter.id
@@ -265,6 +269,21 @@ export function StudiesWorkspace() {
 
   const loadedChapter = useRef<string | null>(null);
   useEffect(() => {
+    // An external action (such as saving a conflict as a copy) can open a
+    // different chapter. Follow it only while our previous choice is settled;
+    // a chapter click or direct link already in flight retains its priority.
+    if (
+      activeStudyId &&
+      activeChapterId &&
+      loadedChapter.current &&
+      chosenChapterId === loadedChapter.current &&
+      activeChapterId !== loadedChapter.current
+    ) {
+      setChosenStudyId(activeStudyId);
+      setChosenChapterId(activeChapterId);
+    }
+  }, [activeStudyId, activeChapterId, chosenChapterId]);
+  useEffect(() => {
     if (!chapter || loadedChapter.current === chapter.id) return;
     let cancelled = false;
     /*
@@ -286,6 +305,20 @@ export function StudiesWorkspace() {
         threw away the moves of the last second before a reload (Phase 84).
       */
         const onBoard = useAnalysis.getState().document;
+        // Restoration may have resolved after this render chose its fallback.
+        // Let the next render select the restored chapter instead of opening
+        // the fallback over it in this promise's continuation.
+        if (
+          !chosenChapterId &&
+          onBoard.kind === 'study-chapter' &&
+          onBoard.chapterId !== chapter.id &&
+          ((!chosenStudyId &&
+            onBoard.studyId !== studyId &&
+            list.some((entry) => entry.id === onBoard.studyId)) ||
+            (onBoard.studyId === studyId &&
+              chapters.some((entry) => entry.id === onBoard.chapterId)))
+        )
+          return;
         if (onBoard.kind === 'study-chapter' && onBoard.chapterId === chapter.id) {
           loadedChapter.current = chapter.id;
           if (paramNode && chapter.id === paramChapter && chapter.tree.nodes[paramNode])
@@ -326,7 +359,19 @@ export function StudiesWorkspace() {
     return () => {
       cancelled = true;
     };
-  }, [chapter, open, paramNode, paramChapter, goTo, notify]);
+  }, [
+    chapter,
+    open,
+    paramNode,
+    paramChapter,
+    goTo,
+    notify,
+    chosenChapterId,
+    chosenStudyId,
+    list,
+    chapters,
+    studyId,
+  ]);
 
   const exportStudy = async () => {
     if (!study.data) return;

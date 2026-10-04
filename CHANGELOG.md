@@ -22,6 +22,9 @@ real users notice.
 - Starting-position links outrank saved-draft restoration. A slow chapter restore
   cannot overwrite an intervening edit or newer document choice, and initial
   autosave waits for the stored draft to be read.
+- Saving a conflicting study edit as a copy selects the copy immediately.
+  Studies follows the open chapter on return or reload without replacing it
+  with the first chapter, while explicit chapter choices retain priority.
 - Immediate reload preserves newly opened clean documents, cursor and orientation,
   as well as unsaved edits. Held drafts stay protected.
 - Direct FEN links keep their position if a route payload fails. URL cleanup is

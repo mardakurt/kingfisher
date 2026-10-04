@@ -95,6 +95,26 @@ The 512-case run was stopped at 408 passed, one interrupted and 103 not run to
 include these fixes. It is not a completed gate. The 1109 package is superseded
 and will not be published. The final full suite contains 514 cases.
 
+## Study selection after conflict recovery
+
+The frozen 514-case run finished with 513 passed and one strict-selector failure:
+the conflict-copy title appeared in both the chapter row and document label.
+Strengthening that existing regression uncovered an actual selection defect:
+the saved copy was open on the board but its row was not selected, and returning
+to Studies could open the first chapter over the restored copy. Local picker
+state did not follow external document changes and its default ignored the
+workspace document.
+
+Studies now follows the active chapter when no explicit choice exists, aligns a
+settled selection after conflict recovery, and rechecks restored identity before
+opening its fallback. Explicit chapter clicks and deep links keep their priority.
+The stronger test failed before this correction, then verified the selected copy,
+reload retention and the distinct move contents of both versions. All ten
+reliability/study-reload cases passed. The final 514-case suite must be rerun;
+build 1110 is superseded. Its 30-minute packaged soak completed 811 actions with
+zero console errors/findings and zero surviving descendants on quit, as supporting
+evidence rather than acceptance of the next build.
+
 ## Architecture and data integrity
 
 The workspace remains one analysis store and one canonical board pipeline.

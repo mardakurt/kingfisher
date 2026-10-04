@@ -160,11 +160,23 @@ test('a stale write from a second tab is refused rather than applied', async ({
   // Forking keeps both versions; nothing is merged and nothing is lost.
   await notice.getByRole('button', { name: 'Save my version as a copy' }).click();
   await expect(notice).toBeHidden();
+  const fork = page.getByRole('button', { name: /Shared chapter \(this tab\) 2 moves$/ });
+  await expect(fork).toHaveAttribute('aria-current', 'true');
+  await expect(page.getByRole('button', { name: 'Nf6', exact: true })).toBeVisible();
   await page.goto('/studies');
   await waitForApp(page);
   // Both survive: the other tab's chapter and this tab's fork.
-  await expect(page.getByText('Shared chapter (this tab)')).toBeVisible();
-  await expect(page.getByText('Shared chapter', { exact: true }).first()).toBeVisible();
+  const original = page.getByRole('button', { name: /Shared chapter 1 move$/ });
+  await expect(fork).toHaveAttribute('aria-current', 'true');
+  await expect(original).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Nf6', exact: true })).toBeVisible();
+  await original.click();
+  await expect(original).toHaveAttribute('aria-current', 'true');
+  await expect(page.getByRole('button', { name: 'd4', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Nf6', exact: true })).toBeHidden();
+  await fork.click();
+  await expect(fork).toHaveAttribute('aria-current', 'true');
+  await expect(page.getByRole('button', { name: 'Nf6', exact: true })).toBeVisible();
   expect(consoleFailures).toEqual([]);
   void context;
 });
