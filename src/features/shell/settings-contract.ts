@@ -503,9 +503,12 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
       module-level variable and never reads the preference — the string was in
       the file, the read was not. `useCompanion` is where the token is taken
       out of the store and put on the wire, and it is the same module the
-      companion-token row above already names.
+      companion-token row above already names. Since the closure audit the
+      store itself mirrors it, before any query runs: `useCompanion`'s effect
+      ran after the Explorer's first request on start-up, which went without
+      the token (`preferences-lichess-token.test.ts`).
     */
-    consumer: 'companion/useCompanion.ts',
+    consumer: 'stores/preferences-store.ts',
     effect: 'Lichess requests are authenticated, so the Lichess explorer answers at all.',
     indexedAs: 'lichess-token',
     previewable: true,
