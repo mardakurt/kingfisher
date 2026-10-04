@@ -124,12 +124,33 @@ async function survey(window) {
     const root = document.documentElement;
     const style = getComputedStyle(root);
     const controls = [];
+    /*
+      What a person can click is the part of a control its scrolling
+      ancestors still show. Since 1.4.6 the sidebar scrolls its current
+      section into view, and on Databases that scrolls "Search" above the
+      list's top edge: its box reached the buttons, but the list clips it and
+      a click there lands on the title bar (measured with elementFromPoint on
+      build 1102). The box is cut to every clipping ancestor first.
+    */
+    const visible = (el) => {
+      let { left, top, right, bottom } = el.getBoundingClientRect();
+      for (let node = el.parentElement; node; node = node.parentElement) {
+        const overflow = getComputedStyle(node);
+        if (overflow.overflowX === 'visible' && overflow.overflowY === 'visible') continue;
+        const clip = node.getBoundingClientRect();
+        left = Math.max(left, clip.left);
+        top = Math.max(top, clip.top);
+        right = Math.min(right, clip.right);
+        bottom = Math.min(bottom, clip.bottom);
+      }
+      return { x: left, y: top, width: right - left, height: bottom - top };
+    };
     for (const el of document.querySelectorAll(selector)) {
-      const r = el.getBoundingClientRect();
-      if (r.width === 0 || r.height === 0) continue;
+      const r = visible(el);
+      if (r.width <= 0 || r.height <= 0) continue;
       if (el.closest('[inert]') || el.getAttribute('aria-hidden') === 'true') continue;
       // Only the corner matters, and a generous slice of it.
-      if (r.left > 320 || r.top > 120) continue;
+      if (r.x > 320 || r.y > 120) continue;
       controls.push({
         label: (el.getAttribute('aria-label') || el.textContent || el.tagName).trim().slice(0, 44),
         x: r.x,
