@@ -12,7 +12,9 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import { setCompanion } from '@/companion/session';
 import { setLichessToken } from '@/database/providers/lichess-auth';
+import { desktop } from '@/desktop/bridge';
 import type { AnalysisLimit } from '@/engine/types';
 import { DEFAULT_BOARD_PRIORITY, type BoardPriority } from '@/features/workspace/layout-model';
 import type { SourcePreference } from '@/reference/types';
@@ -413,3 +415,32 @@ export const usePreferences = create<Preferences & PreferencesActions>()(
 */
 setLichessToken(usePreferences.getState().lichessToken);
 usePreferences.subscribe((state) => setLichessToken(state.lichessToken));
+
+/*
+  The companion connection, the same way and for the same reason. It was set by
+  an effect in `useCompanionSync`, after the first query of the page: loading
+  `/games?db=sqlite:…` sent the Library's search with no companion configured,
+  it failed as "the companion is not connected, so that database cannot be
+  read", and stayed failed while the companion answered every status request
+  (closure audit, large-collection acceptance). In the Mac application the
+  pairing comes from the bridge, which the preload installs before any page
+  script; it is adopted here too, rather than in a mount effect, so a launch
+  with a fresh companion token is not first sent with the stale one.
+*/
+const bridged = desktop()?.companion;
+if (bridged?.url && bridged.token) {
+  const { companionUrl, companionToken } = usePreferences.getState();
+  if (companionUrl !== bridged.url || companionToken !== bridged.token)
+    usePreferences.setState({ companionUrl: bridged.url, companionToken: bridged.token });
+}
+let mirroredCompanion: string | null = null;
+const mirrorCompanion = ({ companionUrl, companionToken }: Preferences) => {
+  const identity = `${companionUrl}\u0000${companionToken}`;
+  if (identity === mirroredCompanion) return;
+  mirroredCompanion = identity;
+  setCompanion(
+    companionUrl && companionToken ? { url: companionUrl, token: companionToken } : null,
+  );
+};
+mirrorCompanion(usePreferences.getState());
+usePreferences.subscribe(mirrorCompanion);

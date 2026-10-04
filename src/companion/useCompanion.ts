@@ -24,16 +24,11 @@ import {
 import { useEngine } from '@/stores/engine-store';
 
 import { companionReachFor, type CompanionReach } from './reach';
-import { setCompanion } from './session';
 import { CompanionClient } from './client';
 
 export function useCompanionSync(): void {
-  const url = usePreferences((state) => state.companionUrl);
-  const token = usePreferences((state) => state.companionToken);
-
-  useEffect(() => {
-    setCompanion(url && token ? { url, token } : null);
-  }, [token, url]);
+  // The connection is mirrored by the preferences store itself, before any
+  // query runs (preferences-store.ts); an effect here ran after the first one.
 
   // The Lichess token is mirrored by the preferences store itself, before any
   // query can run; an effect here ran after the Explorer's first request.
