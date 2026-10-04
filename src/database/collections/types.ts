@@ -96,6 +96,20 @@ export interface DuplicateKey {
   readonly blackRating?: number;
 }
 
+/** A game's Annotator, Source and team tags, which only its PGN carries. */
+export interface TagKey {
+  readonly id: string;
+  readonly annotator?: string;
+  readonly source?: string;
+  readonly whiteTeam?: string;
+  readonly blackTeam?: string;
+}
+
+export interface TagKeyPage {
+  readonly games: readonly TagKey[];
+  readonly nextAfter: string | null;
+}
+
 export interface DuplicateKeyPage {
   readonly games: readonly DuplicateKey[];
   readonly nextAfter: string | null;
@@ -126,6 +140,11 @@ export interface GameCollection {
   removeByFingerprint(fingerprints: readonly string[]): Promise<number>;
   /** Identity keys for every game, paged, for duplicate search. */
   duplicateKeys(after: string | null, limit: number): Promise<DuplicateKeyPage>;
+  /**
+   * A page of tags only the PGN carries, reading headers and not moves.
+   * Optional: a store that cannot answer leaves the index without them.
+   */
+  tagKeys?(after: string | null, limit: number): Promise<TagKeyPage>;
 }
 
 /**

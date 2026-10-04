@@ -8,6 +8,7 @@
  * checked against an exhaustive oracle at all.
  */
 
+import { quotedWhole } from '@/lib/quoted';
 import { classifyTimeControl } from '@/search/time-control';
 
 import { playerKey } from './schema/migrations';
@@ -134,19 +135,8 @@ export function matchesDateRange(game: GameSummary, query: GameSearchQuery): boo
   return true;
 }
 
-/**
- * An event filter in quotes is the event's whole name; without, a part of it.
- *
- * A tournament row in a database's index leads to its games with
- * `"Synthetic Open 1"` — the part-of-name rule would bring Opens 10 to 19
- * with it. The companion applies the same rule (`gameWhere`).
- */
-export function exactEvent(filter: string): string | null {
-  const text = filter.trim();
-  return text.length > 2 && text.startsWith('"') && text.endsWith('"')
-    ? text.slice(1, -1).trim()
-    : null;
-}
+/** An event filter in quotes is the event's whole name; without, a part of it (`quotedWhole`). */
+export const exactEvent = quotedWhole;
 
 export function matchesEvent(event: string | undefined, filter: string): boolean {
   const exact = exactEvent(filter);

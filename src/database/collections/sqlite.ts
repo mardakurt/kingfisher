@@ -14,6 +14,7 @@ import type { GameSearchQuery, GameSummary, PositionRecord } from '@/persistence
 
 import type {
   DuplicateKeyPage,
+  TagKeyPage,
   GameCollection,
   GameCollectionRef,
   TransferGame,
@@ -122,6 +123,11 @@ export class SqliteGameCollection implements GameCollection {
       deleted += result.deleted;
     }
     return deleted;
+  }
+
+  async tagKeys(after: string | null, limit: number): Promise<TagKeyPage> {
+    const page = await this.client.tagKeys(this.key, after, limit);
+    return { games: page.games, nextAfter: page.nextAfter };
   }
 
   async duplicateKeys(after: string | null, limit: number): Promise<DuplicateKeyPage> {

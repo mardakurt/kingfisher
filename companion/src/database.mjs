@@ -1560,6 +1560,41 @@ export class GameDatabase {
     );
   }
 
+  /**
+   * A page of games' Annotator, Source, WhiteTeam and BlackTeam tags, for a
+   * collection's index. These live only in the PGN, so this reads each
+   * game's header block — the text before the first blank line — and
+   * nothing of the moves. Values are the file's own, unescaped.
+   */
+  tagKeys(after = null, limit = 2000) {
+    const params = [];
+    let clause = '';
+    if (after !== null && after !== undefined && String(after).length > 0) {
+      clause = 'WHERE game_id > ?';
+      params.push(Number(after));
+    }
+    const rows = this.#db
+      .prepare(
+        `SELECT game_id AS id, substr(pgn, 1, 4000) AS head FROM game_content ${clause}
+          ORDER BY game_id LIMIT ?`,
+      )
+      .all(...params, limit);
+    if (rows.length === 0) return { games: [], nextAfter: null };
+    return {
+      games: rows.map((row) => {
+        const tags = pgnTags(row.head);
+        return {
+          id: String(row.id),
+          ...(tags.Annotator ? { annotator: tags.Annotator } : {}),
+          ...(tags.Source ? { source: tags.Source } : {}),
+          ...(tags.WhiteTeam ? { whiteTeam: tags.WhiteTeam } : {}),
+          ...(tags.BlackTeam ? { blackTeam: tags.BlackTeam } : {}),
+        };
+      }),
+      nextAfter: String(rows[rows.length - 1].id),
+    };
+  }
+
   content(id) {
     const row = this.#db.prepare('SELECT pgn FROM game_content WHERE game_id = ?').get(id);
     return row ? row.pgn : null;
@@ -3132,6 +3167,17 @@ function parseClaims(value) {
   } catch {
     return [];
   }
+}
+
+/** The tag pairs of a PGN's header block, up to its first blank line. */
+export function pgnTags(text) {
+  const tags = {};
+  const header = String(text).split(/\r?\n\s*\r?\n/, 1)[0];
+  for (const match of header.matchAll(/^\s*\[(\w+)\s+"((?:[^"\\]|\\.)*)"\s*\]/gm)) {
+    const value = match[2].replace(/\\(["\\])/g, '$1').trim();
+    if (value && value !== '?') tags[match[1]] = value;
+  }
+  return tags;
 }
 
 const toSummary = (row) => ({

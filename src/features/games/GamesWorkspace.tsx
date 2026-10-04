@@ -152,6 +152,7 @@ export function GamesWorkspace() {
   const [minRating, setMinRating] = useState('');
   const [header, setHeader] = useState<HeaderMask>(EMPTY_HEADER);
   const [moves, setMoves] = useState<MoveMask>(EMPTY_MOVES);
+  const searchFromAddress = useRef(false);
   const [movePage, setMovePage] = useState(0);
   const deep = useDeepSearch();
   const [eco, setEco] = useState('');
@@ -198,6 +199,17 @@ export function GamesWorkspace() {
     */
     const event = params.get('event');
     const openingParam = params.get('opening');
+    /*
+      An annotator, source or team from a database's index. These are read
+      from each game's PGN by the move search, so the address fills its
+      fields and starts it once, then leaves the address: kept there, a
+      reload would quietly run a search of every game again.
+    */
+    const metadata = {
+      annotator: params.get('annotator') ?? '',
+      source: params.get('source') ?? '',
+      team: params.get('team') ?? '',
+    };
     const from = params.get('from');
     const to = params.get('to');
     const pageNumber = Number(params.get('page'));
@@ -210,6 +222,17 @@ export function GamesWorkspace() {
     if (who) setPlayer(who);
     if (against) setOpponent(against);
     if (openingParam) setOpening(openingParam);
+    if (metadata.annotator || metadata.source || metadata.team) {
+      setMoves({ ...EMPTY_MOVES, ...metadata });
+      searchFromAddress.current = true;
+      for (const key of ['annotator', 'source', 'team']) params.delete(key);
+      const rest = params.toString();
+      window.history.replaceState(
+        window.history.state,
+        '',
+        `${window.location.pathname}${rest ? `?${rest}` : ''}`,
+      );
+    }
     if (event || from || to)
       setHeader({ ...EMPTY_HEADER, event: event ?? '', fromDate: from ?? '', toDate: to ?? '' });
     /*
@@ -363,6 +386,17 @@ export function GamesWorkspace() {
     setMovePage(0);
     void deep.start(headerOnly, compiledMoves.query, source);
   };
+  // The search an index row asked for, once its fields are in place.
+  useEffect(() => {
+    if (!searchFromAddress.current) return;
+    if (!moves.annotator && !moves.source && !moves.team) return;
+    searchFromAddress.current = false;
+    // The request came from the address, outside React; starting it is the sync.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    startMoveSearch();
+    // Once, when the address's fields have arrived.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moves]);
 
   const localGames = useGames(query);
   const sourceGames = useQuery({

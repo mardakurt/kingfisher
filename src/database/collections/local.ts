@@ -24,6 +24,8 @@ import type {
 
 import type {
   DuplicateKeyPage,
+  TagKey,
+  TagKeyPage,
   GameCollection,
   GameCollectionRef,
   TransferGame,
@@ -182,6 +184,39 @@ export class LocalGameCollection implements GameCollection {
     });
     await this.repository.deleteMany(ids);
     return ids.length;
+  }
+
+  async tagKeys(after: string | null, limit: number): Promise<TagKeyPage> {
+    const scan = await this.database.scan<GameSummary>(STORE_NAMES.games, {
+      ...(after === null ? {} : { range: afterKey(after) }),
+      limit,
+    });
+    const games: TagKey[] = [];
+    await this.database.transaction([STORE_NAMES.gameContent], 'readonly', async (transaction) => {
+      for (const summary of scan.items) {
+        const content = await transaction.get<{ tree: GameRecord['tree'] }>(
+          STORE_NAMES.gameContent,
+          summary.id,
+        );
+        const headers = content?.tree.headers ?? {};
+        const tag = (name: string) => {
+          const value = headers[name]?.trim();
+          return value && value !== '?' ? value : undefined;
+        };
+        const annotator = tag('Annotator');
+        const source = tag('Source');
+        const whiteTeam = tag('WhiteTeam');
+        const blackTeam = tag('BlackTeam');
+        games.push({
+          id: summary.id,
+          ...(annotator ? { annotator } : {}),
+          ...(source ? { source } : {}),
+          ...(whiteTeam ? { whiteTeam } : {}),
+          ...(blackTeam ? { blackTeam } : {}),
+        });
+      }
+    });
+    return { games, nextAfter: scan.complete ? null : (scan.items.at(-1)?.id ?? null) };
   }
 
   async duplicateKeys(after: string | null, limit: number): Promise<DuplicateKeyPage> {

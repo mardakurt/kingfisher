@@ -1204,6 +1204,18 @@ async function route(url, request, response) {
     );
   }
 
+  if (pathname === '/db/tag-keys' && request.method === 'POST') {
+    const body = await readBody(request);
+    return json(
+      response,
+      200,
+      database(String(body.key)).tagKeys(
+        body.after ?? null,
+        Math.min(Number(body.limit) || 2000, 10000),
+      ),
+    );
+  }
+
   if (pathname === '/db/rename' && request.method === 'POST') {
     const body = await readBody(request);
     const key = String(body.key);

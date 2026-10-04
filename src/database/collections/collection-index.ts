@@ -17,7 +17,7 @@
  * Pure: pages in, index out. `src/database/collections/collection-index.test.ts`.
  */
 
-import type { DuplicateKey } from './types';
+import type { DuplicateKey, GameCollection, TagKey } from './types';
 
 const UNKNOWN = new Set(['', '?', '-', 'unknown', 'nn', 'n.n.', 'casual game']);
 
@@ -314,6 +314,99 @@ export async function readCollectionIndex(
   do {
     if (options.signal?.aborted) throw new DOMException('Stopped', 'AbortError');
     const page = await collection.duplicateKeys(after, 2_000);
+    builder.add(page.games);
+    read += page.games.length;
+    options.onPage?.(read);
+    after = page.games.length > 0 ? page.nextAfter : null;
+  } while (after !== null);
+  return builder.build();
+}
+
+/** A name an index lists, with how many games carry it. */
+export interface IndexName {
+  readonly name: string;
+  readonly games: number;
+}
+
+/**
+ * Annotators, PGN sources and teams — ChessBase's Annotator, Sources and
+ * Teams tabs. They exist only in each game's PGN headers, so this is its own
+ * walk (`GameCollection.tagKeys`), asked for separately from the cheap one.
+ * Names are folded as players' are; a game whose two teams are one team
+ * counts for it once.
+ */
+export interface TagIndex {
+  readonly games: number;
+  readonly annotators: readonly IndexName[];
+  readonly sources: readonly IndexName[];
+  readonly teams: readonly IndexName[];
+  readonly withoutAnnotator: number;
+  readonly withoutSource: number;
+  readonly withoutTeam: number;
+}
+
+export class TagIndexBuilder {
+  private games = 0;
+  private withoutAnnotator = 0;
+  private withoutSource = 0;
+  private withoutTeam = 0;
+  private readonly annotators = new Map<string, { name: string; games: number }>();
+  private readonly sources = new Map<string, { name: string; games: number }>();
+  private readonly teams = new Map<string, { name: string; games: number }>();
+
+  private static count(map: Map<string, { name: string; games: number }>, name: string) {
+    const key = fold(name);
+    const tally = map.get(key) ?? { name: name.trim(), games: 0 };
+    tally.games += 1;
+    map.set(key, tally);
+  }
+
+  add(keys: readonly TagKey[]): void {
+    for (const game of keys) {
+      this.games += 1;
+      const recorded = (value: string | undefined) =>
+        value && !UNKNOWN.has(fold(value)) ? value : null;
+      const annotator = recorded(game.annotator);
+      const source = recorded(game.source);
+      if (annotator) TagIndexBuilder.count(this.annotators, annotator);
+      else this.withoutAnnotator += 1;
+      if (source) TagIndexBuilder.count(this.sources, source);
+      else this.withoutSource += 1;
+      const teams = new Map<string, string>();
+      for (const team of [game.whiteTeam, game.blackTeam]) {
+        const value = recorded(team);
+        if (value) teams.set(fold(value), value);
+      }
+      if (teams.size === 0) this.withoutTeam += 1;
+      for (const team of teams.values()) TagIndexBuilder.count(this.teams, team);
+    }
+  }
+
+  build(): TagIndex {
+    const list = (map: Map<string, { name: string; games: number }>) =>
+      [...map.values()].sort((a, b) => b.games - a.games || a.name.localeCompare(b.name));
+    return {
+      games: this.games,
+      annotators: list(this.annotators),
+      sources: list(this.sources),
+      teams: list(this.teams),
+      withoutAnnotator: this.withoutAnnotator,
+      withoutSource: this.withoutSource,
+      withoutTeam: this.withoutTeam,
+    };
+  }
+}
+
+export async function readTagIndex(
+  collection: Required<Pick<GameCollection, 'tagKeys'>>,
+  options: { readonly signal?: AbortSignal; readonly onPage?: (read: number) => void } = {},
+): Promise<TagIndex> {
+  const builder = new TagIndexBuilder();
+  let after: string | null = null;
+  let read = 0;
+  do {
+    if (options.signal?.aborted) throw new DOMException('Stopped', 'AbortError');
+    const page = await collection.tagKeys(after, 1_000);
     builder.add(page.games);
     read += page.games.length;
     options.onPage?.(read);

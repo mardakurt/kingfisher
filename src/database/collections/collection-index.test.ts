@@ -141,3 +141,39 @@ describe('the index’s openings and top games', () => {
     expect(top).toEqual(['late', 'r13', 'r12', 'r11', 'r10', 'r9', 'r8', 'r7', 'r6', 'r5']);
   });
 });
+
+describe('the index of annotators, sources and teams', () => {
+  it('counts each tag once per game, and the games that carry none', async () => {
+    const { readTagIndex } = await import('./collection-index');
+    const pages = [
+      {
+        games: [
+          {
+            id: '1',
+            annotator: 'Kasparov, G',
+            source: 'Mega',
+            whiteTeam: 'Baku',
+            blackTeam: 'Baku',
+          },
+          { id: '2', annotator: 'kasparov,  g', whiteTeam: 'Baku', blackTeam: 'Monaco' },
+          { id: '3', annotator: '?', source: 'Club' },
+        ],
+        nextAfter: '3',
+      },
+      { games: [{ id: '4' }], nextAfter: null },
+    ];
+    const index = await readTagIndex({ tagKeys: async () => pages.shift()! });
+    expect(index.games).toBe(4);
+    expect(index.annotators).toEqual([{ name: 'Kasparov, G', games: 2 }]);
+    expect(index.sources).toEqual([
+      { name: 'Club', games: 1 },
+      { name: 'Mega', games: 1 },
+    ]);
+    // Baku twice (once in the game where both teams are Baku), Monaco once.
+    expect(index.teams).toEqual([
+      { name: 'Baku', games: 2 },
+      { name: 'Monaco', games: 1 },
+    ]);
+    expect([index.withoutAnnotator, index.withoutSource, index.withoutTeam]).toEqual([2, 2, 2]);
+  });
+});

@@ -34,6 +34,7 @@ import {
 
 import { ClassificationSection } from './ClassificationSection';
 import { CollectionIndexSection } from './CollectionIndexSection';
+import { CollectionTagsSection } from './CollectionTagsSection';
 import { CollectionGames } from './CollectionGames';
 import { formatBytes, StatusChip } from './CollectionList';
 import { StorageSection } from './StorageSection';
@@ -281,6 +282,7 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
       </dl>
 
       <CollectionIndexSection collection={collection} />
+      <CollectionTagsSection collection={collection} />
       <CollectionSourceLedger collectionId={collection.id} />
       <section className="border-b border-line-subtle py-5">
         <h3 className="text-xs font-semibold text-tertiary">Move games</h3>

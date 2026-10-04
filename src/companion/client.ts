@@ -131,6 +131,21 @@ export interface CompanionDuplicateKey {
   readonly event?: string;
   readonly round?: string;
   readonly result: string;
+  readonly site?: string;
+  readonly eco?: string;
+  readonly opening?: string;
+  readonly classifiedName?: string;
+  readonly whiteRating?: number;
+  readonly blackRating?: number;
+}
+
+/** A game's people-and-provenance tags, read from its PGN headers. */
+export interface CompanionTagKey {
+  readonly id: string;
+  readonly annotator?: string;
+  readonly source?: string;
+  readonly whiteTeam?: string;
+  readonly blackTeam?: string;
 }
 
 /** Whether the derived explorer aggregates still agree with the source rows. */
@@ -675,6 +690,15 @@ export class CompanionClient {
     limit: number,
   ): Promise<{ games: readonly CompanionDuplicateKey[]; nextAfter: string | null }> {
     return this.request('/db/duplicate-keys', { key, after, limit });
+  }
+
+  /** A page of games' Annotator, Source and team tags (`GameDatabase.tagKeys`). */
+  tagKeys(
+    key: string,
+    after: string | null,
+    limit: number,
+  ): Promise<{ games: readonly CompanionTagKey[]; nextAfter: string | null }> {
+    return this.request('/db/tag-keys', { key, after, limit });
   }
 
   /** Rename the collection as it is displayed. The file is never moved. */

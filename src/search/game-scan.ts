@@ -14,6 +14,7 @@
  * of them had.
  */
 
+import { quotedWhole } from '@/lib/quoted';
 import { positionKey, readPlacement } from '@/chess/fen';
 import { isOk } from '@/chess/result';
 import { boardView, themeById } from '@/chess/themes';
@@ -108,8 +109,14 @@ export function scanLine(
   headers: Readonly<Record<string, string>> = {},
 ): ScanHit | null {
   const moments: number[] = [];
-  const includes = (text: string | undefined, wanted: string) =>
-    (text ?? '').toLocaleLowerCase('en-US').includes(wanted.trim().toLocaleLowerCase('en-US'));
+  // In quotes, the whole tag (an index row's link); otherwise a part of it.
+  const includes = (text: string | undefined, wanted: string) => {
+    const have = (text ?? '').trim().toLocaleLowerCase('en-US');
+    const whole = quotedWhole(wanted);
+    return whole !== null
+      ? have === whole.toLocaleLowerCase('en-US')
+      : have.includes(wanted.trim().toLocaleLowerCase('en-US'));
+  };
   const metadata = query.metadata;
   if (metadata?.annotator?.trim() && !includes(headers.Annotator, metadata.annotator)) return null;
   if (metadata?.source?.trim() && !includes(headers.Source, metadata.source)) return null;
