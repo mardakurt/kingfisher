@@ -17,6 +17,8 @@ import type { Shape } from '@/chess/annotations';
 import { parseFen } from '@/chess/fen';
 import type { Color, Piece, PieceType } from '@/chess/types';
 
+import { userArrowPoints } from './arrow-shape';
+
 export interface DiagramColours {
   readonly light: string;
   readonly dark: string;
@@ -112,30 +114,14 @@ export function diagramSvg(options: DiagramOptions): string | null {
     );
   });
 
-  const arrows = (options.shapes ?? []).filter((shape) => shape.kind === 'arrow');
-  if (arrows.length) {
-    const markers = new Set<string>();
-    for (const arrow of arrows) {
-      if (arrow.kind !== 'arrow') continue;
-      const colour = BRUSH[arrow.brush] ?? BRUSH.green!;
-      const id = `head-${arrow.brush}`;
-      if (!markers.has(id)) {
-        markers.add(id);
-        parts.push(
-          `<defs><marker id="${id}" markerWidth="4" markerHeight="4" refX="2.05" refY="2" orient="auto"><path d="M0,0 V4 L3,2 Z" fill="${colour}"/></marker></defs>`,
-        );
-      }
-      const [x1, y1] = centre(arrow.from);
-      const [x2, y2] = centre(arrow.to);
-      const length = Math.hypot(x2 - x1, y2 - y1) || 1;
-      // Stop short of the centre so the head sits on the target square, not past it.
-      const back = s * 0.32;
-      const ex = x2 - ((x2 - x1) / length) * back;
-      const ey = y2 - ((y2 - y1) / length) * back;
-      parts.push(
-        `<line x1="${x1}" y1="${y1}" x2="${ex}" y2="${ey}" stroke="${colour}" stroke-width="${s * 0.16}" stroke-linecap="round" stroke-opacity="0.8" marker-end="url(#${id})"/>`,
-      );
-    }
+  // The same outline the live board draws (`arrow-shape.ts`), in pixels.
+  for (const arrow of options.shapes ?? []) {
+    if (arrow.kind !== 'arrow') continue;
+    const colour = BRUSH[arrow.brush] ?? BRUSH.green!;
+    const [x1, y1] = centre(arrow.from);
+    const [x2, y2] = centre(arrow.to);
+    const points = userArrowPoints(x1, y1, x2, y2, s);
+    if (points) parts.push(`<polygon points="${points}" fill="${colour}" fill-opacity="0.85"/>`);
   }
 
   if (margin > 0) {

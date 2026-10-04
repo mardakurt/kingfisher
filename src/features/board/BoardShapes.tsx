@@ -16,6 +16,8 @@
 import type { Shape } from '@/chess/annotations';
 import { useMemo, useRef } from 'react';
 
+import { userArrowPoints } from './arrow-shape';
+
 import type { Color } from '@/chess/types';
 
 import { ENGINE_ARROW_STYLES, type EngineArrow, type EngineArrowIdentity } from './engine-arrows';
@@ -145,29 +147,8 @@ const variationOpacity = (rank: number): number =>
   rank <= 1 ? ENGINE_ARROW.opacity : Math.max(0.22, ENGINE_ARROW.opacity * 0.62 ** (rank - 1));
 
 /** The shaft and head of an arrow as one outline, in board units. */
-/**
- * Arrows a person draws: an annotation, read from across the board, so a
- * little bolder than the engine's, with a head clearly wider than its shaft.
- * Drawn as one polygon like the engine's. They were a round-capped line with a
- * marker head 1.6 shafts wide, so the cap poked out past the point as a blob
- * and the head barely showed.
- */
-const USER_ARROW = {
-  shaft: 0.15,
-  headLength: 0.36,
-  headHalfWidth: 0.27,
-  startInset: 0.32,
-  endInset: 0.24,
-} as const;
-
 function arrowGeometry(
   arrow: Pick<ResolvedArrow, 'fromX' | 'fromY' | 'toX' | 'toY'> & { readonly shaft?: number },
-  style: {
-    readonly headLength?: number;
-    readonly headHalfWidth?: number;
-    readonly startInset?: number;
-    readonly endInset?: number;
-  } = {},
 ) {
   const dx = arrow.toX - arrow.fromX;
   const dy = arrow.toY - arrow.fromY;
@@ -178,12 +159,10 @@ function arrowGeometry(
   // Perpendicular unit, for the width.
   const nx = -uy;
   const ny = ux;
-  const headLength = style.headLength ?? ENGINE_ARROW.headLength;
-  const startInset = style.startInset ?? ENGINE_ARROW.startInset;
-  const endInset = style.endInset ?? ENGINE_ARROW.endInset;
+  const { headLength, startInset, endInset } = ENGINE_ARROW;
   const shaft = arrow.shaft ?? ENGINE_ARROW.shaft;
   // A wide reference arrow keeps a head wider than its shaft.
-  const headHalfWidth = Math.max(style.headHalfWidth ?? ENGINE_ARROW.headHalfWidth, shaft * 0.9);
+  const headHalfWidth = Math.max(ENGINE_ARROW.headHalfWidth, shaft * 0.9);
   const startX = arrow.fromX + ux * startInset;
   const startY = arrow.fromY + uy * startInset;
   const tipX = arrow.toX - ux * endInset;
@@ -424,15 +403,12 @@ export function BoardShapes({
 
             const from = centre(shape.from, orientation);
             const to = centre(shape.to, orientation);
-            const geometry = arrowGeometry(
-              { fromX: from.cx, fromY: from.cy, toX: to.cx, toY: to.cy, shaft: USER_ARROW.shaft },
-              USER_ARROW,
-            );
-            if (!geometry) return null;
+            const points = userArrowPoints(from.cx, from.cy, to.cx, to.cy);
+            if (!points) return null;
             return (
               <polygon
                 key={`a${index}-${shape.from}${shape.to}`}
-                points={geometry.outline}
+                points={points}
                 fill={BRUSH_COLOR[shape.brush]}
                 strokeLinejoin="round"
                 opacity={0.88}

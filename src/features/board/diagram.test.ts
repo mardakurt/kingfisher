@@ -72,7 +72,11 @@ describe('a diagram', () => {
       shapes,
       caption: sideToMoveCaption(START_FEN),
     })!;
-    expect(svg).toContain('marker-end="url(#head-green)"');
+    // The board's own arrow outline (arrow-shape.ts): one filled polygon, no
+    // marker head and no round cap to poke past the point.
+    expect(svg).toMatch(/<polygon points="[^"]+" fill="[^"]+" fill-opacity="0\.85"\/>/);
+    expect(svg).not.toContain('marker');
+    expect(svg).not.toContain('stroke-linecap="round"');
     expect(svg).toContain('fill="#882020" fill-opacity="0.45"');
     expect(svg).toContain('>White to move</text>');
   });
