@@ -50,6 +50,7 @@ import { chapterQuestions } from '@/chess/tree/questions';
 import { TagFilter } from './TagFilter';
 import type { ChapterRecord, StudyId, StudyRecord } from '@/persistence/types';
 import { useAnalysis } from '@/stores/analysis-store';
+import { beginDocumentRequest } from '@/stores/document-request';
 import { useUi } from '@/stores/ui-store';
 
 import { exportStudyPgn } from './export';
@@ -268,6 +269,7 @@ export function StudiesWorkspace() {
   );
 
   const loadedChapter = useRef<string | null>(null);
+  const chapterRequest = useRef<{ chapterId: string; isCurrent: () => boolean } | null>(null);
   useEffect(() => {
     // An external action (such as saving a conflict as a copy) can open a
     // different chapter. Follow it only while our previous choice is settled;
@@ -284,8 +286,19 @@ export function StudiesWorkspace() {
     }
   }, [activeStudyId, activeChapterId, chosenChapterId]);
   useEffect(() => {
-    if (!chapter || loadedChapter.current === chapter.id) return;
+    if (!chapter || loadedChapter.current === chapter.id) {
+      chapterRequest.current = null;
+      return;
+    }
     let cancelled = false;
+    const restoreSelection = () => {
+      chapterRequest.current = null;
+      const current = useAnalysis.getState().document;
+      if (current.kind === 'study-chapter') {
+        setChosenStudyId(current.studyId);
+        setChosenChapterId(current.chapterId);
+      }
+    };
     /*
       After the draft restore has settled, never before it. The restore puts
       back a reload's last moves only while nothing has changed the board
@@ -321,16 +334,29 @@ export function StudiesWorkspace() {
           return;
         if (onBoard.kind === 'study-chapter' && onBoard.chapterId === chapter.id) {
           loadedChapter.current = chapter.id;
+          chapterRequest.current = null;
           if (paramNode && chapter.id === paramChapter && chapter.tree.nodes[paramNode])
             goTo(paramNode);
           return;
         }
+        // Query-cache refreshes may restart this effect, but must not renew
+        // an old chapter choice over an edit made while its read was pending.
+        if (chapterRequest.current?.chapterId !== chapter.id)
+          chapterRequest.current = { chapterId: chapter.id, isCurrent: beginDocumentRequest() };
+        const { isCurrent } = chapterRequest.current;
+        const ownsOpen = () => {
+          if (cancelled) return false;
+          if (isCurrent()) return true;
+          restoreSelection();
+          notify({
+            tone: 'info',
+            message: 'Chapter switch cancelled: the current workspace changed while loading.',
+          });
+          return false;
+        };
         if (!(await flushWorkspaceForNavigation())) {
           if (cancelled) return;
-          if (onBoard.kind === 'study-chapter') {
-            setChosenStudyId(onBoard.studyId);
-            setChosenChapterId(onBoard.chapterId);
-          }
+          restoreSelection();
           notify({
             tone: 'error',
             message:
@@ -338,23 +364,32 @@ export function StudiesWorkspace() {
           });
           return;
         }
-        if (cancelled) return;
+        if (!ownsOpen()) return;
         // The selected record may have been cached before the outgoing save.
         const repositories = await getRepositories();
+        if (!ownsOpen()) return;
         const fresh = await repositories.studies.getChapter(chapter.id);
-        if (cancelled || !fresh) return;
+        if (!ownsOpen()) return;
+        if (!fresh) {
+          restoreSelection();
+          notify({ tone: 'error', message: 'This chapter is no longer available.' });
+          return;
+        }
         loadedChapter.current = chapter.id;
+        chapterRequest.current = null;
         open(fresh);
         // The node a search hit named, when the chapter is the one it named.
         if (paramNode && chapter.id === paramChapter && chapter.tree.nodes[paramNode])
           goTo(paramNode);
       })
       .catch((error: unknown) => {
-        if (!cancelled)
+        if (!cancelled) {
+          restoreSelection();
           notify({
             tone: 'error',
             message: error instanceof Error ? error.message : 'The chapter could not be opened.',
           });
+        }
       });
     return () => {
       cancelled = true;

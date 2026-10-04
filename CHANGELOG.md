@@ -25,6 +25,9 @@ real users notice.
 - Saving a conflicting study edit as a copy selects the copy immediately.
   Studies follows the open chapter on return or reload without replacing it
   with the first chapter, while explicit chapter choices retain priority.
+- An edit made while another study chapter is loading cancels that switch,
+  including after an autosave refresh. Failed or missing chapter reads restore
+  the selection to the document still on the board.
 - Immediate reload preserves newly opened clean documents, cursor and orientation,
   as well as unsaved edits. Held drafts stay protected.
 - Direct FEN links keep their position if a route payload fails. URL cleanup is

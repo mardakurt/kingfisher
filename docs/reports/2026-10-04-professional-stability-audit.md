@@ -115,6 +115,37 @@ build 1110 is superseded. Its 30-minute packaged soak completed 811 actions with
 zero console errors/findings and zero surviving descendants on quit, as supporting
 evidence rather than acceptance of the next build.
 
+## Pending chapter reads and selection on failure
+
+A separate slow-storage browser check reproduced loss of an authored move: the
+outgoing chapter's save barrier completed, the user then played Nf6, and the
+pending target read opened another tree over that edit. The board and stored
+chapter lost Nf6. The chapter loader checked route cancellation, but did not
+check intervening authored work after its storage awaits. Repository errors also
+left the picker naming the failed target while the board held the original.
+
+The loader now uses shared document ownership after the save barrier and every
+repository await. Its ownership is retained across query-cache refreshes, so an
+outgoing autosave cannot renew the old selection over the edited board. A stale
+read cancels the switch and explains why; failed or missing reads restore the
+current chapter selection. Three browser regressions cover an edit before
+its autosave, the subsequent cache refresh, and read failure. All three passed
+with the fix, failed when it was removed, and passed again after restoration.
+All ten related Studies/reload/conflict/settings checks passed on a fresh server.
+
+The frozen build-1111 514-case run finished with 513 passes and one settings-test
+timeout. The trace shows a single 52-second reload waiting for local Next.js
+development assets, not a failed preference assertion. The same complete settings
+persistence test passed on production in 19.5 seconds. Its assertions and timeout
+remain unchanged; final browser and native UI acceptance will run separately.
+The full suite now contains 517 cases.
+
+The signed/notarized 1111 package passed its two real-engine renderer cases,
+launch (17 checks), chrome (109), restart (7), engine fleet (25) and suspend (14).
+Its 1,000-action walk was cancelled to include the chapter fix; that is incomplete
+certification. Six tracked isolated application processes were closed, with zero
+survivors. Build 1111 is superseded and will not be published.
+
 ## Architecture and data integrity
 
 The workspace remains one analysis store and one canonical board pipeline.

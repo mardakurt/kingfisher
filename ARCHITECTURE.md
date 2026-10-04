@@ -14,6 +14,14 @@ changes, while explicit requests and authored edits still outrank it.
 board holds its previous draft until storage answers. Explicit FEN inputs claim
 priority even when they match the initial board; their URL is consumed locally.
 
+Studies' chapter loader checks the same ownership after its save barrier and
+repository reads. A pending choice keeps its original ownership across query-cache
+refreshes; an outgoing autosave cannot renew it over an intervening edit. Cancelled,
+failed or missing reads restore the picker to the chapter still on the board.
+Without an explicit choice, Studies follows the restored/open chapter. A settled
+choice also follows an external conflict-copy open, while pending chapter clicks
+and deep links keep their priority.
+
 Engine startup/configuration belongs to the active search request. Only its owner
 can clear the pending FEN; a pending search takes precedence over the last analysed
 FEN. Explicit Stop cancels startup and disposes late sessions, while board following
