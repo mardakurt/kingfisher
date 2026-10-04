@@ -16,7 +16,7 @@ import { isNavigationAbortNoise } from './tools';
  * show the document it said it showed?
  *
  * The oracle is independent of the application's own state. Every move played
- * is recorded here as (chapter, position before, SAN); at the end each one
+ * is recorded here as (document, resulting position, SAN); at the end each one
  * must exist in a stored chapter of that name or in a conflict copy of it.
  * Conflicts are always resolved with "Save my version as a copy", the choice
  * that keeps everything, so no authored move may be missing.
@@ -135,11 +135,17 @@ async function playRandom(page: Page, random: () => number) {
   const legal = new Chess(before).moves({ verbose: true }).filter((move) => !move.promotion);
   if (legal.length === 0) return null;
   const move = legal[Math.floor(random() * legal.length)]!;
-  const chapter = await documentTitle(page);
   await page.getByRole('gridcell', { name: new RegExp(`^${move.from},`) }).click();
   await page.getByRole('gridcell', { name: new RegExp(`^${move.to},`) }).click();
   const after = await fenOf(page);
-  return after === before ? null : { chapter, before, san: move.san };
+  if (after === before) return null;
+  /*
+    Where the move landed, read after it: a pending chapter switch can open
+    another chapter between choosing the move and clicking it, and the move is
+    then played on that board. The resulting position and the document shown
+    with it are what was authored.
+  */
+  return { chapter: await documentTitle(page), after, san: move.san };
 }
 
 test('two tabs editing one study under slow storage lose nothing and never mislabel the board', async ({
@@ -169,6 +175,7 @@ test('two tabs editing one study under slow storage lose nothing and never misla
   // One study, three chapters, made in tab A.
   await a.goto('/studies');
   await a.locator(READY).waitFor();
+  // eslint-disable-next-line no-console
   if (process.env.KF_STRESS_VERBOSE) console.log('[cross-tab-stress] tab A ready');
   await a.getByRole('button', { name: 'New study', exact: true }).click();
   await a.getByRole('dialog', { name: 'New study' }).getByLabel('Title').fill('Stress study');
@@ -186,9 +193,8 @@ test('two tabs editing one study under slow storage lose nothing and never misla
     timeout: 20_000,
   });
 
-  /** Every move a tab authored: the chapter it was played in, the position before it, and the move. */
-  const authored: { chapter: string; before: string; san: string; tab: string; step: number }[] =
-    [];
+  /** Every move a tab authored: the document it landed in, the position it made, and the move. */
+  const authored: { chapter: string; after: string; san: string; tab: string; step: number }[] = [];
   const log: string[] = [];
   const tabs = { A: a, B: b } as const;
   let failedWrites = 0;
@@ -239,9 +245,21 @@ test('two tabs editing one study under slow storage lose nothing and never misla
       await page.keyboard.press(key);
       action = `key ${key}`;
     } else if (roll < 0.92) {
+      const describe = async () =>
+        `${await documentTitle(page).catch(() => '?')} ${(await fenOf(page)).split(' ')[0]} ` +
+        `${await page
+          .getByText(/· (saved|saving…|unsaved|not saved)$/)
+          .first()
+          .innerText()
+          .catch(() => '')}` +
+        `${(await page.getByRole('alert').allInnerTexts()).join(' | ').slice(0, 160)}`;
+      const before = process.env.KF_STRESS_VERBOSE ? await describe() : '';
       await page.reload();
       await page.locator(READY).waitFor();
-      action = 'reload';
+      if (process.env.KF_STRESS_VERBOSE) {
+        await page.waitForTimeout(2500);
+        action = `reload [${before}] → [${await describe()}]`;
+      } else action = 'reload';
     } else {
       await page.evaluate(() => {
         (window as unknown as ProbeWindow).__kfStressFailNextWrite = true;
@@ -250,6 +268,7 @@ test('two tabs editing one study under slow storage lose nothing and never misla
       action = 'fail the next write';
     }
     log.push(`${step} ${name}: ${action}`);
+    // eslint-disable-next-line no-console
     if (process.env.KF_STRESS_VERBOSE) console.log(`[cross-tab-stress] ${log.at(-1)}`);
 
     // Invariants, in the tab that acted, once it has saved or resolved a conflict.
@@ -314,9 +333,10 @@ test('two tabs editing one study under slow storage lose nothing and never misla
         const chapter = await repository.getChapter(meta.id);
         if (!chapter) continue;
         const nodes = chapter.tree.nodes;
+        // The position each move made: identity enough, whatever line it is in.
         const pairs = Object.values(nodes)
           .filter((node) => node.move && node.parentId)
-          .map((node) => `${nodes[node.parentId!]!.fen}|${node.move!.san}`);
+          .map((node) => node.fen);
         out.push({ title: chapter.title, pairs, revision: chapter.revision });
       }
     }
@@ -334,13 +354,14 @@ test('two tabs editing one study under slow storage lose nothing and never misla
   const outside = authored.filter(({ chapter }) => !isChapter(chapter));
   const missing = authored
     .filter(({ chapter }) => isChapter(chapter))
-    .filter(({ chapter, before, san }) => {
+    .filter(({ chapter, after }) => {
       const candidates = stored.filter(
         (entry) => entry.title === chapter || entry.title.startsWith(`${chapter} (`),
       );
-      return !candidates.some((entry) => entry.pairs.includes(`${before}|${san}`));
+      return !candidates.some((entry) => entry.pairs.includes(after));
     });
   const copies = stored.filter((entry) => / \(/.test(entry.title)).length;
+  // eslint-disable-next-line no-console
   console.log(
     `[cross-tab-stress] seed ${SEED}: ${ACTIONS} actions, ${authored.length} moves authored, ` +
       `${stored.length} chapters stored (${copies} conflict copies), ${failedWrites} injected write failures, ` +

@@ -165,7 +165,15 @@ test('a switch cancelled over a non-chapter board names no chapter and opens non
     ).toHaveCount(0);
     await expect(page.getByText(/The board holds Untitled analysis, not a chapter/)).toBeVisible();
     await expect(page.getByRole('button', { name: 'c4', exact: true })).toBeVisible();
+    // The board that holds the work stays on screen, not an empty "select a chapter".
+    await expect(page.getByRole('grid', { name: 'Chessboard' })).toBeVisible();
   }
+  // …and it can still be worked on, in the document the status bar names.
+  await play(page, 'e7', 'e5');
+  await expect(page.getByRole('button', { name: 'e5', exact: true })).toBeVisible();
+  await expect(page.locator('footer').filter({ hasText: 'half-moves' })).toContainText(
+    'Untitled analysis',
+  );
 
   // An explicit choice ends it: the chapter opens, and the analysis was kept.
   await page.getByRole('button', { name: /Original 1 move$/ }).click();

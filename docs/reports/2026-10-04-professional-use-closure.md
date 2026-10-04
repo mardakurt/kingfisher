@@ -188,3 +188,17 @@ stored draft of different work. Regressions: `unload-draft.test.ts` (4 new
 cases) and `cross-tab-stress.spec.ts` "a tab reloaded mid-save comes back with
 its own work" — failed without the fix (A's move gone), passed with it.
 38/38 reload/launch/restore/tab neighbours passed after the change.
+
+**D3 follow-up — my own regression, caught by the stress run (fixed).** Seed
+1999 timed out looking for the board: in the new detached state Studies showed
+"Create or select a chapter" instead of the board, because the body rendered
+only with a selected chapter. The work was safe (notation and status bar
+showed it) but could not be seen or played on. The board now stays in the
+detached state. The D3 regression now also requires a visible, playable board:
+it failed with the one-line render condition reverted and passes with it.
+Seeds after the fix (120 actions each, all **0 chapter moves missing**):
+20261004 (81 moves, 3 conflict copies, 7 failed writes), 7 (76, 5, 13),
+46 (73, 2, 12), 1999 (81, 3, 10). An earlier "1 missing" on 20261004 after
+D4's fix was the test's oracle, not the product: it recorded the chapter and
+position _before_ a move whose board a pending switch replaced between choice
+and click. The oracle now records where the move landed.

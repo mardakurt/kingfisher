@@ -765,7 +765,11 @@ export function StudiesWorkspace() {
                 : 'This browser refused access to its database, so studies cannot be read.'
             }
           />
-        ) : !chapter ? (
+        ) : !chapter && !detached ? (
+          /*
+            Detached, the board still holds a real document — the work the
+            cancelled switch protected — so it stays on screen to be worked on.
+          */
           <EmptyState
             title={list.length === 0 ? 'No studies yet.' : 'Create or select a chapter.'}
             description={
