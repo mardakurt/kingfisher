@@ -155,6 +155,8 @@ export function GamesWorkspace() {
   const [movePage, setMovePage] = useState(0);
   const deep = useDeepSearch();
   const [eco, setEco] = useState('');
+  /** An opening family from a database's index (`?opening="…"`); no field of its own. */
+  const [opening, setOpening] = useState('');
   const [sortBy, setSortBy] = useState<SortField>('importedAt');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -195,6 +197,7 @@ export function GamesWorkspace() {
       that edition and nothing that merely shares words with it.
     */
     const event = params.get('event');
+    const openingParam = params.get('opening');
     const from = params.get('from');
     const to = params.get('to');
     const pageNumber = Number(params.get('page'));
@@ -206,6 +209,7 @@ export function GamesWorkspace() {
     if (db) setSourceId(db);
     if (who) setPlayer(who);
     if (against) setOpponent(against);
+    if (openingParam) setOpening(openingParam);
     if (event || from || to)
       setHeader({ ...EMPTY_HEADER, event: event ?? '', fromDate: from ?? '', toDate: to ?? '' });
     /*
@@ -229,6 +233,7 @@ export function GamesWorkspace() {
     set('opponent', opponent.trim());
     set('db', sourceId !== LOCAL_SOURCE.id ? sourceId : '');
     set('event', header.event.trim());
+    set('opening', opening.trim());
     set('from', header.fromDate);
     set('to', header.toDate);
     return params;
@@ -257,7 +262,7 @@ export function GamesWorkspace() {
     return () => window.clearTimeout(timer);
     // withSearch reads exactly these.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text, player, opponent, sourceId, header.event, header.fromDate, header.toDate]);
+  }, [text, player, opponent, sourceId, header.event, header.fromDate, header.toDate, opening]);
   /*
     The page and the previewed game go into the address at once, not after
     the typing debounce: a click on a row and a double-click to open it come
@@ -312,6 +317,7 @@ export function GamesWorkspace() {
       ...(Number(minRating) > 0 ? { minRating: Number(minRating) } : {}),
       ...headerMaskQuery(header, minRating),
       ...(eco.trim() ? { eco: eco.trim() } : {}),
+      ...(opening.trim() ? { opening: opening.trim() } : {}),
       sortBy,
       sortDirection,
       limit: PAGE_SIZE,
@@ -326,6 +332,7 @@ export function GamesWorkspace() {
       minRating,
       header,
       eco,
+      opening,
       sortBy,
       sortDirection,
       page,
@@ -481,7 +488,7 @@ export function GamesWorkspace() {
   };
 
   const filtersActive =
-    Boolean(player || opponent || minRating || eco) ||
+    Boolean(player || opponent || minRating || eco || opening) ||
     playerColor !== 'any' ||
     result !== 'any' ||
     headerMaskActive(header);
@@ -570,6 +577,7 @@ export function GamesWorkspace() {
     setPlayerColor('any');
     setResult('any');
     setMinRating('');
+    setOpening('');
     setHeader(EMPTY_HEADER);
     setMoves(EMPTY_MOVES);
     setEco('');
@@ -618,6 +626,9 @@ export function GamesWorkspace() {
       ? [{ id: 'elo', name: 'Min Elo', value: minRating, remove: () => setMinRating('') }]
       : []),
     ...(eco.trim() ? [{ id: 'eco', name: 'ECO', value: eco, remove: () => setEco('') }] : []),
+    ...(opening.trim()
+      ? [{ id: 'opening', name: 'Opening', value: opening, remove: () => setOpening('') }]
+      : []),
     ...(header.event.trim()
       ? [
           {

@@ -199,6 +199,12 @@ export class LocalGameCollection implements GameCollection {
         ...(game.event ? { event: game.event } : {}),
         ...(game.round ? { round: game.round } : {}),
         result: game.result,
+        ...(game.site ? { site: game.site } : {}),
+        ...(game.eco ? { eco: game.eco } : {}),
+        ...(game.opening ? { opening: game.opening } : {}),
+        ...(game.classification?.name ? { classifiedName: game.classification.name } : {}),
+        ...(game.whiteRating !== undefined ? { whiteRating: game.whiteRating } : {}),
+        ...(game.blackRating !== undefined ? { blackRating: game.blackRating } : {}),
       })),
       nextAfter: scan.complete ? null : (scan.items.at(-1)?.id ?? null),
     };

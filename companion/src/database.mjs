@@ -2290,7 +2290,8 @@ export class GameDatabase {
     }
     const rows = this.#db
       .prepare(
-        `SELECT id, fingerprint, white, black, date, event, round, result
+        `SELECT id, fingerprint, white, black, date, event, round, result, site, eco, opening,
+                classified_name, white_rating, black_rating
            FROM games ${clause} ORDER BY id LIMIT ?`,
       )
       .all(...params, limit);
@@ -2305,6 +2306,12 @@ export class GameDatabase {
         event: row.event ?? undefined,
         round: row.round ?? undefined,
         result: row.result,
+        site: row.site ?? undefined,
+        eco: row.eco ?? undefined,
+        opening: row.opening ?? undefined,
+        classifiedName: row.classified_name ?? undefined,
+        whiteRating: row.white_rating ?? undefined,
+        blackRating: row.black_rating ?? undefined,
       })),
       nextAfter: String(rows[rows.length - 1].id),
     };
@@ -3080,9 +3087,20 @@ function gameWhere(query, options = {}) {
     params.push(`${query.eco}%`, `${query.eco}%`);
   }
   if (query.opening) {
-    where.push('(opening LIKE ? OR classified_name LIKE ? OR classified_variation LIKE ?)');
-    const like = `%${query.opening}%`;
-    params.push(like, like, like);
+    const text = String(query.opening).trim();
+    if (text.length > 2 && text.startsWith('"') && text.endsWith('"')) {
+      // In quotes, the family (src/persistence/game-match.ts `openingFamily`):
+      // the name before any colon, whole, in the tag or the classification.
+      const family = (column) =>
+        `LOWER(TRIM(CASE WHEN instr(${column}, ':') > 0 THEN substr(${column}, 1, instr(${column}, ':') - 1) ELSE ${column} END))`;
+      where.push(`(${family('opening')} = ? OR ${family('classified_name')} = ?)`);
+      const wanted = text.slice(1, -1).trim().toLowerCase();
+      params.push(wanted, wanted);
+    } else {
+      where.push('(opening LIKE ? OR classified_name LIKE ? OR classified_variation LIKE ?)');
+      const like = `%${query.opening}%`;
+      params.push(like, like, like);
+    }
   }
   return { where, params, clause: where.length ? `WHERE ${where.join(' AND ')}` : '' };
 }

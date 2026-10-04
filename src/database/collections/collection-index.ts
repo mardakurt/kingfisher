@@ -50,10 +50,46 @@ export interface IndexTournament {
   readonly lastDate: string | null;
 }
 
+/**
+ * An opening family and how its games ended, from White's side.
+ *
+ * The family is the name before any colon: Kingfisher's own classification
+ * of the moves when it has made one, else the file's Opening tag, else the
+ * bare ECO code (`byName: false`) — the same names the Library shows.
+ */
+export interface IndexOpening {
+  readonly name: string;
+  readonly byName: boolean;
+  readonly games: number;
+  readonly white: number;
+  readonly draws: number;
+  readonly black: number;
+  /** White's points per decided-or-drawn game, 0–100 to one decimal; null with none. */
+  readonly whiteScore: number | null;
+}
+
+/** A game between the strongest players: both ratings recorded, highest sum first. */
+export interface IndexGame {
+  readonly id: string;
+  readonly white: string;
+  readonly black: string;
+  readonly whiteRating: number;
+  readonly blackRating: number;
+  readonly result: string;
+  readonly event?: string;
+  readonly date?: string;
+}
+
+export const TOP_GAMES = 10;
+
 export interface CollectionIndex {
   readonly games: number;
   readonly players: readonly IndexPlayer[];
   readonly tournaments: readonly IndexTournament[];
+  readonly openings: readonly IndexOpening[];
+  /** Games with no classification, Opening tag or ECO code, so in no family. */
+  readonly withoutOpening: number;
+  readonly topGames: readonly IndexGame[];
   readonly firstYear: number | null;
   readonly lastYear: number | null;
   /** Games whose event is missing or a placeholder, and so are in no tournament. */
@@ -88,10 +124,18 @@ export class CollectionIndexBuilder {
   private lastYear: number | null = null;
   private readonly players = new Map<string, PlayerTally>();
   private readonly tournaments = new Map<string, TournamentTally>();
+  private readonly openings = new Map<
+    string,
+    { name: string; byName: boolean; games: number; white: number; draws: number; black: number }
+  >();
+  private withoutOpening = 0;
+  private topGames: IndexGame[] = [];
 
   add(keys: readonly DuplicateKey[]): void {
     for (const game of keys) {
       this.games += 1;
+      this.addOpening(game);
+      this.addTopGame(game);
       const year = yearOf(game.date);
       if (year === null) this.undated += 1;
       else {
@@ -150,6 +194,57 @@ export class CollectionIndexBuilder {
     }
   }
 
+  private addOpening(game: DuplicateKey): void {
+    const named = [game.classifiedName, game.opening]
+      .map((name) => name?.split(':')[0]?.trim())
+      .find((name): name is string => Boolean(name));
+    const eco = game.eco?.trim().toUpperCase();
+    const name = named ?? eco;
+    if (!name) {
+      this.withoutOpening += 1;
+      return;
+    }
+    const key = `${named ? 'n' : 'e'}|${fold(name)}`;
+    const tally = this.openings.get(key) ?? {
+      name,
+      byName: Boolean(named),
+      games: 0,
+      white: 0,
+      draws: 0,
+      black: 0,
+    };
+    tally.games += 1;
+    if (game.result === '1-0') tally.white += 1;
+    else if (game.result === '1/2-1/2') tally.draws += 1;
+    else if (game.result === '0-1') tally.black += 1;
+    this.openings.set(key, tally);
+  }
+
+  private addTopGame(game: DuplicateKey): void {
+    if (game.whiteRating === undefined || game.blackRating === undefined) return;
+    const sum = game.whiteRating + game.blackRating;
+    const last = this.topGames.at(-1);
+    if (this.topGames.length === TOP_GAMES && last && last.whiteRating + last.blackRating >= sum)
+      return;
+    this.topGames.push({
+      id: game.id,
+      white: game.white,
+      black: game.black,
+      whiteRating: game.whiteRating,
+      blackRating: game.blackRating,
+      result: game.result,
+      ...(game.event && !UNKNOWN.has(fold(game.event)) ? { event: game.event } : {}),
+      ...(game.date ? { date: game.date } : {}),
+    });
+    // Highest sum first; between equal sums, the newer game.
+    this.topGames.sort(
+      (a, b) =>
+        b.whiteRating + b.blackRating - (a.whiteRating + a.blackRating) ||
+        (b.date ?? '').localeCompare(a.date ?? ''),
+    );
+    this.topGames.length = Math.min(this.topGames.length, TOP_GAMES);
+  }
+
   build(): CollectionIndex {
     const players = [...this.players.values()]
       .map((tally) => {
@@ -177,10 +272,24 @@ export class CollectionIndexBuilder {
           b.games - a.games ||
           a.name.localeCompare(b.name),
       );
+    const openings = [...this.openings.values()]
+      .map((tally) => {
+        const counted = tally.white + tally.draws + tally.black;
+        return {
+          ...tally,
+          whiteScore: counted
+            ? Math.round(((tally.white + tally.draws / 2) / counted) * 1000) / 10
+            : null,
+        };
+      })
+      .sort((a, b) => b.games - a.games || a.name.localeCompare(b.name));
     return {
       games: this.games,
       players,
       tournaments,
+      openings,
+      withoutOpening: this.withoutOpening,
+      topGames: [...this.topGames],
       firstYear: this.firstYear,
       lastYear: this.lastYear,
       withoutEvent: this.withoutEvent,

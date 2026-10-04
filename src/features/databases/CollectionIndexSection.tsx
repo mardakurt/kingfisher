@@ -29,7 +29,7 @@ export function CollectionIndexSection({ collection }: { readonly collection: Co
   const queryClient = useQueryClient();
   const [requested, setRequested] = useState(false);
   const [read, setRead] = useState(0);
-  const [tab, setTab] = useState<'players' | 'tournaments'>('players');
+  const [tab, setTab] = useState<'players' | 'tournaments' | 'openings'>('players');
   const [filter, setFilter] = useState('');
 
   const automatic = collection.games !== null && collection.games <= AUTOMATIC_LIMIT;
@@ -73,6 +73,10 @@ export function CollectionIndexSection({ collection }: { readonly collection: Co
   );
   const tournaments = useMemo(
     () => (index?.tournaments ?? []).filter((event) => event.name.toLowerCase().includes(needle)),
+    [index, needle],
+  );
+  const openings = useMemo(
+    () => (index?.openings ?? []).filter((entry) => entry.name.toLowerCase().includes(needle)),
     [index, needle],
   );
 
@@ -146,6 +150,72 @@ export function CollectionIndexSection({ collection }: { readonly collection: Co
               : ''}
           </p>
 
+          {/*
+            ChessBase's database page opens on its newest tournaments and its
+            top games. Top games are the highest sum of both ratings, among
+            games that record both; each row opens that game in the Library.
+          */}
+          <div className="mt-4 grid gap-5 @2xl:grid-cols-2" data-index-overview>
+            <div>
+              <h4 className="mb-1 text-[10.5px] font-semibold text-tertiary">Newest tournaments</h4>
+              {index.tournaments.length ? (
+                <ul className="divide-y divide-line-subtle text-[11px]">
+                  {index.tournaments.slice(0, 5).map((event) => (
+                    <li key={`${event.name}|${event.year ?? ''}`} className="flex gap-2 py-1">
+                      <Link
+                        href={library({
+                          event: `"${event.name}"`,
+                          ...(event.year === null
+                            ? {}
+                            : { from: `${event.year}-01-01`, to: `${event.year}-12-31` }),
+                        })}
+                        className="min-w-0 flex-1 truncate text-primary hover:text-accent-ink"
+                      >
+                        {event.name}
+                      </Link>
+                      <span className="shrink-0 tabular text-tertiary">
+                        {event.lastDate?.replace(/\./g, '-').replace(/-\?\?/g, '') ?? '—'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-[11px] text-tertiary">No game here names an event.</p>
+              )}
+            </div>
+            <div>
+              <h4
+                className="mb-1 text-[10.5px] font-semibold text-tertiary"
+                title="The highest sum of both players' ratings, among games that record both"
+              >
+                Top games
+              </h4>
+              {index.topGames.length ? (
+                <ul className="divide-y divide-line-subtle text-[11px]" data-index-top-games>
+                  {index.topGames.slice(0, 5).map((entry) => (
+                    <li key={entry.id} className="flex gap-2 py-1">
+                      <Link
+                        href={library({ game: entry.id })}
+                        className="min-w-0 flex-1 truncate text-primary hover:text-accent-ink"
+                      >
+                        {entry.white}{' '}
+                        <span className="tabular text-tertiary">{entry.whiteRating}</span>
+                        {' – '}
+                        {entry.black}{' '}
+                        <span className="tabular text-tertiary">{entry.blackRating}</span>
+                      </Link>
+                      <span className="shrink-0 tabular text-secondary">
+                        {entry.result === '1/2-1/2' ? '½–½' : entry.result}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-[11px] text-tertiary">No game here records both ratings.</p>
+              )}
+            </div>
+          </div>
+
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Segmented
               items={[
@@ -154,15 +224,16 @@ export function CollectionIndexSection({ collection }: { readonly collection: Co
                   id: 'tournaments',
                   label: `Tournaments (${index.tournaments.length.toLocaleString()})`,
                 },
+                { id: 'openings', label: `Openings (${index.openings.length.toLocaleString()})` },
               ]}
               value={tab}
-              onChange={(next) => setTab(next as 'players' | 'tournaments')}
+              onChange={(next) => setTab(next as 'players' | 'tournaments' | 'openings')}
             />
             <input
               value={filter}
               onChange={(event) => setFilter(event.target.value)}
-              placeholder={tab === 'players' ? 'Filter players' : 'Filter tournaments'}
-              aria-label={tab === 'players' ? 'Filter players' : 'Filter tournaments'}
+              placeholder={`Filter ${tab}`}
+              aria-label={`Filter ${tab}`}
               className="h-7 w-48 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-2xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
             />
           </div>
@@ -205,6 +276,52 @@ export function CollectionIndexSection({ collection }: { readonly collection: Co
                           : player.firstYear === player.lastYear
                             ? player.firstYear
                             : `${player.firstYear}–${player.lastYear}`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : tab === 'openings' ? (
+              <table className="w-full border-collapse text-[11px]" data-index-openings>
+                <thead className="sticky top-0 bg-surface-1">
+                  <tr className="border-b border-line-subtle text-left text-[10px] text-tertiary">
+                    <th className="px-2 py-1.5 font-medium">Opening</th>
+                    <th className="px-2 py-1.5 text-right font-medium">Games</th>
+                    <th className="px-2 py-1.5 text-right font-medium">
+                      <abbr title="White wins, draws, Black wins" className="no-underline">
+                        1-0 ½ 0-1
+                      </abbr>
+                    </th>
+                    <th className="px-2 py-1.5 text-right font-medium">White scores</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line-subtle">
+                  {openings.slice(0, ROWS).map((entry) => (
+                    <tr key={`${entry.byName ? 'n' : 'e'}|${entry.name}`}>
+                      <td className="max-w-[320px] truncate px-2 py-1.5">
+                        <Link
+                          /*
+                            A family, whole, in quotes — "Queen's Gambit" without
+                            the Declined and Accepted games that contain its
+                            words; a bare code by its ECO filter.
+                          */
+                          href={library(
+                            entry.byName ? { opening: `"${entry.name}"` } : { eco: entry.name },
+                          )}
+                          className="text-primary hover:text-accent-ink"
+                          data-index-opening={entry.name}
+                        >
+                          {entry.name}
+                        </Link>
+                      </td>
+                      <td className="px-2 py-1.5 text-right tabular text-secondary">
+                        {entry.games.toLocaleString()}
+                      </td>
+                      <td className="px-2 py-1.5 text-right tabular text-tertiary">
+                        {entry.white} / {entry.draws} / {entry.black}
+                      </td>
+                      <td className="px-2 py-1.5 text-right tabular text-secondary">
+                        {entry.whiteScore === null ? '—' : `${entry.whiteScore}%`}
                       </td>
                     </tr>
                   ))}
@@ -262,11 +379,25 @@ export function CollectionIndexSection({ collection }: { readonly collection: Co
               </table>
             )}
           </div>
-          {(tab === 'players' ? players.length : tournaments.length) > ROWS ? (
+          {(tab === 'players' ? players : tab === 'openings' ? openings : tournaments).length >
+          ROWS ? (
             <p className="mt-1 text-[10.5px] text-tertiary">
               The first {ROWS} of{' '}
-              {(tab === 'players' ? players.length : tournaments.length).toLocaleString()} are
-              listed; filter to find the rest.
+              {(tab === 'players'
+                ? players
+                : tab === 'openings'
+                  ? openings
+                  : tournaments
+              ).length.toLocaleString()}{' '}
+              are listed; filter to find the rest.
+            </p>
+          ) : null}
+          {tab === 'openings' && index.withoutOpening ? (
+            <p className="mt-1 text-[10.5px] text-tertiary">
+              {plural(index.withoutOpening, 'game')}{' '}
+              {index.withoutOpening === 1
+                ? 'carries no opening name or ECO code and is in no family.'
+                : 'carry no opening name or ECO code and are in no family.'}
             </p>
           ) : null}
         </>

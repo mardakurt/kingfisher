@@ -74,11 +74,19 @@ export function matchesGameSearch(game: GameSummary, query: GameSearchQuery): bo
   if ((query.fromDate || query.toDate) && !matchesDateRange(game, query)) return false;
   if (query.timeClass && classifyTimeControl(game.timeControl) !== query.timeClass) return false;
   if (query.opening) {
-    const needle = query.opening.toLowerCase();
     const names = [game.opening, game.classification?.name, game.classification?.variation].filter(
       (value): value is string => Boolean(value),
     );
-    if (!names.some((name) => name.toLowerCase().includes(needle))) return false;
+    // In quotes, the opening's family: the name before any colon, whole.
+    const family = exactEvent(query.opening);
+    if (family !== null) {
+      const wanted = family.toLowerCase();
+      if (![game.opening, game.classification?.name].some((name) => openingFamily(name) === wanted))
+        return false;
+    } else {
+      const needle = query.opening.toLowerCase();
+      if (!names.some((name) => name.toLowerCase().includes(needle))) return false;
+    }
   }
   if (query.eco) {
     const needle = query.eco.toLowerCase();
@@ -144,4 +152,10 @@ export function matchesEvent(event: string | undefined, filter: string): boolean
   const exact = exactEvent(filter);
   const have = (event ?? '').trim().toLowerCase();
   return exact !== null ? have === exact.toLowerCase() : have.includes(filter.trim().toLowerCase());
+}
+
+/** "Sicilian Defense: Najdorf Variation" → "sicilian defense"; nothing → null. */
+export function openingFamily(name: string | undefined): string | null {
+  const family = name?.split(':')[0]?.trim().toLowerCase();
+  return family ? family : null;
 }

@@ -85,3 +85,59 @@ describe('readCollectionIndex', () => {
     expect(seen).toEqual([1, 2, 2]);
   });
 });
+
+describe('the index’s openings and top games', () => {
+  const row = (extra: Partial<DuplicateKey>, result = '1-0'): DuplicateKey => ({
+    ...game('White, W', 'Black, B', result),
+    ...extra,
+  });
+
+  it('groups families by the classification, else the tag, else the ECO code', () => {
+    const builder = new CollectionIndexBuilder();
+    builder.add([
+      // Classified: the computed name wins over the file's tag.
+      row({ classifiedName: 'Sicilian Defense', opening: 'Sicilian', eco: 'B90' }, '1-0'),
+      // Only a tag, with a variation after the colon: the family is before it.
+      row({ opening: 'Sicilian Defense: Najdorf Variation', eco: 'B90' }, '1/2-1/2'),
+      row({ opening: 'French Defense' }, '0-1'),
+      // Only a code.
+      row({ eco: 'a00' }, '1-0'),
+      // Nothing at all.
+      row({}, '1-0'),
+    ]);
+    const index = builder.build();
+    expect(index.openings).toEqual([
+      {
+        name: 'Sicilian Defense',
+        byName: true,
+        games: 2,
+        white: 1,
+        draws: 1,
+        black: 0,
+        whiteScore: 75,
+      },
+      { name: 'A00', byName: false, games: 1, white: 1, draws: 0, black: 0, whiteScore: 100 },
+      {
+        name: 'French Defense',
+        byName: true,
+        games: 1,
+        white: 0,
+        draws: 0,
+        black: 1,
+        whiteScore: 0,
+      },
+    ]);
+    expect(index.withoutOpening).toBe(1);
+  });
+
+  it('keeps the ten games with the highest rating sum, and none missing a rating', () => {
+    const builder = new CollectionIndexBuilder();
+    const rated = Array.from({ length: 14 }, (_, n) =>
+      row({ whiteRating: 2000 + n * 10, blackRating: 2000, id: `r${n}` }),
+    );
+    builder.add([...rated, row({ whiteRating: 2900, id: 'one-rating' })]);
+    builder.add([row({ whiteRating: 2500, blackRating: 2500, id: 'late' })]);
+    const top = builder.build().topGames.map((entry) => entry.id);
+    expect(top).toEqual(['late', 'r13', 'r12', 'r11', 'r10', 'r9', 'r8', 'r7', 'r6', 'r5']);
+  });
+});

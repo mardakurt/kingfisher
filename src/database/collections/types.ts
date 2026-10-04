@@ -85,6 +85,15 @@ export interface DuplicateKey {
   readonly event?: string;
   readonly round?: string;
   readonly result: string;
+  /** Read for a collection's index; every field is already in the game's row. */
+  readonly site?: string;
+  readonly eco?: string;
+  /** The file's Opening tag. */
+  readonly opening?: string;
+  /** Kingfisher's classification of the moves (CC0 opening dataset), when made. */
+  readonly classifiedName?: string;
+  readonly whiteRating?: number;
+  readonly blackRating?: number;
 }
 
 export interface DuplicateKeyPage {
