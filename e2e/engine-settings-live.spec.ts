@@ -27,9 +27,11 @@ test('MultiPV changes apply to a running engine and leave a stopped engine stopp
 test('the evaluation bands never fade while a real engine follows a game', async ({ page }) => {
   await page.goto('/analysis');
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();
-  // A sourceable, complete game with the author's original annotations.
+  // A sourceable, complete game with the author's original annotations — or,
+  // with KF_EVAL_BAR_PGN, another real game (the closure audit used Giri–
+  // Vachier-Lagrave, Tata Steel 2021, from Lichess's CC0 broadcast archive).
   const pgn = readFileSync(
-    'public/data/annotated/capablanca-chess-fundamentals-1921.pgn',
+    process.env.KF_EVAL_BAR_PGN || 'public/data/annotated/capablanca-chess-fundamentals-1921.pgn',
     'utf8',
   ).split(/\n(?=\[Event )/)[0]!;
   await page.getByRole('button', { name: 'Import PGN or FEN', exact: true }).click();
@@ -94,4 +96,11 @@ test('the evaluation bands never fade while a real engine follows a game', async
   expect(samples.every((sample) => sample.opacity === 1)).toBe(true);
   expect(pending.every((sample) => sample.label === '…')).toBe(true);
   expect(pending.every((sample) => sample.description.includes('previous position'))).toBe(true);
+  // Settled, the engine's evidence belongs to the position on the board.
+  const boardFen = (await page.locator('[data-fen-tooltip]').first().textContent())?.trim();
+  await expect(page.locator('[data-engine-panel-fen]')).toHaveAttribute(
+    'data-engine-panel-fen',
+    boardFen!,
+    { timeout: 30_000 },
+  );
 });
