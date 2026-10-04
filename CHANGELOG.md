@@ -4,6 +4,25 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## 1.4.8 — 2026-10-05
+
+- Safari: an unsaved edit survives leaving Kingfisher by a link or address and
+  coming back; saving no longer stalls behind a false "saved".
+- A tab reloaded during an autosave keeps its own work while another tab saves.
+- Studies never names a chapter the board does not hold after a cancelled switch,
+  and keeps the board on screen.
+- Safari: stalled Lichess, tablebase, companion and assistant requests end with a
+  named error instead of "Reading…" for ever.
+- Reopening Kingfisher signed in to Lichess answers on Lichess Masters at once.
+- Games from Lichess database archives are dated from `UTCDate`.
+- Sorting a large companion collection by player is immediate.
+- The Library footer says it is reading while a query runs.
+- Reloading the Library on a companion database reads it instead of reporting
+  the companion as not connected.
+- Annotation arrows have a clean point, on the board and in exported diagrams.
+- Safari: keyboard focus stays inside an open dialog.
+- Firefox no longer logs a Content-Security-Policy violation on every page.
+
 ## 1.4.7 — 2026-10-04
 
 - Add 100 credited famous games and championship classics to the existing

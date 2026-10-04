@@ -17,7 +17,23 @@ import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { argv, exit } from 'node:process';
 
+import { DatabaseSync } from 'node:sqlite';
+
 import { chromium } from '@playwright/test';
+
+/** Counts read straight from the collection file: the oracle the UI is held to. */
+function oracle(name, event, fromDate) {
+  const db = new DatabaseSync(path.join(DIR, `${name}.kingfisher.sqlite`), { readOnly: true });
+  try {
+    const one = (sql, ...args) => Number(Object.values(db.prepare(sql).get(...args))[0]);
+    return {
+      event: one('SELECT count(*) FROM games WHERE event = ?', event),
+      from: one('SELECT count(*) FROM games WHERE date >= ?', fromDate.replaceAll('-', '.')),
+    };
+  } finally {
+    db.close();
+  }
+}
 
 const value = (name, fallback) => {
   const found = argv.find((a) => a.startsWith(`--${name}=`));
@@ -163,10 +179,7 @@ async function main() {
 
       // Sort by each sortable column once.
       const headers = await list.locator('thead th button').allInnerTexts();
-      for (const header of headers
-        .map((h) => h.replace(/[↑↓]/g, '').trim())
-        .filter(Boolean)
-        .slice(0, 4)) {
+      for (const header of headers.map((h) => h.replace(/[↑↓]/g, '').trim()).filter(Boolean)) {
         const before = await firstRow();
         const sorted = await time(`${name} sort`, async () => {
           await list.locator('thead th button', { hasText: header }).first().click();
@@ -214,32 +227,51 @@ async function main() {
       await search.fill('');
       await until(async () => /of [\d,]+ games/.test(await statusText()));
 
-      // Filters: event, date, result.
+      // Filters, each held to the count in the file, then cleared back to everything.
+      const month =
+        { 'lichess-225k': '2013-06-15', 'lichess-578k': '2013-12-15', 'lichess-1m': '2014-07-15' }[
+          name
+        ] ?? '2013-06-15';
+      const truth = oracle(name, 'Rated Blitz game', month);
+      const everything = async () =>
+        (await statusText()).includes(`of ${total.toLocaleString()} games`) &&
+        /^(1–100|[\d,]+ of [\d,]+ games · 1–100)/.test(await statusText()) &&
+        ((await statusText()).startsWith('1–100') ||
+          (await statusText()).startsWith(total.toLocaleString()));
       await page.getByRole('button', { name: 'Filters', exact: true }).click();
       const filters = page.locator('[data-library-filters]');
-      for (const [label, input] of [
-        ['Event', 'Rated Blitz game'],
-        ['From date', '2013-06-15'],
+      for (const [label, input, expected] of [
+        ['Event', 'Rated Blitz game', truth.event],
+        ['From date', month, truth.from],
       ]) {
         const field = filters.getByLabel(label, { exact: true });
-        if (!(await field.isVisible().catch(() => false))) continue;
-        const before = await statusText();
+        if (!(await field.isVisible().catch(() => false))) {
+          check(`${name}: filter ${label} is offered`, false);
+          continue;
+        }
         const filtered = await time(`${name} filter`, async () => {
           await field.fill(input);
-          return until(async () => (await statusText()) !== before, 60_000);
+          return until(
+            async () => (await statusText()).startsWith(`${expected.toLocaleString()} of`),
+            60_000,
+          );
         });
         check(
-          `${name}: filter ${label} = ${input}`,
+          `${name}: filter ${label} = ${input} counts what the file holds`,
           filtered.outcome,
-          `${filtered.ms} ms → ${await statusText()}`,
+          `${filtered.ms} ms → ${await statusText()} (file: ${expected.toLocaleString()})`,
         );
         await field.fill('');
+        check(
+          `${name}: filter ${label} clears`,
+          await until(everything, 30_000),
+          await statusText(),
+        );
       }
       await page
         .getByRole('button', { name: 'Close filters' })
         .click()
         .catch(() => undefined);
-      await until(async () => /of [\d,]+ games/.test(await statusText()));
 
       // Preview a game, then open it on the board.
       const row = list.locator('[data-library-row]').nth(5);
@@ -309,7 +341,8 @@ async function main() {
     await companionUp();
     await page.reload();
     await page.locator('html[data-kingfisher-ready="true"]').waitFor();
-    const last = names.at(-1);
+    // The collection switched to last (the loop above runs the names backwards).
+    const last = names[0];
     const back = await until(
       async () => (await statusText()).includes(EXPECT[last].toLocaleString()),
       60_000,

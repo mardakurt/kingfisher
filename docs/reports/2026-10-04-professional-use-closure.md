@@ -310,3 +310,38 @@ and the engine selector behind the modal. The dialog now also returns focus
 that lands outside it (leaving nested dialogs, menus and list popups alone).
 The trap test (now also Shift+Tab) fails in WebKit without the change; Settings
 spec 30/30 with it.
+
+### G7 — after D6–D8, on re-imported (dated) collections
+
+Re-import (`large-db-import-2.json`): 224,679 / 578,262 / 1,048,440 games,
+every game dated (`2013.11.30–2013.12.31`, `2014.06.30–2014.07.31`; edge games
+are UTC-evening starts), 499 / 713 / 810 games/s, peak companion RSS 4.6 /
+4.1 / 5.1 GB, 1.12 / 2.69 / 5.18 GB on disk; stop honoured in 2.0 s again.
+
+UI, Chrome, production build (`large-db-ui-2.json`, 56/57): every filtered
+count equals the count read from the SQLite file — Event "Rated Blitz game"
+86,804 / 213,660 / 373,864; From date 131,910 / 324,834 / 582,768 — and each
+clears back to the full count. Player sort 51–68 ms at every size (was up to
+4.8 s). Open + count 49–57 ms; next page 59–81 ms; player search 37–43 ms;
+preview 85–91 ms; open on board 96–99 ms; explorer 4–84 ms; switch 31–35 ms;
+0 console errors.
+
+**Measured miss, not fixed:** the first _unindexed_ sort of a cold collection
+pays one sequential read of the file: Opening 4.8 s at 578k (2.7 GB), 1.8 s at
+225k; warm, the same sort takes ~100 ms (CLI) to 330 ms (UI, Date). The page
+stays interactive and now says "Reading…" (D7). The remedy — indexes on
+`opening` and `date`, built when an existing collection opens — changes what
+opening a multi-GB collection does (seconds per million games, and impossible
+on read-only attachments), so it is recorded as technical debt rather than
+made in a release-time change.
+
+**D10 — reloading the Library on a companion database said "not connected"
+(fixed).** `/games?db=sqlite:…` loaded with a running, answering companion
+showed "could not be read: the companion is not connected" and never
+retried. The connection was mirrored into the client module by an effect
+that runs after the Library's first query (D2's shape); the Mac application's
+bridge pairing was adopted the same way. The preferences store now adopts the
+bridge pairing and mirrors the connection synchronously at load and on every
+change. Unit tests (stored pairing, bridge pairing): 3/3 fail without the
+mirror, pass with it. Production build: after a companion restart and reload
+the Library lists 224,679 of 224,679 games (`large-db-ui-3.json`).
