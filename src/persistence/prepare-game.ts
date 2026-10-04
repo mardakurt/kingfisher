@@ -17,6 +17,26 @@ import { gameFingerprint } from './ids';
 import { playerKey } from './schema/migrations';
 import type { GameRecord, PositionRecord } from './types';
 
+/**
+ * The date a game was played, from its tags.
+ *
+ * `Date` when it names a year. Otherwise `UTCDate`: Lichess's own database
+ * archives — the source the large-database guide points to — carry only
+ * `UTCDate`, so every game imported from them had no date and no year, and
+ * date filters, year windows and date sorting silently left out millions of
+ * games (found importing the real 2013–2014 archives for the closure audit).
+ * The fingerprint is not touched: it still hashes `Date`, so games already
+ * stored are recognised when the same archive is imported again.
+ */
+export function gameDate(
+  headers: Readonly<Record<string, string | undefined>>,
+): string | undefined {
+  for (const value of [headers.Date, headers.UTCDate]) {
+    if (value && /^\d{4}/.test(value.trim())) return value.trim();
+  }
+  return undefined;
+}
+
 /** Normalize one parsed tree into the durable game identity used by every store. */
 export function normalizeGame(tree: GameTree, importedAt = Date.now()): GameRecord {
   const normalizedPgn = serializePgn(tree, { lineWidth: 80 });
@@ -24,7 +44,8 @@ export function normalizeGame(tree: GameTree, importedAt = Date.now()): GameReco
   const headers = tree.headers;
   const whiteRating = positiveNumber(headers.WhiteElo);
   const blackRating = positiveNumber(headers.BlackElo);
-  const year = positiveNumber(headers.Date?.slice(0, 4));
+  const date = gameDate(headers);
+  const year = positiveNumber(date?.slice(0, 4));
   const whiteName = headers.White || 'Unknown';
   const blackName = headers.Black || 'Unknown';
   const whiteKey = playerKey(whiteName);
@@ -42,7 +63,7 @@ export function normalizeGame(tree: GameTree, importedAt = Date.now()): GameReco
     white: whiteName,
     black: blackName,
     result: gameResult(headers.Result),
-    ...(headers.Date ? { date: headers.Date } : {}),
+    ...(date ? { date } : {}),
     ...(year && year > 1000 ? { year } : {}),
     ...(headers.Event ? { event: headers.Event } : {}),
     ...(headers.Site ? { site: headers.Site } : {}),

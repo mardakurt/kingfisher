@@ -11,6 +11,7 @@
  * of `ChessDatabaseProvider` — that is why the interface exists.
  */
 
+import { gameDate } from '@/persistence/prepare-game';
 import { positionKey } from '@/chess/fen';
 import { mainlinePath } from '@/chess/tree/tree';
 import type { GameTree, NodeId } from '@/chess/tree/types';
@@ -331,7 +332,7 @@ export function gameMetaFromHeaders(
   id: string,
   headers: Readonly<Record<string, string>>,
 ): IndexedGame {
-  const year = Number(headers.Date?.slice(0, 4));
+  const year = Number(gameDate(headers)?.slice(0, 4));
   const whiteRating = Number(headers.WhiteElo);
   const blackRating = Number(headers.BlackElo);
   const result = headers.Result;
