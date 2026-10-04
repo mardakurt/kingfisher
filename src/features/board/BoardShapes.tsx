@@ -14,7 +14,7 @@
  */
 
 import type { Shape } from '@/chess/annotations';
-import { useId, useMemo, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 
 import type { Color } from '@/chess/types';
 
@@ -145,8 +145,29 @@ const variationOpacity = (rank: number): number =>
   rank <= 1 ? ENGINE_ARROW.opacity : Math.max(0.22, ENGINE_ARROW.opacity * 0.62 ** (rank - 1));
 
 /** The shaft and head of an arrow as one outline, in board units. */
+/**
+ * Arrows a person draws: an annotation, read from across the board, so a
+ * little bolder than the engine's, with a head clearly wider than its shaft.
+ * Drawn as one polygon like the engine's. They were a round-capped line with a
+ * marker head 1.6 shafts wide, so the cap poked out past the point as a blob
+ * and the head barely showed.
+ */
+const USER_ARROW = {
+  shaft: 0.15,
+  headLength: 0.36,
+  headHalfWidth: 0.27,
+  startInset: 0.32,
+  endInset: 0.24,
+} as const;
+
 function arrowGeometry(
   arrow: Pick<ResolvedArrow, 'fromX' | 'fromY' | 'toX' | 'toY'> & { readonly shaft?: number },
+  style: {
+    readonly headLength?: number;
+    readonly headHalfWidth?: number;
+    readonly startInset?: number;
+    readonly endInset?: number;
+  } = {},
 ) {
   const dx = arrow.toX - arrow.fromX;
   const dy = arrow.toY - arrow.fromY;
@@ -157,10 +178,12 @@ function arrowGeometry(
   // Perpendicular unit, for the width.
   const nx = -uy;
   const ny = ux;
-  const { headLength, startInset, endInset } = ENGINE_ARROW;
+  const headLength = style.headLength ?? ENGINE_ARROW.headLength;
+  const startInset = style.startInset ?? ENGINE_ARROW.startInset;
+  const endInset = style.endInset ?? ENGINE_ARROW.endInset;
   const shaft = arrow.shaft ?? ENGINE_ARROW.shaft;
   // A wide reference arrow keeps a head wider than its shaft.
-  const headHalfWidth = Math.max(ENGINE_ARROW.headHalfWidth, shaft * 0.9);
+  const headHalfWidth = Math.max(style.headHalfWidth ?? ENGINE_ARROW.headHalfWidth, shaft * 0.9);
   const startX = arrow.fromX + ux * startInset;
   const startY = arrow.fromY + uy * startInset;
   const tipX = arrow.toX - ux * endInset;
@@ -203,7 +226,6 @@ export function BoardShapes({
   orientation,
   movingPiece = false,
 }: BoardShapesProps) {
-  const markerPrefix = useId().replaceAll(':', '');
   const all = draft ? [...shapes, draft] : shapes;
   const resolvedEngine = useMemo(
     () => resolveEngineArrows(engineArrows, orientation),
@@ -381,23 +403,6 @@ export function BoardShapes({
           className="pointer-events-none absolute inset-0 h-full w-full"
           aria-hidden
         >
-          <defs>
-            {(['green', 'red', 'blue', 'yellow'] as const).map((brush) => (
-              <marker
-                key={brush}
-                id={`${markerPrefix}-arrowhead-${brush}`}
-                viewBox="0 0 10 10"
-                refX="6.2"
-                refY="5"
-                markerWidth="3.2"
-                markerHeight="3.2"
-                orient="auto-start-reverse"
-              >
-                <path d="M0 1.4 L8.4 5 L0 8.6 Z" fill={BRUSH_COLOR[brush]} />
-              </marker>
-            ))}
-          </defs>
-
           {all.map((shape, index) => {
             if (shape.kind === 'square') {
               const { cx, cy } = centre(shape.square, orientation);
@@ -419,31 +424,19 @@ export function BoardShapes({
 
             const from = centre(shape.from, orientation);
             const to = centre(shape.to, orientation);
-            const dx = to.cx - from.cx;
-            const dy = to.cy - from.cy;
-            const length = Math.hypot(dx, dy);
-            if (length < 0.01) return null;
-
-            // Pull the tail off the origin piece and stop short of the target centre.
-            const unitX = dx / length;
-            const unitY = dy / length;
-            const startX = from.cx + unitX * 0.32;
-            const startY = from.cy + unitY * 0.32;
-            const endX = to.cx - unitX * 0.28;
-            const endY = to.cy - unitY * 0.28;
-
+            const geometry = arrowGeometry(
+              { fromX: from.cx, fromY: from.cy, toX: to.cx, toY: to.cy, shaft: USER_ARROW.shaft },
+              USER_ARROW,
+            );
+            if (!geometry) return null;
             return (
-              <line
+              <polygon
                 key={`a${index}-${shape.from}${shape.to}`}
-                x1={startX}
-                y1={startY}
-                x2={endX}
-                y2={endY}
-                stroke={BRUSH_COLOR[shape.brush]}
-                strokeWidth={0.13}
-                strokeLinecap="round"
+                points={geometry.outline}
+                fill={BRUSH_COLOR[shape.brush]}
+                strokeLinejoin="round"
                 opacity={0.88}
-                markerEnd={`url(#${markerPrefix}-arrowhead-${shape.brush})`}
+                data-user-arrow={`${shape.from}${shape.to}`}
               />
             );
           })}
