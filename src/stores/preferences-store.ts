@@ -12,6 +12,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import { setLichessToken } from '@/database/providers/lichess-auth';
 import type { AnalysisLimit } from '@/engine/types';
 import { DEFAULT_BOARD_PRIORITY, type BoardPriority } from '@/features/workspace/layout-model';
 import type { SourcePreference } from '@/reference/types';
@@ -397,3 +398,18 @@ export const usePreferences = create<Preferences & PreferencesActions>()(
     },
   ),
 );
+
+/*
+  The Lichess provider is constructed outside React, so it keeps its own copy of
+  the token. It is mirrored here — synchronously once the stored preferences
+  are hydrated, and on every change — rather than in an effect. It used to be
+  `useCompanionSync`'s effect, and React runs a child's effects before its
+  parent's: an Explorer that opened on a Lichess source sent its first request
+  before the token arrived, Lichess refused it, and a connected player was told
+  "Lichess requires an API token" at that position until they moved away.
+  Only in production: development's Strict Mode mounts twice, and the second
+  mount's request already had the token. `preferences-lichess-token.test.ts`
+  guards it in the unit gate; `e2e/provider-states.spec.ts` against `next start`.
+*/
+setLichessToken(usePreferences.getState().lichessToken);
+usePreferences.subscribe((state) => setLichessToken(state.lichessToken));

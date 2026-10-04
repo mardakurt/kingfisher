@@ -89,3 +89,38 @@ position (carrying a move illegal now) never appears. Chrome, Firefox, WebKit.
 
 Firefox 155 (Playwright build) launches, loads Kingfisher and runs specs; the
 profile-setup failure recorded in the 1.4.3 handover did not recur.
+
+### D2 — a connected player reopening on Lichess Masters was told to connect (fixed)
+
+Found by the live harness (`scripts/desktop-lichess-live.mjs`) on the packaged
+public 1.4.7 with a real signed-in profile: token persisted (36 characters,
+remember on), Masters selected, and at launch and after reload the panel said
+"Lichess requires an API token… Connect Lichess". The provider learns the token
+from a module variable, mirrored by an effect in `useCompanionSync`; React runs
+child effects first, so the Explorer's first request went without the token,
+Lichess's answer was cached as an authentication error, and was not retried.
+
+Fix: the preferences store mirrors the token synchronously at hydration and on
+every change; the effect copy is removed.
+
+- `src/stores/preferences-lichess-token.test.ts`: 2/2 fail with the mirror
+  removed, 2/2 pass with it.
+- `e2e/provider-states.spec.ts` "reopening on Lichess Masters": **passed even
+  with the fix removed under `next dev`** — Strict Mode's double mount refetched
+  with the token and hid the race. Against a production build (`next start`):
+  failed without the fix (`token-race-nofix.log`), passed with it. The standard
+  e2e gate runs `next dev`, so it cannot catch this class of first-mount race;
+  the provider spec is therefore also run against production in final acceptance.
+
+### G4 — first live pass (public 1.4.7, signed-in profile, no revocation)
+
+`lichess-live-1.4.7-dry.json`: Masters at the start matched Lichess directly
+(e4 d4 Nf3 c4, 2,879,587 games); after 8 rapid moves the panel showed only the
+final position, every listed move legal; Lichess account sync imported 234
+games and a second sync none; Chess.com `sampleuser` imported 1, then none;
+37 remote requests; 0 console errors; no surviving process. Four harness
+defects were found and corrected (compared against its own bookkeeping instead
+of the board's FEN; read the master game before it loaded; prefetch cache made
+the offline step vacuous; sync text read from the wrong account row; an
+exception was swallowed by `exit` in `finally`). Final live run pending on the
+final candidate, including revocation.

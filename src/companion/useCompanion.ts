@@ -15,7 +15,6 @@ import { isDesktop } from '@/desktop/bridge';
 import { usePreferences } from '@/stores/preferences-store';
 
 import { sqliteProvidersFrom } from '@/database/providers/companion-sqlite';
-import { setLichessToken } from '@/database/providers/lichess-auth';
 import { setDynamicDatabaseProviders } from '@/database/registry';
 import {
   engineDefinition,
@@ -31,20 +30,13 @@ import { CompanionClient } from './client';
 export function useCompanionSync(): void {
   const url = usePreferences((state) => state.companionUrl);
   const token = usePreferences((state) => state.companionToken);
-  const lichess = usePreferences((state) => state.lichessToken);
 
   useEffect(() => {
     setCompanion(url && token ? { url, token } : null);
   }, [token, url]);
 
-  /*
-    The Lichess provider is constructed outside React too, so its credential is
-    mirrored the same way. Grouped here rather than in a second hook because
-    both are "a stored secret that a non-React module needs".
-  */
-  useEffect(() => {
-    setLichessToken(lichess);
-  }, [lichess]);
+  // The Lichess token is mirrored by the preferences store itself, before any
+  // query can run; an effect here ran after the Explorer's first request.
 
   // SQLite collections appear in the explorer's source list only while the
   // companion that owns them is answering.

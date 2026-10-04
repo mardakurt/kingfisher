@@ -78,7 +78,7 @@ async function play(page: Page, from: string, to: string) {
   await page.getByRole('gridcell', { name: new RegExp(`^${to},`) }).click();
 }
 
-async function connectFakeToken(page: Page) {
+async function connectFakeToken(page: Page, { remember = false } = {}) {
   await page.route('https://lichess.org/api/account', (route) =>
     route.fulfill({ json: { id: 'e2e-user', username: 'E2EUser' } }),
   );
@@ -87,6 +87,8 @@ async function connectFakeToken(page: Page) {
   await settings.getByRole('tab', { name: 'Accounts' }).click();
   await settings.getByRole('button', { name: /personal access token/ }).click();
   await settings.getByLabel('Lichess personal access token').fill('e2e-token');
+  // A pasted token is kept across a reload only when asked; a sign-in always asks.
+  if (remember) await settings.getByLabel('Remember this token on this device').check();
   await settings.getByRole('button', { name: 'Test connection' }).click();
   await expect(settings.getByText('Connected as E2EUser')).toBeVisible();
   await settings.getByRole('button', { name: 'Close' }).click();
@@ -239,5 +241,42 @@ test('a slow answer for the position just left never appears under the new one',
   await page.waitForTimeout(500);
   await expect(panel.getByRole('button', { name: 'Nf3', exact: true })).toBeVisible();
   await expect(panel.getByRole('button', { name: 'Qh5', exact: true })).toHaveCount(0);
+  expect(consoleFailures).toEqual([]);
+});
+
+test('a connected player reopening on Lichess Masters is answered, not asked to connect', async ({
+  page,
+  browserName,
+}) => {
+  const consoleFailures = watchConsole(page, browserName);
+  const authorization: string[] = [];
+  await page.route('https://explorer.lichess.org/masters**', async (route) => {
+    authorization.push(route.request().headers().authorization ?? '');
+    await route.fulfill({ json: OK_BODY('e4', 'e2e4') });
+  });
+  await page.goto('/analysis');
+  await page.locator('html[data-kingfisher-ready="true"]').waitFor();
+  await page.getByRole('button', { name: 'New analysis' }).first().click();
+  await connectFakeToken(page, { remember: true });
+  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Explorer');
+  await page.getByLabel('Evidence source').selectOption('lichess-masters');
+  await expect(
+    page.locator('[data-explorer-table]').getByRole('button', { name: 'e4', exact: true }),
+  ).toBeVisible();
+
+  /*
+    Start-up is the case: the Explorer opens on Masters and asks at once. The
+    token used to reach the provider in a parent effect, after that first
+    request, which went without it and was cached as "requires an API token".
+  */
+  authorization.length = 0;
+  await page.reload();
+  await page.locator('html[data-kingfisher-ready="true"]').waitFor();
+  await expect(
+    page.locator('[data-explorer-table]').getByRole('button', { name: 'e4', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(/requires an API token/)).toHaveCount(0);
+  expect(authorization.length).toBeGreaterThan(0);
+  expect(authorization.every((value) => value === 'Bearer e2e-token')).toBe(true);
   expect(consoleFailures).toEqual([]);
 });
