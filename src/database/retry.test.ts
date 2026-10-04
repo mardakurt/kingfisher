@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  deadline,
   isRetryableProviderError,
   parseRetryAfter,
   providerRetry,
@@ -119,5 +120,46 @@ describe('request deadlines', () => {
     const signal = withTimeout(undefined, 10);
     await new Promise((resolve) => setTimeout(resolve, 40));
     expect(signal.aborted).toBe(true);
+  });
+
+  it('says whether the deadline or the caller ended the request', async () => {
+    const own = deadline(10);
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(own.signal.aborted).toBe(true);
+    expect(own.expired()).toBe(true);
+    expect((own.signal.reason as DOMException).name).toBe('TimeoutError');
+
+    const controller = new AbortController();
+    const cancelled = deadline(10, controller.signal);
+    controller.abort();
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(cancelled.signal.aborted).toBe(true);
+    // The caller's cancellation stopped the clock; it is not reported as a timeout.
+    expect(cancelled.expired()).toBe(false);
+  });
+});
+
+/*
+  Safari's `AbortSignal.any`, given a timeout signal, never aborts once garbage
+  has been collected in the meantime (`deadline` in retry.ts). Node and
+  Chromium do not reproduce that, so this pins the cause instead: a deadline
+  that still works when `AbortSignal.any` cannot be used is one that does not
+  depend on it. `e2e/provider-states.spec.ts` is the WebKit reproduction.
+*/
+describe('request deadlines without AbortSignal.any', () => {
+  const original = AbortSignal.any;
+  afterEach(() => {
+    AbortSignal.any = original;
+  });
+
+  it('still combines the caller and the clock', async () => {
+    AbortSignal.any = vi.fn(() => {
+      throw new Error('AbortSignal.any is not to be relied on');
+    });
+    const controller = new AbortController();
+    const signal = withTimeout(controller.signal, 10);
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(signal.aborted).toBe(true);
+    expect(AbortSignal.any).not.toHaveBeenCalled();
   });
 });

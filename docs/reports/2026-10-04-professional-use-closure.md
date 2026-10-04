@@ -1,0 +1,91 @@
+# Professional-use closure — working log (started 2026-10-04)
+
+Continues [the stability audit](2026-10-04-professional-stability-audit.md).
+Starting point verified, not assumed: `master` = `origin/master` =
+`179577f518f04db671b244e0d267a7aa8e71b424`, clean tree. Public descriptor:
+1.4.7 build 1113 from `43044cde134cca9a4db8c3023ab2ad4235a68e95`. Commits after
+`43044cd` change documentation and a landing test only.
+
+Evidence that is not committed lives in `~/KingfisherWork/evidence/closure/`.
+
+## Support promises this verdict is measured against
+
+Read from README, `docs/product/public-claims.md` and the landing page — not
+chosen to make the matrix easier.
+
+| Promise                                                                            | Source                               |
+| ---------------------------------------------------------------------------------- | ------------------------------------ |
+| Mac application: Apple Silicon (arm64), macOS 13 or later                          | README, public claims, descriptor    |
+| Windows, Linux and Intel Macs: not built, not supported (desktop)                  | README, public claims                |
+| Web application: "Modern · Chromium, Firefox, Safari"; JSON-LD also names Edge     | Landing                              |
+| SQLite collections measured to 500,000 games, IndexedDB to 50,000; not to millions | README "Deliberately bounded"        |
+| Authenticated remote provider: **Lichess only** (token or PKCE sign-in)            | `lichess-auth.ts`, `lichess-pkce.ts` |
+| Chess.com: public username sync, no authentication                                 | README "Linked accounts", `sync/`    |
+
+## Outstanding gaps and the evidence that closes each
+
+| #   | Gap                                                               | Evidence required                                                                                                                                                                                                               |
+| --- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G1  | Final timed 30-minute packaged walk incomplete                    | `desktop:soak` on the final candidate, passing                                                                                                                                                                                  |
+| G2  | No multi-hour professional session                                | ≥4 h mixed-workload run on the packaged final candidate: per-cycle memory by process, engines/workers, listeners/observers/channels, requests, latency, console, persistence, restart, shutdown; inspection at start/middle/end |
+| G3  | Cross-tab persistence not stressed over sustained use             | Two real tabs on one isolated profile, controlled persistence-boundary delays, independent invariant checks; regressions for any defect                                                                                         |
+| G4  | Lichess signed-in workflows never exercised live                  | Live sign-in + explorer/game queries + revocation; transport fault injection for 401/429/timeout/offline/malformed; Chess.com username sync live round trip                                                                     |
+| G5  | Firefox never reached the app; Safari only as WebKit automation   | Focused professional-workflow set in Firefox and WebKit; actual Safari if remote automation can be enabled; Chrome stable                                                                                                       |
+| G6  | macOS 13 floor and other macOS versions unverified                | Packaged launch on any older macOS available through real infrastructure; otherwise state the boundary                                                                                                                          |
+| G7  | No real corpus driven through the UI at the advertised 500k scale | Real CC0 Lichess tiers 224,679 / 578,262 / 1,048,440 games through _Import a large file_ and Library/Explorer in the packaged app; targets stated before measuring                                                              |
+| G8  | Engine bar / lifecycle under long sessions                        | Covered inside G2 plus the existing real-engine regressions; a real Giri–Vachier-Lagrave game if one is available from a CC0 source                                                                                             |
+| G9  | Classics collection not re-gated in a complete candidate          | Classics specs inside the final full browser gate and packaged run                                                                                                                                                              |
+| G10 | Studies bundle / bulk parsing debt                                | Measure first; change only where a measured workflow warrants it                                                                                                                                                                |
+| G11 | Full suites not rerun after `43044cd`                             | One frozen candidate: all source gates, one package, `desktop:certify`, leak soak, upgrade                                                                                                                                      |
+
+## Progress
+
+(Appended as work completes. Each entry names the command and where its output is.)
+
+### D1 — Safari: a stalled remote request never ended (fixed)
+
+Found by the new `e2e/provider-states.spec.ts` (G4/G5). With a Lichess
+explorer request that was never answered, WebKit showed "Reading Lichess
+Masters…" for as long as anyone watched (35 s observed; Chrome and Firefox
+showed "did not respond" after the bounded retry, about 18 s).
+
+Isolated in WebKit 26.6, Chromium and Firefox with a page that allocates while
+waiting (probe scripts reproduced in the commit message):
+
+| Deadline construction                              | WebKit              | Chromium |
+| -------------------------------------------------- | ------------------- | -------- |
+| `AbortSignal.timeout(6000)`                        | aborted at 6.0 s    | 6.0 s    |
+| `AbortSignal.any([c.signal, AbortSignal.timeout])` | **pending at 14 s** | 6.0 s    |
+| same, timeout signal strongly referenced           | **pending at 14 s** | 6.0 s    |
+| `AbortController` + `setTimeout`                   | aborted at 6.0 s    | 6.0 s    |
+
+Without allocation pressure WebKit's `AbortSignal.any` aborted on time, which
+is why no earlier probe or test saw it. Every remote request built its deadline
+that way: Lichess explorer (three sources), master-game PGN, the Lichess
+connection test, Lichess tablebase, **every companion request**, and the
+assistant. WebKit also rejects a timed-out fetch with `AbortError`, so callers
+that matched `TimeoutError` misdescribed a timeout as "not reachable".
+
+Fix: `deadline()` in `src/database/retry.ts` (controller + timer, explicit
+`expired()`), used by all of them. Evidence:
+
+- `src/database/retry.test.ts` "still combines the caller and the clock" —
+  failed with the old `withTimeout` body restored (1 failed / 20 passed), passes
+  with the fix (21/21).
+- `e2e/provider-states.spec.ts` in WebKit — failed before (hang step, 25 s, no
+  error), **6/6 passed** after across Chrome, Firefox and WebKit.
+- Affected unit suites: 125/125.
+
+### G4 (partial) — provider failure classes in the real panel
+
+`e2e/provider-states.spec.ts`, fake token, faults at the network boundary only:
+empty, malformed JSON, wrong schema, 401 revoked, 403, 429 (Retry-After), 503,
+connection refused, never answered — each named distinctly, the source picker
+unchanged (no silent substitution), no healthy table, failure never shown as
+"No games", and the next position recovers. A late answer for the previous
+position (carrying a move illegal now) never appears. Chrome, Firefox, WebKit.
+
+### G5 (partial) — Firefox reaches the application
+
+Firefox 155 (Playwright build) launches, loads Kingfisher and runs specs; the
+profile-setup failure recorded in the 1.4.3 handover did not recur.

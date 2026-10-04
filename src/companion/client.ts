@@ -16,7 +16,7 @@
 
 import type { EnCroissantInspection, EnCroissantPage } from '@/database/encroissant/types';
 
-import { withTimeout } from '@/database/retry';
+import { deadline } from '@/database/retry';
 
 /** A paired engine host, as the companion reports it. */
 export interface RemoteEngineHostRow {
@@ -289,6 +289,7 @@ export class CompanionClient {
     signal?: AbortSignal,
     timeoutMs: number = REQUEST_TIMEOUT_MS,
   ): Promise<T> {
+    const limit = deadline(timeoutMs, signal);
     let response: Response;
     try {
       response = await fetch(`${this.config.url}${path}`, {
@@ -304,12 +305,13 @@ export class CompanionClient {
           connection and never answers — and with no timeout that request never
           settles and the panel waits forever.
         */
-        signal: withTimeout(signal, timeoutMs),
+        signal: limit.signal,
       });
     } catch (error) {
       if (signal?.aborted) throw error;
       throw new CompanionError(
-        error instanceof DOMException && error.name === 'TimeoutError'
+        // The deadline's own record: Safari names a timed-out fetch AbortError.
+        limit.expired()
           ? 'The companion accepted the request but did not answer.'
           : 'The companion is not reachable.',
         'Start it with `npm run companion`, then check the address in Settings → Companion.',

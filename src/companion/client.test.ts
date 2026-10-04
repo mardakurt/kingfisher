@@ -10,16 +10,18 @@
  * collections worth checking, and reported the companion as unresponsive when
  * it was working.
  *
- * The deadline is read off `AbortSignal.timeout`, which is where it is actually
- * decided, so a change that routes one of these back through the ordinary path
- * fails here rather than only on somebody's large database.
+ * The deadline is read off the timer `deadline()` arms, which is where it is
+ * actually decided, so a change that routes one of these back through the
+ * ordinary path fails here rather than only on somebody's large database. (It
+ * was `AbortSignal.timeout` until Safari's `AbortSignal.any` was found never to
+ * fire; see `database/retry.ts`.)
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CompanionClient } from './client';
 
-/** Milliseconds each request asked `AbortSignal.timeout` for, in order. */
+/** Milliseconds each request's deadline timer was armed for, in order. */
 let deadlines: number[] = [];
 
 function client(): CompanionClient {
@@ -28,12 +30,14 @@ function client(): CompanionClient {
 
 beforeEach(() => {
   deadlines = [];
-  const real = AbortSignal.timeout.bind(AbortSignal);
-  vi.spyOn(AbortSignal, 'timeout').mockImplementation((ms: number) => {
-    deadlines.push(ms);
-    // A signal that never fires, so nothing here races a real clock.
-    return real(3_600_000);
-  });
+  const real = globalThis.setTimeout;
+  vi.spyOn(globalThis, 'setTimeout').mockImplementation(((handler: () => void, ms?: number) => {
+    deadlines.push(ms ?? 0);
+    // A timer that never fires, so nothing here races a real clock.
+    const timer = real(handler, 3_600_000);
+    timer.unref();
+    return timer;
+  }) as typeof setTimeout);
   vi.stubGlobal(
     'fetch',
     vi.fn(

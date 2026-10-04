@@ -25,25 +25,11 @@ import {
   type ExplorerResult,
   type GameResult,
 } from '../types';
-import { parseRetryAfter } from '../retry';
+import { deadline, parseRetryAfter } from '../retry';
 
 const ENDPOINT = 'https://explorer.lichess.org';
 const REQUEST_TIMEOUT_MS = 8_000;
 const START_POSITION = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' as Fen;
-
-/** `AbortSignal.any` is not available everywhere yet; this is the same idea. */
-function anySignal(signals: readonly AbortSignal[]): AbortSignal {
-  if (typeof AbortSignal.any === 'function') return AbortSignal.any([...signals]);
-  const controller = new AbortController();
-  for (const signal of signals) {
-    if (signal.aborted) {
-      controller.abort(signal.reason);
-      break;
-    }
-    signal.addEventListener('abort', () => controller.abort(signal.reason), { once: true });
-  }
-  return controller.signal;
-}
 
 interface LichessPlayer {
   readonly name?: string;
@@ -149,18 +135,18 @@ export class LichessExplorerProvider implements ChessDatabaseProvider {
 
     // A request that never settles would leave the panel spinning forever;
     // network filtering and captive portals both produce exactly that.
-    const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
-    const combined = signal ? anySignal([signal, timeout]) : timeout;
+    // Not `AbortSignal.any`: in Safari that deadline never fires (`deadline`).
+    const limit = deadline(REQUEST_TIMEOUT_MS, signal);
 
     let response: Response;
     try {
       response = await fetch(url, {
-        signal: combined,
+        signal: limit.signal,
         headers: { Accept: 'application/json', ...lichessAuthHeaders() },
       });
     } catch (error) {
       if (signal?.aborted) throw error;
-      if (timeout.aborted) {
+      if (limit.expired()) {
         throw new DatabaseError(
           'The Lichess explorer did not respond.',
           'Check your connection, or switch to "My games" to work offline.',
@@ -312,19 +298,18 @@ export class LichessExplorerProvider implements ChessDatabaseProvider {
       so a stalled connection left the reader waiting on a promise that could
       never settle, with no error path downstream able to run.
     */
-    const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
-    const combined = signal ? anySignal([signal, timeout]) : timeout;
+    const limit = deadline(REQUEST_TIMEOUT_MS, signal);
 
     let response: Response;
     try {
       response = await fetch(`${ENDPOINT}/${path}`, {
-        signal: combined,
+        signal: limit.signal,
         headers: { Accept: 'application/x-chess-pgn', ...lichessAuthHeaders() },
       });
     } catch (error) {
       if (signal?.aborted) throw error;
       throw new DatabaseError(
-        timeout.aborted
+        limit.expired()
           ? 'Lichess did not respond while fetching that game.'
           : 'Lichess could not be reached to fetch that game.',
         'Check your connection, or open the game from a local collection.',

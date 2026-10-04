@@ -11,7 +11,7 @@
  */
 
 import { asSan, asUci, type Fen } from '@/chess/types';
-import { withTimeout } from '@/database/retry';
+import { deadline } from '@/database/retry';
 
 import {
   moveRank,
@@ -109,14 +109,16 @@ export class LichessTablebaseProvider implements TablebaseProvider {
       answered — left the promise unsettled forever, and the panel showing a
       loading state that no error path could ever replace.
     */
+    const limit = deadline(REQUEST_TIMEOUT_MS, signal);
     let response: Response;
     try {
-      response = await fetch(url, { signal: withTimeout(signal, REQUEST_TIMEOUT_MS) });
+      response = await fetch(url, { signal: limit.signal });
     } catch (error) {
       // A cancellation by the caller is not a failure; the position changed.
       if (signal?.aborted) throw error;
       throw new Error(
-        error instanceof DOMException && error.name === 'TimeoutError'
+        // The deadline's own record: Safari names a timed-out fetch AbortError.
+        limit.expired()
           ? 'The tablebase did not answer in time.'
           : 'The tablebase could not be reached.',
       );

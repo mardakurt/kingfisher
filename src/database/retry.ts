@@ -62,26 +62,56 @@ export function parseRetryAfter(header: string | null, now = Date.now()): number
   return Math.max(0, at - now);
 }
 
+export interface Deadline {
+  /** Aborts when the caller's signal does, or when the deadline passes. */
+  readonly signal: AbortSignal;
+  /** True once the deadline, rather than the caller, ended the request. */
+  expired(): boolean;
+}
+
+/**
+ * A deadline for one request, combined with the caller's own signal.
+ *
+ * Built from an `AbortController` and a timer, and deliberately not from
+ * `AbortSignal.any([signal, AbortSignal.timeout(ms)])`. In WebKit — so in
+ * Safari — a signal made by `AbortSignal.any` from a timeout signal never
+ * aborts once the page has allocated enough to collect garbage in the
+ * meantime: the fetch it guards stays pending for ever, and the panel waiting
+ * on it reads "Reading…" for ever. Found by `e2e/provider-states.spec.ts`
+ * with an explorer request that was never answered. Here the timer's callback
+ * holds the controller, so nothing it needs can be collected before it fires.
+ *
+ * `expired()` says which of the two ended it. The rejection's error name does
+ * not: WebKit rejects a timed-out fetch with `AbortError`, not `TimeoutError`.
+ */
+export function deadline(ms: number, signal?: AbortSignal): Deadline {
+  const controller = new AbortController();
+  let expired = false;
+  const timer: unknown = setTimeout(() => {
+    expired = true;
+    controller.abort(new DOMException(`No answer within ${ms} ms.`, 'TimeoutError'));
+  }, ms);
+  // Under Node a pending deadline must not keep a finished script alive.
+  (timer as { unref?: () => void } | null)?.unref?.();
+  if (signal) {
+    const follow = () => {
+      clearTimeout(timer as ReturnType<typeof setTimeout>);
+      controller.abort(signal.reason);
+    };
+    if (signal.aborted) follow();
+    else signal.addEventListener('abort', follow, { once: true });
+  }
+  return { signal: controller.signal, expired: () => expired };
+}
+
 /**
  * A signal that aborts when the caller does, or when the deadline passes.
  *
  * Every remote request needs one. A fetch with no timeout is the eternal
  * spinner in its original form: the promise simply never settles, and no
- * amount of error handling downstream ever runs.
+ * amount of error handling downstream ever runs. See `deadline` for why this
+ * is not `AbortSignal.any`.
  */
 export function withTimeout(signal: AbortSignal | undefined, ms: number): AbortSignal {
-  const timeout = AbortSignal.timeout(ms);
-  if (!signal) return timeout;
-  if (typeof AbortSignal.any === 'function') return AbortSignal.any([signal, timeout]);
-
-  const controller = new AbortController();
-  const abort = () => controller.abort();
-  for (const source of [signal, timeout]) {
-    if (source.aborted) {
-      controller.abort();
-      break;
-    }
-    source.addEventListener('abort', abort, { once: true });
-  }
-  return controller.signal;
+  return deadline(ms, signal).signal;
 }

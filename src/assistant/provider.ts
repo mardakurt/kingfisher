@@ -11,7 +11,7 @@
  * product behaves exactly as it did before.
  */
 
-import { withTimeout } from '@/database/retry';
+import { deadline } from '@/database/retry';
 
 export type AssistantMode =
   'explain' | 'plan' | 'calculate' | 'compare' | 'opening-prep' | 'review';
@@ -77,6 +77,7 @@ export class OpenAiCompatibleProvider implements ChessAssistantProvider {
         : user;
     const url = `${this.config.baseUrl.replace(/\/+$/, '')}/chat/completions`;
 
+    const limit = deadline(REQUEST_TIMEOUT_MS, signal);
     let response: Response;
     try {
       response = await fetch(url, {
@@ -98,11 +99,12 @@ export class OpenAiCompatibleProvider implements ChessAssistantProvider {
         // A deadline as well as the caller's signal. A local runner that is
         // loading a model, or a hosted endpoint that accepts and stalls, would
         // otherwise leave the panel waiting with no error path to reach.
-        signal: withTimeout(signal, REQUEST_TIMEOUT_MS),
+        signal: limit.signal,
       });
     } catch (error) {
       if (signal?.aborted) throw error;
-      if (error instanceof DOMException && error.name === 'TimeoutError') {
+      // The deadline's own record: Safari names a timed-out fetch AbortError.
+      if (limit.expired()) {
         throw new AssistantError(
           'The assistant did not answer in time.',
           'A local runner loading a model for the first time can exceed this; retry once it is warm.',

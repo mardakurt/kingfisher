@@ -11,6 +11,8 @@
  * the stored preference by `useLichessAuthSync`.
  */
 
+import { deadline } from '../retry';
+
 let token = '';
 
 export const setLichessToken = (value: string): void => {
@@ -36,18 +38,17 @@ export interface LichessAccount {
 /** Validate the token against Lichess itself without ever returning or logging it. */
 export async function testLichessAccount(signal?: AbortSignal): Promise<LichessAccount> {
   if (!token) throw new Error('Enter a token before testing the connection.');
-  const timeout = AbortSignal.timeout(8_000);
-  const combined =
-    signal && typeof AbortSignal.any === 'function' ? AbortSignal.any([signal, timeout]) : timeout;
+  // Not `AbortSignal.any`: in Safari that deadline never fires (`deadline`).
+  const limit = deadline(8_000, signal);
   let response: Response;
   try {
     response = await fetch('https://lichess.org/api/account', {
-      signal: combined,
+      signal: limit.signal,
       headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
     });
   } catch {
     throw new Error(
-      timeout.aborted
+      limit.expired()
         ? 'Lichess did not respond before the connection test timed out.'
         : 'Lichess could not be reached.',
     );
