@@ -54,3 +54,19 @@ test('the report lists each colour’s opening families and opens one family’s
   await filter.getByRole('button', { name: 'All games' }).click();
   await expect(page.locator('[data-preparation-games] tbody tr')).toHaveCount(4);
 });
+
+test('an opponent prepared for is offered again under Recent', async ({ page }) => {
+  // A player the bundled Starter Reference holds, so the report has a card.
+  await page.goto('/preparation');
+  await page.locator('html[data-kingfisher-ready="true"]').waitFor();
+  await expect(page.locator('[data-recent-opponents]')).toHaveCount(0);
+  await page.getByLabel('Player name').fill('Carlsen, Magnus');
+  await page.locator('[data-opponent-search]').getByRole('button', { name: 'Prepare' }).click();
+  await expect(page.locator('[data-player-card]')).toContainText('Carlsen, Magnus');
+
+  await page.goto('/preparation');
+  await page.locator('html[data-kingfisher-ready="true"]').waitFor();
+  const recent = page.locator('[data-recent-opponents]');
+  await recent.getByRole('button', { name: 'Carlsen, Magnus' }).click();
+  await expect(page.locator('[data-player-card]')).toContainText('Carlsen, Magnus');
+});

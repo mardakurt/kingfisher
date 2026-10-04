@@ -1,5 +1,6 @@
 'use client';
 
+import { recentOpponents, rememberOpponent } from './recent-opponents';
 import { useResearchHistory } from '@/stores/research-history-store';
 import { useTabField } from '@/features/tabs/tab-fields';
 import { useEffect, useMemo, useState } from 'react';
@@ -89,6 +90,12 @@ export function PreparationWorkspace({
   const [eco, setEco] = useState(initialEco);
   const [result, setResult] = useState<GameResult | 'any'>('any');
   const [recentN, setRecentN] = useState('200');
+  // Read after mount: the server render has no localStorage to agree with.
+  const [recent, setRecent] = useState<readonly string[]>([]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRecent(recentOpponents());
+  }, []);
   const [currentKey, setCurrentKey] = useState('');
   const [history, setHistory] = useState<string[]>([]);
   /** The moves walked to reach the current node, so a card prints as a line. */
@@ -385,6 +392,7 @@ export function PreparationWorkspace({
   };
 
   const search = (name: string, chosenPlayer: CatalogPlayer | null) => {
+    if (name.trim()) setRecent(rememberOpponent(name));
     setPlayer(name);
     setSubmitted(name.trim());
     setChosen(chosenPlayer);
@@ -416,6 +424,7 @@ export function PreparationWorkspace({
   const report = !submitted ? (
     <PreparationWelcome
       favourites={profile.data?.favoritePlayers ?? []}
+      recent={recent}
       hasAliases={(profile.data?.aliases.length ?? 0) > 0}
       onChoose={(name) => search(name, null)}
       onMine={() => search(profile.data?.aliases[0] ?? '', null)}
@@ -848,11 +857,13 @@ function PreparationToolbar(props: {
 /** Before anyone is chosen: what the page is for, and the names already at hand. */
 function PreparationWelcome({
   favourites,
+  recent,
   hasAliases,
   onChoose,
   onMine,
 }: {
   readonly favourites: readonly { readonly key: string; readonly name: string }[];
+  readonly recent: readonly string[];
   readonly hasAliases: boolean;
   readonly onChoose: (name: string) => void;
   readonly onMine: () => void;
@@ -881,6 +892,18 @@ function PreparationWelcome({
                 {entry.name}
               </Button>
             ))}
+          </div>
+        ) : null}
+        {recent.length ? (
+          <div className="mt-5" data-recent-opponents>
+            <h3 className="text-[11px] font-semibold text-tertiary">Recent</h3>
+            <div className="mt-1.5 flex flex-wrap justify-center gap-1.5">
+              {recent.map((name) => (
+                <Button key={name} size="sm" variant="subtle" onClick={() => onChoose(name)}>
+                  {name}
+                </Button>
+              ))}
+            </div>
           </div>
         ) : null}
       </div>
