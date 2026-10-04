@@ -4,6 +4,20 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## 1.4.7 — 2026-10-04
+
+- Engine startup can be stopped immediately, unavailable engines can be retried,
+  and startup/configuration failures dispose failed sessions. Rapid navigation
+  cannot revive stopped searches or apply a previous position's evidence.
+- Changes to MultiPV, threads, memory and search limits update active unrestricted
+  searches while stopped engines remain stopped.
+- Engine resource labels report the applied session configuration. Selecting
+  One engine releases the secondary session.
+- Library database switching clears old header and move-search results. Obsolete
+  companion searches are cancelled; companion filters no longer also scan My games.
+- Slow game loads cannot overwrite a more recent choice, an intervening edit,
+  or the workspace after leaving the requesting route.
+
 ## 1.4.6 — 2026-10-04
 
 - **Databases in the sidebar**, with game counts; an open database has an

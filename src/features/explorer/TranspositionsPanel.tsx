@@ -25,6 +25,7 @@ import { getRepositories } from '@/persistence/repositories';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
 import { useChessWorkspace } from '@/features/workspace/ChessWorkspaceContext';
 import { useAnalysis } from '@/stores/analysis-store';
+import { beginDocumentRequest } from '@/stores/document-request';
 import { useUi } from '@/stores/ui-store';
 import { cn } from '@/lib/cn';
 
@@ -146,11 +147,14 @@ function RouteRow({ route }: { route: MergedRoute }) {
   const open = async () => {
     const target = route.openable;
     if (!target) return;
+    const isCurrent = beginDocumentRequest();
     try {
       const repositories = await getRepositories();
       const chapter = await repositories.studies.getChapter(target.chapterId);
+      if (!isCurrent()) return;
       if (!chapter) throw new Error('That chapter no longer exists.');
       const study = await repositories.studies.get(chapter.studyId);
+      if (!isCurrent()) return;
       openDocument({
         tree: chapter.tree,
         document: {

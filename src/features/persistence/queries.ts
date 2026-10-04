@@ -98,13 +98,13 @@ export function useStudy(id: StudyId | null) {
   });
 }
 
-export function useGames(query: GameSearchQuery) {
+export function useGames(query: GameSearchQuery, enabled = true) {
   return useQuery<GameSearchResult>({
+    enabled,
     queryKey: persistenceKeys.games(query),
     queryFn: async () => (await getRepositories()).games.search(query),
     staleTime: 0,
     retry: false,
-    placeholderData: (previous) => previous,
   });
 }
 

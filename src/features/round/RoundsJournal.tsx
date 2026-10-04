@@ -63,7 +63,7 @@ export function RoundsJournal() {
   const open = async (entry: JournalEntryRecord) => {
     if (!entry.gameId) return;
     try {
-      await openStoredGame(entry.gameId);
+      if (!(await openStoredGame(entry.gameId))) return;
       router.push('/analysis');
     } catch (error) {
       notify({

@@ -11,20 +11,178 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { START_FEN } from '@/chess/fen';
-import type { AnalysisHandle, EngineSession } from '@/engine/types';
+import { EMPTY_ANALYSIS, type AnalysisHandle, type EngineSession } from '@/engine/types';
 
 const create = vi.fn();
+const availability = vi.fn(async () => ({ available: true }));
 
 vi.mock('@/engine/registry', () => ({
   DEFAULT_ENGINE_ID: 'test-engine',
   engineDefinition: () => ({ id: 'test-engine', name: 'Test engine' }),
   engineProviderById: () => ({
-    checkAvailability: async () => ({ available: true }),
+    checkAvailability: () => availability(),
     create: (config: unknown) => create(config),
   }),
 }));
 
 const { useEngine, shareResources } = await import('./engine-store');
+
+describe('engine startup and cancellation failures', () => {
+  const config = { multiPv: 1, threads: 1, hashMb: 16 };
+  const other = START_FEN.replace(' w ', ' b ') as typeof START_FEN;
+
+  beforeEach(() => {
+    useEngine.getState().shutdown();
+    useEngine.getState().setFollowBoard(true);
+    create.mockReset();
+    availability.mockReset().mockResolvedValue({ available: true });
+  });
+
+  it('allows retry after an unavailable provider becomes available', async () => {
+    availability.mockResolvedValueOnce({ available: false });
+    const { session } = failingSession(new Error('unused'));
+    create.mockResolvedValue(session);
+    await useEngine.getState().analyse('primary', START_FEN, { kind: 'infinite' }, config);
+    expect(useEngine.getState().primary.status).toBe('unavailable');
+    await useEngine.getState().analyse('primary', START_FEN, { kind: 'infinite' }, config);
+    expect(session.analyse).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports an availability exception and permits a fresh retry', async () => {
+    availability.mockRejectedValueOnce(new Error('Availability transport failed'));
+    await expect(
+      useEngine.getState().analyse('primary', START_FEN, { kind: 'infinite' }, config),
+    ).resolves.toBeUndefined();
+    expect(useEngine.getState().primary).toMatchObject({
+      status: 'error',
+      running: false,
+      problem: { message: 'Availability transport failed' },
+    });
+    const { session } = failingSession(new Error('unused'));
+    create.mockResolvedValue(session);
+    await useEngine.getState().analyse('primary', START_FEN, { kind: 'infinite' }, config);
+    expect(session.analyse).toHaveBeenCalledTimes(1);
+  });
+
+  it('Stop during startup remains stopped after a board move', async () => {
+    let release!: (session: EngineSession) => void;
+    create.mockImplementationOnce(
+      () =>
+        new Promise<EngineSession>((resolve) => {
+          release = resolve;
+        }),
+    );
+    const started = useEngine
+      .getState()
+      .analyse('primary', START_FEN, { kind: 'infinite' }, config);
+    await vi.waitFor(() => expect(create).toHaveBeenCalled());
+    expect(useEngine.getState().primary.running).toBe(true);
+    useEngine.getState().stop('primary');
+    expect(useEngine.getState().primary.status).toBe('idle');
+    useEngine.getState().invalidatePosition(other);
+    const { session } = failingSession(new Error('unused'));
+    release(session);
+    await started;
+    await Promise.resolve();
+    expect(session.analyse).not.toHaveBeenCalled();
+    expect(session.dispose).toHaveBeenCalledTimes(1);
+    expect(useEngine.getState().primary.running).toBe(false);
+  });
+
+  it.each(['configure', 'analyse'] as const)(
+    'a failure in %s disposes the failed session and allows retry',
+    async (method) => {
+      const { session } = failingSession(new Error('unused'));
+      if (method === 'configure')
+        vi.mocked(session.configure).mockRejectedValueOnce(new Error('Engine disconnected'));
+      else
+        vi.mocked(session.analyse).mockImplementationOnce(() => {
+          throw new Error('Engine disconnected');
+        });
+      create.mockResolvedValueOnce(session);
+      await expect(
+        useEngine.getState().analyse('primary', START_FEN, { kind: 'infinite' }, config),
+      ).resolves.toBeUndefined();
+      expect(useEngine.getState().primary).toMatchObject({
+        status: 'error',
+        running: false,
+        analysedFen: null,
+      });
+      expect(session.dispose).toHaveBeenCalledTimes(1);
+      const { session: recovered } = failingSession(new Error('unused'));
+      create.mockResolvedValueOnce(recovered);
+      await useEngine.getState().analyse('primary', other, { kind: 'infinite' }, config);
+      expect(recovered.analyse).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('a superseded configuration cannot clear the newest pending position', async () => {
+    let releaseFirst!: () => void;
+    let releaseSecond!: () => void;
+    const { session } = failingSession(new Error('unused'));
+    vi.mocked(session.configure)
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            releaseFirst = resolve;
+          }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            releaseSecond = resolve;
+          }),
+      );
+    create.mockResolvedValue(session);
+    const first = useEngine.getState().analyse('primary', START_FEN, { kind: 'infinite' }, config);
+    await vi.waitFor(() => expect(session.configure).toHaveBeenCalledTimes(1));
+    const second = useEngine.getState().analyse('primary', other, { kind: 'infinite' }, config);
+    await vi.waitFor(() => expect(session.configure).toHaveBeenCalledTimes(2));
+    releaseFirst();
+    await first;
+    useEngine.getState().invalidatePosition(other);
+    releaseSecond();
+    await second;
+    expect(session.analyse).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(session.analyse).mock.calls[0]![0].fen).toBe(other);
+  });
+
+  it('returning to the old position cancels a pending search for a different position', async () => {
+    const { session } = failingSession(new Error('unused'));
+    create.mockResolvedValue(session);
+    await useEngine.getState().analyse('primary', START_FEN, { kind: 'infinite' }, config);
+    let release!: () => void;
+    vi.mocked(session.configure).mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+    const next = useEngine.getState().analyse('primary', other, { kind: 'infinite' }, config);
+    await vi.waitFor(() => expect(session.configure).toHaveBeenCalledTimes(2));
+    useEngine.getState().invalidatePosition(START_FEN);
+    release();
+    await next;
+    await vi.waitFor(() => expect(session.analyse).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(session.analyse).mock.calls.map(([request]) => request.fen)).toEqual([
+      START_FEN,
+      START_FEN,
+    ]);
+  });
+
+  it('starting on another position cannot relabel retained evidence with the new FEN', async () => {
+    const { session } = failingSession(new Error('unused'));
+    create.mockResolvedValue(session);
+    await useEngine.getState().analyse('primary', START_FEN, { kind: 'infinite' }, config);
+    const listener = vi.mocked(session.analyse).mock.calls[0]![1];
+    listener({ ...EMPTY_ANALYSIS(START_FEN), depth: 12 });
+    expect(useEngine.getState().primary.analysis?.depth).toBe(12);
+    await useEngine.getState().analyse('primary', other, { kind: 'infinite' }, config);
+    expect(useEngine.getState().primary.analysedFen).toBe(other);
+    expect(useEngine.getState().primary.analysis).toBeNull();
+    expect(useEngine.getState().primary.history).toEqual([]);
+  });
+});
 
 /** A session whose one search never produces a snapshot and then fails. */
 function failingSession(error: Error): { session: EngineSession; fail: () => void } {
@@ -68,6 +226,7 @@ describe('an engine that dies mid-search fails its own panel', () => {
     expect(slot.running).toBe(false);
     expect(slot.status).toBe('error');
     expect(slot.problem?.message).toBe('The engine process failed.');
+    expect(session.dispose).toHaveBeenCalledTimes(1);
   });
 
   it('leaves the other engine slot alone', async () => {
@@ -136,6 +295,28 @@ describe('switching engines while one is still starting', () => {
 });
 
 describe('sharing a machine between engines', () => {
+  it('records the shared configuration accepted by each live slot', async () => {
+    useEngine.getState().shutdown();
+    useEngine.getState().setComparing(false);
+    const first = failingSession(new Error('unused')).session;
+    const second = failingSession(new Error('unused')).session;
+    create.mockReset().mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+    await useEngine
+      .getState()
+      .compare(START_FEN, { kind: 'infinite' }, { threads: 8, hashMb: 1024, multiPv: 2 });
+    for (const slot of ['primary', 'secondary'] as const) {
+      expect(useEngine.getState()[slot].configuration).toEqual({
+        threads: 4,
+        hashMb: 512,
+        multiPv: 2,
+      });
+    }
+    expect(first.configure).toHaveBeenCalledWith({ threads: 4, hashMb: 512, multiPv: 2 });
+    expect(second.configure).toHaveBeenCalledWith({ threads: 4, hashMb: 512, multiPv: 2 });
+    useEngine.getState().shutdown();
+    useEngine.getState().setComparing(false);
+  });
+
   /*
     Threads were split and hash was not, so turning comparison on doubled the
     real memory the engines allocated without changing anything the user had
@@ -388,103 +569,109 @@ describe('a running engine follows the board', () => {
   });
 });
 
-describe('a snapshot from a search the user has already moved past is dropped (Phase 38 PART AS)', () => {
+describe('late engine snapshots', () => {
   beforeEach(() => {
     useEngine.getState().shutdown();
     create.mockReset();
   });
 
-  it('a late snapshot for a stale position never lands on the live slot', async () => {
-    /*
-      The first search on a position is still going. The user has already
-      moved to a second position, and that search is producing snapshots. The
-      first search finally emits a snapshot. The slot must keep the second
-      position's verdict, not the first one's late straggler.
-    */
-    const sessions: EngineSession[] = [];
-    function recordingSession(): EngineSession {
-      let listener: ((snapshot: unknown) => void) | null = null;
-      const handle: AnalysisHandle = {
-        stop: vi.fn(),
-        finished: new Promise<never>(() => undefined),
-      };
-      const session: EngineSession = {
-        identity: { name: 'Test engine' },
-        capabilities: { multiPv: true, searchMoves: true, threads: false, hash: true },
-        configure: vi.fn(async () => undefined),
-        analyse: vi.fn((_req, l) => {
-          listener = l as (snapshot: unknown) => void;
-          return handle;
-        }),
-        stop: vi.fn(),
-        dispose: vi.fn(),
-      } as unknown as EngineSession;
-      sessions.push(session);
-      return Object.assign(session, {
-        emit(snapshot: unknown) {
-          listener?.(snapshot);
-        },
-      });
-    }
-
-    const first = recordingSession();
-    const second = recordingSession();
-    create.mockImplementation(async () => {
-      const next = sessions[0] === undefined ? first : second;
-      return next;
-    });
-
-    // Start the first search. It holds the session open without producing
-    // a snapshot so the user can move to the next position.
-    const firstRun = useEngine
-      .getState()
-      .analyse('primary', START_FEN, { kind: 'infinite' }, { multiPv: 1, threads: 1, hashMb: 16 });
-    await Promise.resolve();
-    await Promise.resolve();
-
-    // Move the board. The store is told the user is on a different FEN,
-    // so the first session's late snapshot must be dropped.
+  it('rejects old callbacks even after the board returns to the same FEN', async () => {
+    const { session } = failingSession(new Error('unused'));
+    create.mockResolvedValue(session);
+    const config = { multiPv: 1, threads: 1, hashMb: 16 };
     const other = START_FEN.replace(' w ', ' b ') as typeof START_FEN;
-    useEngine.getState().invalidatePosition(other);
-    // Start a new search for the new position.
-    const secondRun = useEngine
-      .getState()
-      .analyse('primary', other, { kind: 'infinite' }, { multiPv: 1, threads: 1, hashMb: 16 });
-    await Promise.resolve();
-    await Promise.resolve();
-
-    // The first search finally emits a snapshot. The slot must keep the
-    // second search's verdict, not absorb this straggler.
-    (first as unknown as { emit: (snapshot: unknown) => void }).emit({
-      fen: START_FEN,
-      depth: 10,
-      seldepth: 12,
-      nodes: 1000,
-      nps: 0,
-      timeMs: 0,
-      lines: [{ moves: [], score: { kind: 'cp', value: 30 } }],
-      complete: false,
+    await useEngine.getState().analyse('primary', START_FEN, { kind: 'infinite' }, config);
+    const first = vi.mocked(session.analyse).mock.calls[0]![1];
+    await useEngine.getState().analyse('primary', other, { kind: 'infinite' }, config);
+    const second = vi.mocked(session.analyse).mock.calls[1]![1];
+    await useEngine.getState().analyse('primary', START_FEN, { kind: 'infinite' }, config);
+    const current = vi.mocked(session.analyse).mock.calls[2]![1];
+    const snapshot = {
+      ...EMPTY_ANALYSIS(START_FEN),
+      depth: 20,
+      lines: [{ rank: 1, depth: 20, moves: [], score: { kind: 'cp' as const, cp: 50 } }],
+    };
+    current(snapshot);
+    expect(useEngine.getState().primary.analysis?.depth).toBe(20);
+    first({
+      ...snapshot,
+      depth: 2,
+      complete: true,
+      lines: [{ ...snapshot.lines[0]!, score: { kind: 'cp', cp: -300 } }],
     });
-
-    // The second search produces a snapshot. That one lands.
-    (second as unknown as { emit: (snapshot: unknown) => void }).emit({
-      fen: other,
-      depth: 6,
-      seldepth: 8,
-      nodes: 200,
-      nps: 0,
-      timeMs: 0,
-      lines: [{ moves: [], score: { kind: 'cp', value: 12 } }],
-      complete: false,
-    });
-    await Promise.resolve();
-
+    second({ ...snapshot, fen: other, complete: true });
     const slot = useEngine.getState().primary;
-    expect(slot.analysedFen).toBe(other);
-    expect(slot.analysis?.fen).toBe(other);
-    // The straggler from the first session must not be on the live slot.
-    expect(slot.analysis?.lines[0]?.score).toEqual({ kind: 'cp', value: 12 });
-    await firstRun.catch(() => undefined);
-    await secondRun;
+    expect(slot.analysedFen).toBe(START_FEN);
+    expect(slot.analysis?.depth).toBe(20);
+    expect(slot.analysis?.lines[0]?.score).toEqual({ kind: 'cp', cp: 50 });
+    expect(slot.running).toBe(true);
+    expect(slot.history).toHaveLength(1);
+  });
+});
+
+describe('live engine preference changes', () => {
+  const config = { multiPv: 1, threads: 1, hashMb: 16 };
+  beforeEach(() => {
+    useEngine.getState().shutdown();
+    useEngine.getState().setComparing(false);
+    create.mockReset();
+  });
+
+  it('updates a running search but does not restart a stopped one', async () => {
+    const { session } = failingSession(new Error('unused'));
+    create.mockResolvedValue(session);
+    await useEngine.getState().analyse('primary', START_FEN, { kind: 'infinite' }, config);
+    useEngine
+      .getState()
+      .reconfigureRunning({ kind: 'depth', depth: 18 }, { ...config, multiPv: 5 });
+    await vi.waitFor(() => expect(session.analyse).toHaveBeenCalledTimes(2));
+    expect(useEngine.getState().primary.configuration?.multiPv).toBe(5);
+    expect(vi.mocked(session.analyse).mock.calls[1]![0].limit).toEqual({
+      kind: 'depth',
+      depth: 18,
+    });
+    useEngine.getState().stop('primary');
+    useEngine.getState().reconfigureRunning({ kind: 'infinite' }, config);
+    await Promise.resolve();
+    expect(session.analyse).toHaveBeenCalledTimes(2);
+    expect(useEngine.getState().primary.running).toBe(false);
+  });
+
+  it('uses the newest configuration when preferences change during startup', async () => {
+    let release!: (value: EngineSession) => void;
+    create.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+    );
+    const pending = useEngine
+      .getState()
+      .analyse('primary', START_FEN, { kind: 'infinite' }, config);
+    await vi.waitFor(() => expect(create).toHaveBeenCalled());
+    useEngine
+      .getState()
+      .reconfigureRunning({ kind: 'infinite' }, { multiPv: 5, threads: 2, hashMb: 32 });
+    const { session } = failingSession(new Error('unused'));
+    release(session);
+    await pending;
+    await vi.waitFor(() => expect(session.analyse).toHaveBeenCalledTimes(1));
+    expect(useEngine.getState().primary.configuration).toEqual({
+      multiPv: 5,
+      threads: 2,
+      hashMb: 32,
+    });
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not turn a restricted candidate search into an unrestricted search', async () => {
+    const { session } = failingSession(new Error('unused'));
+    create.mockResolvedValue(session);
+    await useEngine
+      .getState()
+      .analyse('primary', START_FEN, { kind: 'infinite' }, config, ['e2e4' as never]);
+    useEngine.getState().reconfigureRunning({ kind: 'infinite' }, { ...config, multiPv: 5 });
+    await Promise.resolve();
+    expect(session.analyse).toHaveBeenCalledTimes(1);
   });
 });

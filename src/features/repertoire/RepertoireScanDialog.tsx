@@ -100,7 +100,7 @@ export function RepertoireScanDialog({
   const open = async (hit: Hit) => {
     try {
       if (collectionId === LOCAL_COLLECTION_ID && hit.game.id) {
-        await openStoredGame(hit.game.id, { ply: hit.answer.ply });
+        if (!(await openStoredGame(hit.game.id, { ply: hit.answer.ply }))) return;
       } else {
         // A game in a companion collection has no id the board can open; the
         // scan read its movetext, and the same parser as an import rebuilds it.

@@ -11,6 +11,7 @@
 import { useState } from 'react';
 
 import { Segmented } from '@/components/ui/Tabs';
+import { useEngine } from '@/stores/engine-store';
 
 import { EngineComparison } from './EngineComparison';
 import { EnginePanel } from './EnginePanel';
@@ -19,6 +20,7 @@ type View = 'single' | 'compare';
 
 export function EnginePanelHost({ compact = false }: { readonly compact?: boolean }) {
   const [view, setView] = useState<View>('single');
+  const setComparing = useEngine((state) => state.setComparing);
 
   // The compact candidate strip has one job. The Engine tab retains the
   // full comparison controls without squeezing a second engine into it.
@@ -34,7 +36,10 @@ export function EnginePanelHost({ compact = false }: { readonly compact?: boolea
             { id: 'compare' as const, label: 'Two engines' },
           ]}
           value={view}
-          onChange={setView}
+          onChange={(next) => {
+            if (next === 'single') setComparing(false);
+            setView(next);
+          }}
         />
       </div>
       <div className="min-h-0 flex-1">

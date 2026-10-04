@@ -222,7 +222,9 @@ function PositionGames({
                 className={rowClass}
                 onClick={() =>
                   void openStoredGame(game.id, { ply: facts.ply })
-                    .then(() => router.push('/analysis'))
+                    .then((opened) => {
+                      if (opened) router.push('/analysis');
+                    })
                     .catch((error: unknown) =>
                       notify({
                         tone: 'error',
@@ -509,7 +511,9 @@ function StructureGames({ identity }: { readonly identity: PositionIdentity }) {
                 className={rowClass}
                 onClick={() =>
                   void openStoredGame(row.game.id, { ply: Math.max(0, row.position.ply - 1) })
-                    .then(() => router.push('/analysis'))
+                    .then((opened) => {
+                      if (opened) router.push('/analysis');
+                    })
                     .catch((error: unknown) =>
                       notify({
                         tone: 'error',

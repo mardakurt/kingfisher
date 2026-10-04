@@ -1,14 +1,11 @@
-**Source 1.4.1 preparation (2026-10-02).** Source-labelled opening surveys
-and Markdown report export are shared browser/Mac renderer changes. The public
-Mac descriptor remains 1.4.0 build 1007; it does not contain these additions.
-No 1.4.1 package publication is claimed by the source version bump.
-
-**Unpublished audit corrections (2026-10-02).** The collection-backed Opening
-Report and its follow-up corrections are ahead of the public Mac build 1007.
-The fixes affect both browser and Mac application code. No new Mac release has
-been published or certified during this audit.
-
 # Platform parity — the web application and the macOS application
+
+**Unreleased stabilization audit (2026-10-04).** The working checkout adds
+engine request ownership, retry/cancellation, Library source isolation and
+protected asynchronous document loads. These shared renderer changes affect
+both browser and macOS. The public descriptor still names 1.4.6 build 1105;
+it does not yet contain this audit's changes. No new package or deployment is
+claimed here until the corresponding gates and publication finish.
 
 **Published revision check (2026-10-04, 1.4.6).** The public Mac download is
 1.4.6 build 1105 from `7c8e40e8a1d62967a79ae5906389729a5658c498`, stable and

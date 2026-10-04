@@ -9,6 +9,7 @@ const slot: EngineSlot = {
   status: 'ready',
   identity: { name: 'Lc0', version: 'v0.32.1' },
   capabilities: null,
+  configuration: null,
   problem: null,
   running: false,
   analysedFen: START_FEN,

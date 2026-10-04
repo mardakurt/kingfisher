@@ -30,6 +30,7 @@ import type { GameSearchQuery, GameSearchResult, GameSummary } from '@/persisten
 import { gameTitle } from '@/persistence/describe';
 import { playerKey } from '@/persistence/schema/migrations';
 import { useAnalysis } from '@/stores/analysis-store';
+import { beginDocumentRequest } from '@/stores/document-request';
 
 import { needsTree, type DeepQuery } from '@/search/game-scan';
 import { lineFromRows, lineIndexForRows, THEMES_VERSION_NUMBER } from '@/search/line-index-encode';
@@ -103,6 +104,7 @@ export function queryForSource(
 export async function searchSource(
   source: LibrarySource,
   query: GameSearchQuery,
+  signal?: AbortSignal,
 ): Promise<GameSearchResult> {
   if (source.kind === 'local') return (await getRepositories()).games.search(query);
   if (source.kind === 'reference') {
@@ -112,10 +114,14 @@ export async function searchSource(
   }
   const client = companionClient();
   if (!client) throw new Error('The companion is not connected, so that database cannot be read.');
-  return client.searchGames<GameSearchResult>(source.key, {
-    ...queryForSource(query, source).query,
-    exactTotal: true,
-  });
+  return client.searchGames<GameSearchResult>(
+    source.key,
+    {
+      ...queryForSource(query, source).query,
+      exactTotal: true,
+    },
+    signal,
+  );
 }
 
 /** The moves of one game, as a tree the rules code built. */
@@ -145,12 +151,13 @@ export async function openSourceGame(
   source: LibrarySource,
   game: Pick<GameSummary, 'id' | 'white' | 'black' | 'result' | 'year' | 'event'>,
   options: { readonly ply?: number } = {},
-): Promise<void> {
+): Promise<boolean> {
   if (source.kind === 'local') {
-    await openStoredGame(game.id, options);
-    return;
+    return openStoredGame(game.id, options);
   }
+  const isCurrent = beginDocumentRequest();
   const tree = await sourceTree(source, game.id);
+  if (!isCurrent()) return false;
   if (!tree) throw new Error(`That game could not be read from ${source.name}.`);
   // At the ply asked for, as a stored game opens (Phase 86: it opened at the start).
   const currentId = options.ply !== undefined ? nodeAtPly(tree, options.ply) : null;
@@ -167,13 +174,14 @@ export async function openSourceGame(
       },
       ...(currentId ? { currentId } : {}),
     });
-    return;
+    return true;
   }
   useAnalysis.getState().openDocument({
     tree,
     document: { kind: 'untitled', title: `${gameTitle(game)} (${source.name})` },
     ...(currentId ? { currentId } : {}),
   });
+  return true;
 }
 
 /**

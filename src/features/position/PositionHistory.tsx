@@ -49,7 +49,9 @@ export function PositionHistorySection({
 
   const open = (game: GameSummary) =>
     void openStoredGame(game.id)
-      .then(() => router.push('/analysis'))
+      .then((opened) => {
+        if (opened) router.push('/analysis');
+      })
       .catch((error: unknown) =>
         notify({
           tone: 'error',

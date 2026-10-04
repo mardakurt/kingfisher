@@ -23,7 +23,8 @@ export async function openPositionHit(hit: PositionHit, navigate: Navigate): Pro
   const at = hit.ply !== undefined ? `&ply=${hit.ply}` : '';
   if (hit.kind === 'game' || hit.kind === 'model-game') {
     try {
-      await openStoredGame(hit.targetId, hit.ply !== undefined ? { ply: hit.ply } : {});
+      if (!(await openStoredGame(hit.targetId, hit.ply !== undefined ? { ply: hit.ply } : {})))
+        return;
       navigate('/analysis');
     } catch {
       navigate('/games');

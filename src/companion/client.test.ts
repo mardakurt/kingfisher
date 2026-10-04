@@ -52,6 +52,26 @@ afterEach(() => {
 });
 
 describe('how long the companion is given to answer', () => {
+  it('cancels an obsolete game search without converting it into a provider failure', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: string, options: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            options.signal!.addEventListener('abort', () => reject(options.signal!.reason), {
+              once: true,
+            });
+          }),
+      ),
+    );
+    const controller = new AbortController();
+    const query = client().searchGames('k', { text: 'old search' }, controller.signal);
+    const cancelled = expect(query).rejects.toMatchObject({ name: 'AbortError' });
+    controller.abort();
+    await cancelled;
+    expect(deadlines).toEqual([20_000]);
+  });
+
   it('gives an ordinary query twenty seconds', async () => {
     await client().status();
     expect(deadlines).toEqual([20_000]);

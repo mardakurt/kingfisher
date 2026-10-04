@@ -1,5 +1,7 @@
 # Kingfisher documentation
 
+- [1.4.7 release candidate notes](release/1.4.7.md)
+- [Professional-use stabilization audit](reports/2026-10-04-professional-stability-audit.md)
 - [1.4.6 release notes](release/1.4.6.md)
 - [ChessBase Mac comparison for 1.4.6](product/chessbase-mac-comparison-1.4.6.md)
 - [Big data and accounts — a proposal](product/big-data-and-accounts-proposal.md)

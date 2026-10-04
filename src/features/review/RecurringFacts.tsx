@@ -41,7 +41,7 @@ export function RecurringFacts({
 
   const openGame = async (game: RecurringGameFact) => {
     try {
-      await openStoredGame(game.gameId, { ply: game.ply });
+      if (!(await openStoredGame(game.gameId, { ply: game.ply }))) return;
       router.push('/analysis');
     } catch (error) {
       notify({

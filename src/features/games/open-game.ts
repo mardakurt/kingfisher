@@ -22,6 +22,7 @@ import { gameTitle } from '@/persistence/describe';
 import { getRepositories } from '@/persistence/repositories';
 import type { GameId } from '@/persistence/types';
 import { useAnalysis } from '@/stores/analysis-store';
+import { beginDocumentRequest } from '@/stores/document-request';
 
 import { ownColor } from '@/round/identity';
 
@@ -55,9 +56,11 @@ export class GameNotFoundError extends Error {
 export async function openStoredGame(
   id: GameId,
   options: OpenStoredGameOptions = {},
-): Promise<void> {
+): Promise<boolean> {
+  const isCurrent = beginDocumentRequest();
   const repositories = await getRepositories();
   const full = await repositories.games.get(id);
+  if (!isCurrent()) return false;
   if (!full) throw new GameNotFoundError();
 
   const evidence = await repositories.analysisQueue.evidenceForGame(id);
@@ -106,6 +109,7 @@ export async function openStoredGame(
   }
 
   const store = useAnalysis.getState();
+  if (!isCurrent()) return false;
   store.openDocument({
     tree,
     ...(orientation ? { orientation } : {}),
@@ -127,6 +131,7 @@ export async function openStoredGame(
     const target = nodeAtPly(tree, options.ply);
     if (target) useAnalysis.getState().goTo(target);
   }
+  return true;
 }
 
 /** The main-line node at a ply, or the deepest one before it. */

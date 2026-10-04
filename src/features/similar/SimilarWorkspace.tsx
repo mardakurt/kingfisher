@@ -165,7 +165,7 @@ export function SimilarWorkspace() {
 
   const openMine = async (row: StructureSearchResult) => {
     try {
-      await openStoredGame(row.game.id, { ply: row.position.ply });
+      if (!(await openStoredGame(row.game.id, { ply: row.position.ply }))) return;
       router.push('/analysis');
     } catch (error) {
       notify({
@@ -199,9 +199,16 @@ export function SimilarWorkspace() {
     row: StructureSearchResult,
   ) => {
     try {
-      await openSourceGame(librarySource(`sqlite:${collection.key}`, collection.name), row.game, {
-        ply: row.position.ply,
-      });
+      if (
+        !(await openSourceGame(
+          librarySource(`sqlite:${collection.key}`, collection.name),
+          row.game,
+          {
+            ply: row.position.ply,
+          },
+        ))
+      )
+        return;
       router.push('/analysis');
     } catch (error) {
       notify({

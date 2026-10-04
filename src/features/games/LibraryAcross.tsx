@@ -231,7 +231,7 @@ export function LibraryAcross({
 
   async function openHit(hit: (typeof hits)[number]) {
     try {
-      await openSourceGame(librarySource(hit.source.id, hit.source.name), hit.game);
+      if (!(await openSourceGame(librarySource(hit.source.id, hit.source.name), hit.game))) return;
       useResearchHistory.getState().push({
         href: `${window.location.pathname}${window.location.search}`,
         label,

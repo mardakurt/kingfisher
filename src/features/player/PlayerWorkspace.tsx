@@ -168,7 +168,7 @@ export function PlayerWorkspace({ playerId }: { readonly playerId: string }) {
   /** Open the position at which an opening was recognised, on the board. */
   const openOnBoard = async (id: string, ply?: number) => {
     try {
-      await openStoredGame(id, ply === undefined ? {} : { ply });
+      if (!(await openStoredGame(id, ply === undefined ? {} : { ply }))) return;
       router.push('/analysis');
     } catch (error) {
       notify({

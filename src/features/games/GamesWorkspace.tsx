@@ -394,7 +394,7 @@ export function GamesWorkspace() {
     them makes its rows an answer to a different question, so they go rather
     than stay on screen looking current.
   */
-  const searchKey = JSON.stringify([headerOnly, moves]);
+  const searchKey = JSON.stringify([source.id, headerOnly, moves]);
   const [answeredKey, setAnsweredKey] = useState<string | null>(null);
   const stale = answeredKey !== searchKey;
   const stopDeep = deep.stop;
@@ -419,14 +419,13 @@ export function GamesWorkspace() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moves]);
 
-  const localGames = useGames(query);
+  const localGames = useGames(query, local);
   const sourceGames = useQuery({
     queryKey: ['library', 'source', source.id, query],
     // A pack restored from the address is asked once it is loaded, not before.
     enabled: !local && (source.kind !== 'reference' || referenceFacts !== undefined),
     retry: false,
-    placeholderData: (previous) => previous,
-    queryFn: () => searchSource(source, query),
+    queryFn: ({ signal }) => searchSource(source, query, signal),
   });
   const games = local ? localGames : sourceGames;
   const dropped = queryForSource(query, source).dropped;
@@ -522,8 +521,11 @@ export function GamesWorkspace() {
         otherwise a move-search row opens at the moment it was found.
       */
       const ply = at ?? foundAt.get(game.id);
-      if (local) await openStoredGame(game.id, ply === undefined ? {} : { ply });
-      else await openSourceGame(source, game, ply === undefined ? {} : { ply });
+      if (local) {
+        if (!(await openStoredGame(game.id, ply === undefined ? {} : { ply }))) return;
+      } else {
+        if (!(await openSourceGame(source, game, ply === undefined ? {} : { ply }))) return;
+      }
       /*
         "← Back to the Library", as ChessBase heads an opened game with
         "‹ Library": the address holds the search, the page and the previewed
@@ -1030,7 +1032,7 @@ export function GamesWorkspace() {
               description={`Type a name in the search box, or name a player or an opponent in Filters, and their games in ${source.name} are listed with every other filter applied. A reference is read by player, as ChessBase reads Mega Database; it keeps no list of all its games to page through.`}
             />
           ) : games.isPending && !moveState ? (
-            <p className="px-3 py-6 text-2xs text-tertiary">Reading the local database…</p>
+            <p className="px-3 py-6 text-2xs text-tertiary">Reading {source.name}…</p>
           ) : rows.length === 0 ? (
             <EmptyState
               title={stored === 0 ? 'No games imported.' : 'No games match these filters.'}

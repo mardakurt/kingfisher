@@ -16,6 +16,7 @@ import {
   useTrainingItems,
 } from '@/features/persistence/queries';
 import { positionKey } from '@/chess/fen';
+import { openStoredGame } from '@/features/games/open-game';
 import { getRepositories } from '@/persistence/repositories';
 import type { ChapterRecord } from '@/persistence/types';
 import type { ResolvedStudyReference, StudyReferenceKind } from '@/persistence/domain';
@@ -32,7 +33,6 @@ export function ChapterReferences({ chapter }: { readonly chapter: ChapterRecord
   const router = useRouter();
   const client = useQueryClient();
   const notify = useUi((state) => state.notify);
-  const openDocument = useAnalysis((state) => state.openDocument);
   const fen = useAnalysis((state) => state.tree.nodes[state.currentId]?.fen ?? state.tree.startFen);
   const key = positionKey(fen);
   const references = useStudyReferences(chapter.id);
@@ -80,13 +80,16 @@ export function ChapterReferences({ chapter }: { readonly chapter: ChapterRecord
   const open = async (entry: ResolvedStudyReference) => {
     if (entry.missing) return;
     if (entry.gameId) {
-      const game = await (await getRepositories()).games.get(entry.gameId);
-      if (!game) return;
-      openDocument({
-        tree: game.tree,
-        document: { kind: 'database-game', title: entry.label, gameId: game.id },
-      });
-      router.push('/analysis');
+      try {
+        if (!(await openStoredGame(entry.gameId))) return;
+        router.push('/analysis');
+      } catch (error) {
+        notify({
+          tone: 'error',
+          message: 'The linked game could not be opened.',
+          detail: error instanceof Error ? error.message : undefined,
+        });
+      }
       return;
     }
     if (entry.repertoireId) {

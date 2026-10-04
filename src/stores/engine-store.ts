@@ -73,6 +73,8 @@ export interface EngineSlot {
   readonly problem: EngineProblem | null;
   readonly identity: EngineIdentity | null;
   readonly capabilities: EngineCapabilities | null;
+  /** Configuration successfully applied to this session, before capability clamps. */
+  readonly configuration: EngineConfigInput | null;
   readonly analysis: EngineAnalysis | null;
   /** Bounded depth samples for factual stability and volatility metrics. */
   readonly history: readonly EngineAnalysis[];
@@ -87,6 +89,7 @@ const EMPTY_SLOT = (engineId: string): EngineSlot => ({
   problem: null,
   identity: null,
   capabilities: null,
+  configuration: null,
   analysis: null,
   history: [],
   analysedFen: null,
@@ -210,6 +213,8 @@ interface EngineState {
   invalidatePosition(fen: Fen): void;
   shutdown(slot?: SlotId): void;
   applyConfig(slot: SlotId, config: EngineConfigInput): Promise<void>;
+  /** Apply changed preferences to active unrestricted searches, including startup. */
+  reconfigureRunning(limit: AnalysisLimit, config: EngineConfigInput): void;
   pin(rank: number): void;
   unpin(id: string): void;
   clearPins(): void;
@@ -272,6 +277,21 @@ export const useEngine = create<EngineState>((set, get) => {
         : { secondary: { ...state.secondary, ...changes } },
     );
 
+  const failSession = (slot: SlotId, error: unknown) => {
+    // A failed transport/session cannot be reused by Retry. Dispose it and
+    // invalidate its callbacks before publishing the recoverable error.
+    get().shutdown(slot);
+    patch(slot, {
+      status: 'error',
+      problem: {
+        message: describeEngineFailure(error),
+        ...(error instanceof Error && 'remedy' in error && typeof error.remedy === 'string'
+          ? { remedy: error.remedy }
+          : {}),
+      },
+    });
+  };
+
   const startSession = async (
     slot: SlotId,
     config: EngineConfigInput,
@@ -299,21 +319,21 @@ export const useEngine = create<EngineState>((set, get) => {
 
     const token = runtime.startToken;
     runtime.starting = (async () => {
-      const availability = await provider.checkAvailability();
-      // The slot was torn down (or re-pointed) while this was in flight: its
-      // verdict is about an engine the slot no longer wants.
-      if (runtime.startToken !== token) return null;
-      if (!availability.available) {
-        patch(slot, {
-          status: 'unavailable',
-          problem: {
-            message: availability.reason ?? 'The engine is unavailable.',
-            ...(availability.remedy ? { remedy: availability.remedy } : {}),
-          },
-        });
-        return null;
-      }
       try {
+        const availability = await provider.checkAvailability();
+        // The slot was torn down (or re-pointed) while this was in flight: its
+        // verdict is about an engine the slot no longer wants.
+        if (runtime.startToken !== token) return null;
+        if (!availability.available) {
+          patch(slot, {
+            status: 'unavailable',
+            problem: {
+              message: availability.reason ?? 'The engine is unavailable.',
+              ...(availability.remedy ? { remedy: availability.remedy } : {}),
+            },
+          });
+          return null;
+        }
         const created = await provider.create(config);
         if (runtime.startToken !== token) {
           created.dispose();
@@ -325,6 +345,7 @@ export const useEngine = create<EngineState>((set, get) => {
           status: 'ready',
           identity: created.identity,
           capabilities: created.capabilities,
+          configuration: { ...config },
           problem: null,
         });
         return created;
@@ -365,79 +386,71 @@ export const useEngine = create<EngineState>((set, get) => {
     // `invalidatePosition` needs that handle to decide whether a board "change"
     // to the same FEN is really a change.
     runtime.pendingFen = fen;
+    // Startup/configuration are part of the requested search. Expose Stop
+    // immediately, including while a native engine is loading its weights.
+    patch(slot, { running: true, problem: null });
 
     const session = await startSession(slot, config);
+    // Only the request that owns pendingFen may clear it. A superseded
+    // startup/configuration must leave a newer request's cancellation intact.
+    if (runtime.request !== request) return;
     if (!session) {
       runtime.pendingFen = null;
       // A restart claimed by `invalidatePosition` that never got a session.
       if (get()[slot].running) patch(slot, { running: false });
       return;
     }
-    if (runtime.request !== request) {
-      runtime.pendingFen = null;
-      return;
-    }
 
     runtime.handle?.stop();
     runtime.handle = null;
 
-    await session.configure(config);
-    if (runtime.request !== request) {
+    try {
+      await session.configure(config);
+      if (runtime.request !== request) return;
+
+      patch(slot, {
+        running: true,
+        status: 'analysing',
+        analysedFen: fen,
+        configuration: { ...config },
+        // Retain warm evidence only for the same position. Updating the slot's
+        // FEN cannot turn an old snapshot into evidence about a new position.
+        ...(get()[slot].analysis?.fen !== fen ? { analysis: null, history: [] } : {}),
+      });
       runtime.pendingFen = null;
-      return;
-    }
 
-    patch(slot, {
-      running: true,
-      status: 'analysing',
-      analysedFen: fen,
       /*
-       * Phase 69: keep the previous analysis visible until the first `info`
-       * line of the new search arrives. The previous code cleared `analysis`
-       * here, which meant the engine panel's depth/eval readout disappeared
-       * for the ~150 ms between the player making a move and the engine
-       * emitting its depth-1 line. A player watching a live search saw the
-       * indicator flash on every move; clearing `history` had the same
-       * effect on the running-eval graph. Leaving both populated until the
-       * listener writes a new frame is harmless: the listener stamps every
-       * snapshot with the `analysedFen` it belongs to, and the panel reads
-       * `analysedFen === fen` before trusting the score.
-       */
-    });
-    runtime.pendingFen = null;
-
-    /*
       Restricting the search is a capability, not an assumption. An engine that
       does not honour `searchmoves` would silently return its own favourite
       move and the comparison would be a lie, so the restriction is dropped
       rather than sent — and the caller is told, through the capability, so it
       can label the result honestly.
     */
-    const restricted =
-      searchMoves?.length && session.capabilities.searchMoves ? { searchMoves } : {};
+      const restricted =
+        searchMoves?.length && session.capabilities.searchMoves ? { searchMoves } : {};
 
-    runtime.handle = session.analyse({ fen, limit, ...restricted }, (snapshot) => {
-      // Stragglers from a search the user has already moved past are dropped,
-      // per slot: the two engines finish at different times by definition.
-      if (runtime.request !== request) return;
-      if (get()[slot].analysedFen !== snapshot.fen) return;
-      // The preference is read per snapshot rather than captured at start,
-      // so a change in Settings shortens the lines of the running search.
-      const annotated = annotateAnalysis(snapshot, lineLength());
-      const next = (current: EngineSlot): EngineSlot => ({
-        ...current,
-        analysis: annotated,
-        history: [...current.history, annotated].slice(-32),
-        ...(snapshot.complete ? { running: false, status: 'ready' as const } : {}),
+      runtime.handle = session.analyse({ fen, limit, ...restricted }, (snapshot) => {
+        // Stragglers from a search the user has already moved past are dropped,
+        // per slot: the two engines finish at different times by definition.
+        if (runtime.request !== request) return;
+        if (get()[slot].analysedFen !== snapshot.fen) return;
+        // The preference is read per snapshot rather than captured at start,
+        // so a change in Settings shortens the lines of the running search.
+        const annotated = annotateAnalysis(snapshot, lineLength());
+        const next = (current: EngineSlot): EngineSlot => ({
+          ...current,
+          analysis: annotated,
+          history: [...current.history, annotated].slice(-32),
+          ...(snapshot.complete ? { running: false, status: 'ready' as const } : {}),
+        });
+        set((state) =>
+          slot === 'primary'
+            ? { primary: next(state.primary) }
+            : { secondary: next(state.secondary) },
+        );
       });
-      set((state) =>
-        slot === 'primary'
-          ? { primary: next(state.primary) }
-          : { secondary: next(state.secondary) },
-      );
-    });
 
-    /*
+      /*
       A search can end without the listener ever hearing about it: the session
       fails the search when its engine dies, and a dead engine emits no final
       snapshot to carry the news. Watching only the listener therefore left the
@@ -448,14 +461,13 @@ export const useEngine = create<EngineState>((set, get) => {
       rest of the workspace are unaffected, which is the point of the slot
       owning its own status.
     */
-    runtime.handle.finished.catch((error: unknown) => {
-      if (runtime.request !== request) return;
-      patch(slot, {
-        running: false,
-        status: 'error',
-        problem: { message: describeEngineFailure(error) },
+      runtime.handle.finished.catch((error: unknown) => {
+        if (runtime.request !== request) return;
+        failSession(slot, error);
       });
-    });
+    } catch (error) {
+      if (runtime.request === request) failSession(slot, error);
+    }
   };
 
   const teardown = (slot: SlotId) => {
@@ -465,12 +477,29 @@ export const useEngine = create<EngineState>((set, get) => {
     runtime.request += 1;
     runtime.startToken += 1;
     runtime.starting = null;
+    runtime.pendingFen = null;
+    runtime.lastRequest = null;
     runtime.handle?.stop();
     runtime.handle = null;
     runtime.session?.dispose();
     runtime.session = null;
     runtime.engineId = null;
     patch(slot, { ...EMPTY_SLOT(get()[slot].engineId) });
+  };
+
+  const stopSearch = (slot: SlotId, keepStartup = false) => {
+    const runtime = runtimes[slot];
+    if (runtime.starting && !runtime.session && !keepStartup) {
+      teardown(slot);
+      return;
+    }
+    runtime.request += 1;
+    runtime.pendingFen = null;
+    runtime.lastRequest = null;
+    runtime.handle?.stop();
+    runtime.handle = null;
+    runtime.session?.stop();
+    patch(slot, { running: false, status: runtime.session ? 'ready' : get()[slot].status });
   };
 
   return {
@@ -508,16 +537,7 @@ export const useEngine = create<EngineState>((set, get) => {
 
     stop: (slot) => {
       const slots: SlotId[] = slot ? [slot] : ['primary', 'secondary'];
-      for (const id of slots) {
-        const runtime = runtimes[id];
-        // Stopping also invalidates a request that has not started searching
-        // yet, so "Stop" cannot be undone a moment later by a slow start.
-        runtime.request += 1;
-        runtime.handle?.stop();
-        runtime.handle = null;
-        runtime.session?.stop();
-        patch(id, { running: false, status: runtime.session ? 'ready' : get()[id].status });
-      }
+      for (const id of slots) stopSearch(id);
     },
 
     invalidatePosition: (fen) => {
@@ -526,19 +546,21 @@ export const useEngine = create<EngineState>((set, get) => {
         // request matches if the FEN the request is for equals the FEN the
         // board is now on — same FEN, leave the search alone, the user
         // navigated away and back rather than to a new position.
-        if (get()[slot].analysedFen === fen) continue;
-        if (runtimes[slot].pendingFen === fen) continue;
+        const pending = runtimes[slot].pendingFen;
+        if (pending !== null ? pending === fen : get()[slot].analysedFen === fen) continue;
         // Whether the engine was switched on, read before stop() clears it.
         const wasRunning = get()[slot].running || runtimes[slot].pendingFen !== null;
         const last = runtimes[slot].lastRequest;
-        // stop also invalidates a request waiting for engine startup/configuration.
-        get().stop(slot);
+        const follows = slot === 'primary' || get().comparing;
+        const restart = wasRunning && last && follows && get().followBoard;
+        // A move retargets the startup already underway; an explicit Stop
+        // disposes it. Rapid navigation must not launch a worker per move.
+        stopSearch(slot, Boolean(restart));
         patch(slot, { analysedFen: null, analysis: null, history: [] });
         runtimes[slot].pendingFen = null;
         // The secondary engine follows only while a comparison is on; a
         // stopped comparison must not quietly keep a second engine running.
-        const follows = slot === 'primary' || get().comparing;
-        if (wasRunning && last && follows && get().followBoard) {
+        if (restart) {
           /*
             The restart is a fact from this moment, not from the moment the
             asynchronous `run` reaches its own patch. `stop` above cleared
@@ -563,7 +585,26 @@ export const useEngine = create<EngineState>((set, get) => {
     },
 
     applyConfig: async (slot, config) => {
-      await runtimes[slot].session?.configure(config);
+      const session = runtimes[slot].session;
+      if (!session) return;
+      await session.configure(config);
+      if (runtimes[slot].session === session) patch(slot, { configuration: { ...config } });
+    },
+
+    reconfigureRunning: (limit, config) => {
+      const comparing = get().comparing;
+      const shared = shareResources(
+        { ...config, multiPv: comparing ? Math.max(2, config.multiPv) : config.multiPv },
+        comparing ? 2 : 1,
+      );
+      for (const slot of ['primary', 'secondary'] as const) {
+        const runtime = runtimes[slot];
+        const fen = runtime.pendingFen ?? get()[slot].analysedFen;
+        // A settings edit neither starts an idle engine nor changes the
+        // question asked by a root-move-restricted candidate search.
+        if (!get()[slot].running || !runtime.lastRequest || !fen) continue;
+        void run(slot, fen, limit, shared);
+      }
     },
 
     pin: (rank) => {

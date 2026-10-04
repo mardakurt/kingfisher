@@ -1,12 +1,13 @@
 'use client';
 
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 
 import type { Color, Fen } from '@/chess/types';
 import type { GameTree, NodeId } from '@/chess/tree/types';
 import type { AnalysisDocument } from '@/persistence/types';
 import { selectFen, useAnalysis } from '@/stores/analysis-store';
+import { cancelDocumentRequests } from '@/stores/document-request';
 
 /**
  * How a board surface behaves.
@@ -40,6 +41,7 @@ const ChessWorkspaceContext = createContext<ChessWorkspaceContextValue | null>(n
  */
 export function ChessWorkspaceProvider({ children }: { children: ReactNode }) {
   const route = usePathname();
+  useEffect(() => cancelDocumentRequests, [route]);
   const tree = useAnalysis((state) => state.tree);
   const currentId = useAnalysis((state) => state.currentId);
   const fen = useAnalysis(selectFen);

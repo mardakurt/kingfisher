@@ -389,7 +389,10 @@ export function OpeningReportPanel() {
     const game = collectionHistory.data.first.find((entry) => entry.id === id);
     if (!game) return;
     try {
-      await openSourceGame(librarySource(selectedCollection.id, selectedCollection.name), game);
+      if (
+        !(await openSourceGame(librarySource(selectedCollection.id, selectedCollection.name), game))
+      )
+        return;
       router.push('/analysis');
     } catch (error) {
       notify({

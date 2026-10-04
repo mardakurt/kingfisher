@@ -1,5 +1,24 @@
 # Architecture
 
+## Asynchronous document and engine request ownership
+
+`stores/document-request.ts` claims each asynchronous Library/source game open
+and checks the analysis store's document generation, authored revision and immutable
+tree before committing it. A newer request, intervening edit or route departure
+invalidates the old load. Autosave acknowledgements do not invalidate it. Game
+openers return whether they committed; callers navigate only on acceptance.
+The workspace provider cancels pending document requests when leaving a route.
+
+Engine startup/configuration belongs to the active search request. Only its owner
+can clear the pending FEN; a pending search takes precedence over the last analysed
+FEN. Explicit Stop cancels startup and disposes late sessions, while board following
+reuses a pending startup. Failure disposes the session before Retry. Retained engine
+evidence is valid only for its own FEN. Library move-search identity includes the
+database; header results are never carried across a changed source or filter.
+Engine slots record successfully applied configuration for resource labels,
+including comparison's shared allocation. Selecting One engine releases the
+secondary slot; hiding a tool alone does not stop the primary analysis.
+
 ## Local video lessons and study navigation
 
 Studies' local video panel navigates the existing analysis tree and canonical

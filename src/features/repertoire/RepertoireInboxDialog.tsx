@@ -197,7 +197,7 @@ export function RepertoireInboxDialog({
 
   const openGame = async (gameId: string, ply: number) => {
     try {
-      await openStoredGame(gameId, { ply });
+      if (!(await openStoredGame(gameId, { ply }))) return;
       onClose();
       router.push('/analysis');
     } catch (error) {

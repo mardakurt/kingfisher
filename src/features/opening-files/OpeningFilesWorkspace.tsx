@@ -432,7 +432,7 @@ function FileReferences({
 
   const openGame = async (gameId: string) => {
     try {
-      await openStoredGame(gameId);
+      if (!(await openStoredGame(gameId))) return;
       router.push('/analysis');
     } catch (error) {
       notify({

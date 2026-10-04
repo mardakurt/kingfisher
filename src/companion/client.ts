@@ -503,8 +503,8 @@ export class CompanionClient {
     return this.request('/db/import', { key, games });
   }
 
-  searchGames<T>(key: string, query: unknown): Promise<T> {
-    return this.request('/db/search', { key, query });
+  searchGames<T>(key: string, query: unknown, signal?: AbortSignal): Promise<T> {
+    return this.request('/db/search', { key, query }, signal);
   }
 
   explore<T>(key: string, positionKey: string, limit?: number, filters?: unknown): Promise<T> {

@@ -172,7 +172,7 @@ export function SheetPanel({ ready = true }: { readonly ready?: boolean }) {
             : 'This game was already in My games; opened the stored copy.',
         detail: flags.length ? `${flags.length} move(s) still flagged to check.` : undefined,
       });
-      await openStoredGame(summary.firstGame.id);
+      if (!(await openStoredGame(summary.firstGame.id))) return;
       router.push('/analysis');
       if (thenAfterRound) showTool('/analysis', 'after-round');
     } catch (error) {

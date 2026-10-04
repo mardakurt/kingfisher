@@ -192,7 +192,9 @@ export function MultiSearchPanel({ selected, onCreateFromResults }: MultiSearchP
                         // Any collection's game opens on the board — a companion
                         // database's through the same path the Library uses.
                         void openSourceGame(librarySource(hit.source.id, hit.source.name), hit.game)
-                          .then(() => router.push('/analysis'))
+                          .then((opened) => {
+                            if (opened) router.push('/analysis');
+                          })
                           .catch((error: unknown) =>
                             notify({
                               tone: 'error',

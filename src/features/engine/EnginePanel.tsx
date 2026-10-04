@@ -75,6 +75,7 @@ export function EnginePanel({ compact = false }: { readonly compact?: boolean })
 
   const prefs = usePreferences();
   const capabilities = useEngine((state) => state.primary.capabilities);
+  const configuration = useEngine((state) => state.primary.configuration);
   const insertUciLine = useAnalysis((state) => state.insertUciLine);
   const attachEvaluation = useAnalysis((state) => state.attachEvaluation);
   const notify = useUi((state) => state.notify);
@@ -227,20 +228,20 @@ export function EnginePanel({ compact = false }: { readonly compact?: boolean })
           that cannot use more, never more than it declares) and its hash,
           from the engine's own declared capabilities — not the request.
         */}
-        {capabilities && !compact ? (
+        {capabilities && configuration && !compact ? (
           <span className="shrink-0 tabular text-tertiary" data-engine-resources>
             {capabilities.threads
-              ? `${Math.max(1, Math.min(prefs.engineThreads, capabilities.maxThreads))} ${
-                  Math.min(prefs.engineThreads, capabilities.maxThreads) === 1
+              ? `${Math.max(1, Math.min(configuration.threads, capabilities.maxThreads))} ${
+                  Math.min(configuration.threads, capabilities.maxThreads) === 1
                     ? 'thread'
                     : 'threads'
                 }`
               : '1 thread'}
             {capabilities.hash
               ? ` · ${
-                  Math.min(prefs.engineHashMb, capabilities.maxHashMb) >= 1024
-                    ? `${(Math.min(prefs.engineHashMb, capabilities.maxHashMb) / 1024).toFixed(1)} GB`
-                    : `${Math.min(prefs.engineHashMb, capabilities.maxHashMb)} MB`
+                  Math.min(configuration.hashMb, capabilities.maxHashMb) >= 1024
+                    ? `${(Math.min(configuration.hashMb, capabilities.maxHashMb) / 1024).toFixed(1)} GB`
+                    : `${Math.min(configuration.hashMb, capabilities.maxHashMb)} MB`
                 }`
               : ''}
           </span>
@@ -316,14 +317,19 @@ export function EnginePanel({ compact = false }: { readonly compact?: boolean })
                 click from here, and the second engine offered can always be
                 the browser build, which needs nothing.
               */
-              status === 'unavailable' ? (
-                <Button
-                  variant="subtle"
-                  onClick={() => openSettingsAt(companionPaired ? 'engine' : 'companion')}
-                >
-                  {companionPaired ? 'Open Settings → Engines' : 'Open Settings → Companion'}
+              <div className="flex flex-wrap gap-2">
+                <Button variant="subtle" onClick={start} disabled={outcome !== null}>
+                  Retry engine
                 </Button>
-              ) : undefined
+                {status === 'unavailable' ? (
+                  <Button
+                    variant="subtle"
+                    onClick={() => openSettingsAt(companionPaired ? 'engine' : 'companion')}
+                  >
+                    {companionPaired ? 'Open Settings → Engines' : 'Open Settings → Companion'}
+                  </Button>
+                ) : null}
+              </div>
             }
           />
         ) : status === 'loading' ? (
