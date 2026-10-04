@@ -354,6 +354,18 @@ No fabricated analytics, accounts or large database infrastructure were added.
 The earlier failures and checkpoints above are retained as investigation
 history; they are superseded by the completed frozen core gate, not erased.
 
+## Final public verification
+
+The published download / landing / install-guide / complete DMG gate passed
+**67/67**. Vercel served the publication metadata at `2d858e4`.
+The first live landing browser run passed 7/8: its ICO assertion assumed
+`image/x-icon`, while Vercel correctly served the
+[IANA-registered `image/vnd.microsoft.icon`](https://www.iana.org/assignments/media-types/image/vnd.microsoft.icon).
+The test now accepts both ICO media types and independently verifies the
+`00 00 01 00` file signature, preserving invalid-file detection. This was a
+production test portability defect, not a broken favicon. The corrected live landing gate passed **8/8** in 11.2 seconds, without
+retries. Full suites remain intentionally unrerun.
+
 ## Published deliverable and verdict
 
 **Kingfisher 1.4.7, build 1113**, application core

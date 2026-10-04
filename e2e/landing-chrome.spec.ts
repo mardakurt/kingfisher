@@ -96,8 +96,16 @@ test('the document links a complete favicon set and every icon is served', async
   for (const icon of icons) {
     const response = await page.request.get(icon.href);
     expect(response.status(), icon.href).toBe(200);
-    expect(response.headers()['content-type'], icon.href).toContain(icon.type ?? 'image/');
-    expect((await response.body()).length, icon.href).toBeGreaterThan(500);
+    const contentType = response.headers()['content-type']?.split(';')[0]?.trim();
+    const body = await response.body();
+    if (icon.href.startsWith('/favicon.ico')) {
+      // Next development and Vercel use different valid ICO media types.
+      expect(['image/x-icon', 'image/vnd.microsoft.icon'], icon.href).toContain(contentType);
+      expect([...body.subarray(0, 4)], icon.href).toEqual([0, 0, 1, 0]);
+    } else {
+      expect(contentType, icon.href).toContain(icon.type ?? 'image/');
+    }
+    expect(body.length, icon.href).toBeGreaterThan(500);
   }
 });
 
