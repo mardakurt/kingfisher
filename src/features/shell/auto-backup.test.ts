@@ -9,12 +9,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import {
-  daysSinceLastBackup,
-  isBackupDue,
-  BACKUP_RECORD_SCHEMA,
-  type BackupRecord,
-} from './auto-backup';
+import { daysSinceLastBackup, isBackupDue, isBackupRecord, type BackupRecord } from './auto-backup';
 
 const NOW = Date.UTC(2026, 0, 15, 12, 0, 0); // 2026-01-15T12:00:00Z
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -62,12 +57,9 @@ describe('daysSinceLastBackup', () => {
 
 describe('BackupRecord contract', () => {
   it('rejects a record without a payload', () => {
-    const result = BACKUP_RECORD_SCHEMA.safeParse({
-      id: '1-abc',
-      createdAt: NOW,
-      reason: 'scheduled',
-    });
-    expect(result.success).toBe(false);
+    expect(isBackupRecord({ id: '1-abc', createdAt: NOW, reason: 'scheduled' })).toBe(false);
+    expect(isBackupRecord({ id: '1-abc', createdAt: String(NOW), payload: '{}' })).toBe(false);
+    expect(isBackupRecord(null)).toBe(false);
   });
 
   it('accepts a complete record', () => {
@@ -77,6 +69,7 @@ describe('BackupRecord contract', () => {
       reason: 'scheduled',
       payload: '{"format":"kingfisher-workspace","version":1}',
     };
-    expect(BACKUP_RECORD_SCHEMA.safeParse(record).success).toBe(true);
+    expect(isBackupRecord(record)).toBe(true);
+    expect(isBackupRecord({ ...record, reason: undefined })).toBe(true);
   });
 });

@@ -29,8 +29,6 @@
  * app the way they always could.
  */
 
-import { z } from 'zod';
-
 import {
   BACKUP_FORMAT,
   BACKUP_VERSION,
@@ -40,14 +38,32 @@ import {
 import type { PersistenceDatabase } from '@/persistence/indexeddb/database';
 import { STORE_NAMES } from '@/persistence/schema/migrations';
 
-export const BACKUP_RECORD_SCHEMA = z.object({
-  id: z.string(),
-  createdAt: z.number(),
-  reason: z.string().optional(),
-  payload: z.string(),
-});
+export interface BackupRecord {
+  readonly id: string;
+  readonly createdAt: number;
+  readonly reason?: string;
+  readonly payload: string;
+}
 
-export type BackupRecord = z.infer<typeof BACKUP_RECORD_SCHEMA>;
+/**
+ * Whether a stored row is a backup record.
+ *
+ * Was a zod schema. zod was never a dependency of this application — it
+ * arrived through a lint plugin's dependencies — and it shipped its whole
+ * runtime, whose JIT probe runs `Function("")` and so logged a
+ * Content-Security-Policy violation in every Firefox session, for a check of
+ * four fields.
+ */
+export function isBackupRecord(value: unknown): value is BackupRecord {
+  if (typeof value !== 'object' || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.id === 'string' &&
+    typeof record.createdAt === 'number' &&
+    (record.reason === undefined || typeof record.reason === 'string') &&
+    typeof record.payload === 'string'
+  );
+}
 
 /**
  * Decide if a backup is due. Pure function so a test can hold it to the

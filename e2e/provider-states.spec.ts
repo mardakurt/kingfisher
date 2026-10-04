@@ -69,7 +69,11 @@ function watchConsole(page: Page, browserName: string) {
       return;
     if (!isNavigationAbortNoise(text, browserName)) failures.push(text);
   });
-  page.on('pageerror', (error) => failures.push(`pageerror: ${error.message}`));
+  page.on('pageerror', (error) => {
+    // A reload cancels in-flight fetches; WebKit raises those as page errors.
+    if (!isNavigationAbortNoise(error.message, browserName))
+      failures.push(`pageerror: ${error.message}`);
+  });
   return failures;
 }
 
