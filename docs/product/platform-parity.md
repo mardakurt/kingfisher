@@ -10,6 +10,13 @@ been published or certified during this audit.
 
 # Platform parity — the web application and the macOS application
 
+**Published revision check (2026-10-04, 1.4.6).** The public Mac download is
+1.4.6 build 1105 from `7c8e40e8a1d62967a79ae5906389729a5658c498`, stable and
+clean at packaging, the same commit the website deployed. Developer ID signed,
+notarised and stapled; `desktop:public:verify -- --full` passed 61/61 against
+the descriptor, and 1.4.5 updated itself to it through the public feed. See
+[release handover](../reports/2026-10-04-1.4.6-handover.md).
+
 **Published revision check (2026-10-03, 1.4.5).** The public Mac download is
 1.4.5 build 1077 from `ef004085fb7e309d6940fc40c18a2a3ea336e436`, stable and
 clean at packaging, the same commit the website deployed. The app and DMG are
