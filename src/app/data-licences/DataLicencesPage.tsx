@@ -48,6 +48,19 @@ export function DataLicencesPage(): JSX.Element {
             <td>14 games with the author&apos;s notes, added to your games only when you ask</td>
             <td>Public domain</td>
           </tr>
+          <tr>
+            <td>Famous games and championship classics — Wikimedia contributors</td>
+            <td>
+              100 credited complete scores, added to your games only when you ask. Includes the
+              Immortal, Evergreen and Opera games; a curated selection, not a popularity ranking. No
+              modern commentary is included. Every game retains its source revision.
+            </td>
+            <td>
+              <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="noopener">
+                CC BY-SA 4.0
+              </a>
+            </td>
+          </tr>
         </tbody>
       </table>
       <p>
@@ -55,7 +68,8 @@ export function DataLicencesPage(): JSX.Element {
         replayed through Kingfisher&apos;s own rules code and the result is a generated TypeScript
         file. The annotated games are transcribed from a public-domain book by{' '}
         <code>npm run annotated:build</code>, every move resolved against the same rules code. All
-        three are described in <code>THIRD_PARTY_DATA.md</code>.
+        sources, including the Wikimedia score transcriptions, are described in{' '}
+        <code>THIRD_PARTY_DATA.md</code>.
       </p>
 
       <h2 id="installed">Installed on demand</h2>

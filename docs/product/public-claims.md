@@ -167,3 +167,13 @@ checks cover at most 40 positions. Playout seeds/checkpoints are exported with
 reported engine identity and requested parameters; a seed cannot make
 wall-clock engine searches bit-for-bit reproducible. A new 10M run, independent
 ChessBase acceptance and thousands of expert annotations remain unverified.
+
+## Credited classic game scores (source 1.4.7)
+
+The Databases catalog offers 100 complete famous games and championship classics,
+added only on request. The set has 21 named classics and 79 title-match games;
+it is not a measured popularity ranking. Every score retains its exact
+Wikimedia revision and CC BY-SA 4.0, with no modern commentary or images.
+Evidence: `scripts/reference/classics-sources.json`, `npm run annotated:check`,
+`src/annotated/classics.test.ts` and `e2e/annotated-sets.spec.ts`. The 14-game
+public-domain Capablanca annotated collection remains separate.

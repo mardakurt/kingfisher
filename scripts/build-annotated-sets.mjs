@@ -30,6 +30,7 @@ import { fileURLToPath } from 'node:url';
 
 import { cachePaths } from './cache-paths.mjs';
 import { closeApp, loadApp } from './load-app.mjs';
+import { classicsSet } from './reference/classics.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_DIR = path.join(ROOT, 'public', 'data', 'annotated');
@@ -73,7 +74,10 @@ async function source(book) {
 
 async function main() {
   const check = process.argv.includes('--check');
-  const { transcribeBook } = await loadApp(['/src/annotated/descriptive-book.ts']);
+  const { transcribeBook, parsePgn } = await loadApp([
+    '/src/annotated/descriptive-book.ts',
+    '/src/chess/pgn/index.ts',
+  ]);
   const catalog = { format: 'kingfisher-annotated-sets', version: 1, sets: [] };
   const outputs = [];
   let failed = false;
@@ -110,6 +114,12 @@ async function main() {
     });
     console.log(`${book.title}: ${result.games.length} games transcribed, none refused.`);
   }
+  const classics = classicsSet(parsePgn);
+  outputs.push([path.join(OUT_DIR, classics.row.file), classics.pgn]);
+  catalog.sets.push(classics.row);
+  console.log(
+    `Famous games and championship classics: 100 games, ${classics.plies} legal half-moves, no duplicate scores.`,
+  );
   await closeApp();
   if (failed) {
     console.error('A book with a refused game is not written.');

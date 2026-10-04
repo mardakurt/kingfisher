@@ -2,7 +2,15 @@
 
 A local-first chess research workstation for serious players.
 
-Source 1.4.6 puts **every database in the sidebar** with its game count,
+Source 1.4.7 hardens engine lifecycle, database switching, study ownership and
+reload persistence, and keeps the evaluation bar steady between moves. It also
+offers **100 famous games and championship classics** in Databases: click
+**Add to my games**, then search the Library for Immortal, Evergreen or Opera.
+The collection contains credited scores, without modern commentary or a
+measured popularity ranking. See the
+[stability audit](docs/reports/2026-10-04-professional-stability-audit.md).
+
+The 1.4.6 feature release put **every database in the sidebar** with its game count,
 names an opened game's **players with photographs and flags** above its moves,
 lists a database's **openings, top games, annotators, sources and teams**,
 shows a player's **opening families by colour** in Preparation, counts

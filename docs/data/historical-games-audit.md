@@ -178,3 +178,21 @@ What must **not** happen is any of: scraping a commercial database, assuming a
 public download implies redistribution, or shipping a corpus whose provenance
 cannot be stated game by game. A pack Kingfisher cannot describe the origin of
 is one it should not have.
+
+## 2026-10-04: an explicitly requested small classics collection
+
+The user requested approximately 100 famous games. The earlier judgment about
+shipping an unlicensed historical database remains applicable, but Wikimedia's
+individually credited scores provide a usable small collection. Kingfisher now
+includes **100 famous games and championship classics**, separately from the
+14 annotated book games: 21 named classics and 79 title-match games. This is
+not a measured popularity ranking or a large historical master database.
+
+Every transcription identifies its precise Wikimedia revision. Text is
+redistributed under CC BY-SA 4.0; an animation's CC0 licence is not substituted
+for its description page's text licence. No commercial database, annotations
+or images were copied. The attribution and transformations are recorded in
+`THIRD_PARTY_DATA.md`. All 8,661 half-moves replay legally; complete-score
+duplicates are refused. Immortal, Evergreen, Opera, Game of the Century,
+Kasparov–Topalov and Anand's Immortal are present. The Databases collection
+imports into My games on request, with repeat-import deduplication.

@@ -408,3 +408,31 @@ publisher's checksum may be supplied for verification before import. Computer
 evaluations in those PGNs retain their source; they are not expert annotations.
 User-selected licensed PGN/CBH files remain local; a stated licence is recorded,
 not independently certified as permission to redistribute the source.
+
+## Famous games and championship classics (2026-10-04)
+
+100 factual main lines: 21 individually named classics from Wikimedia Commons
+file-description pages and 79 games from Wikipedia's 1972, 1978, 2023 and 2024
+world-championship articles. This is a curated selection, not an independently
+measured top-100 popularity ranking. The remaining fourteen annotated
+Capablanca book games are a separate collection.
+
+- Licence: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+  The text licence is used, rather than incorrectly applying a GIF's CC0
+  licence to its description page. See [Wikipedia's reuse policy](https://en.wikipedia.org/wiki/Wikipedia:Copyrights#Reusers'_rights_and_obligations).
+- Attribution: Wikimedia contributors; every game preserves its exact article
+  revision in its `Source` PGN tag and its licence in `SourceLicense`. The
+  credited source links identify the contributors through each page's history.
+- Adaptation: factual main lines only; commentary, variations and evaluation
+  symbols removed. Named games have a descriptive event suffix so the existing
+  Library search finds them; `OriginalEvent` retains the source's event. Dates
+  not transcribed from the source remain `YYYY.??.??`, never guessed. No images
+  or modern annotations are redistributed. The disputed Einstein–Oppenheimer
+  score and reconstructed TUROCHAMP material are excluded.
+- Inputs: `scripts/reference/classics-sources.json`; deterministic builder:
+  `scripts/reference/classics.mjs`, included in `npm run annotated:build` and
+  `npm run annotated:check`. The output catalog records the SHA-256; the
+  importer checks it before adding any games. Every score is replayed through
+  Kingfisher's own parser and rules, and duplicate complete scores are refused.
+- Distribution: the PGN collection is CC BY-SA 4.0 separately from the software;
+  the Databases collection row links the source and licence.

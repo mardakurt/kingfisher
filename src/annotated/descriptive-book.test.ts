@@ -103,7 +103,14 @@ describe('transcribing a descriptive-notation book', () => {
 describe('the shipped annotated sets', () => {
   const root = path.join(__dirname, '..', '..', 'public', 'data', 'annotated');
   const catalog = JSON.parse(readFileSync(path.join(root, 'catalog.json'), 'utf8')) as {
-    sets: { file: string; sha256: string; games: number; source: string; sourceSha256: string }[];
+    sets: {
+      file: string;
+      sha256: string;
+      games: number;
+      notes: number;
+      source: string;
+      sourceSha256: string;
+    }[];
   };
 
   it.each(catalog.sets.map((set) => [set.file, set] as const))(
@@ -116,8 +123,14 @@ describe('the shipped annotated sets', () => {
       expect(parsed.games).toHaveLength(set.games);
       for (const game of parsed.games) {
         expect(game.issues).toEqual([]);
-        expect(game.tree.headers.Annotator).toBeTruthy();
-        expect(game.tree.headers.Source).toMatch(/Game \d+/);
+        if (set.notes > 0) {
+          expect(game.tree.headers.Annotator).toBeTruthy();
+          expect(game.tree.headers.Source).toMatch(/Game \d+/);
+        } else {
+          expect(game.tree.headers.Annotator).toBeUndefined();
+          expect(game.tree.headers.Source).toMatch(/&oldid=\d+$/);
+          expect(game.tree.headers.SourceLicense).toBe('CC BY-SA 4.0');
+        }
         expect(['1-0', '0-1', '1/2-1/2', '*']).toContain(game.tree.headers.Result);
       }
     },

@@ -292,3 +292,44 @@ The large-data/accounts proposal remains a proposal, outside this stabilization.
 Checkpoint verdict: PARTIALLY. Concrete races and source-identity defects are
 fixed and covered, but final browser/build/long-session/package gates must finish
 before a professional-use production-readiness claim.
+
+## Final stabilization checkpoint and user-requested classics
+
+The frozen stabilization core `1077fd0659b34ce7cc4283935e828a49e0320fe9`,
+build 1112, completed **517/517 browser tests** in 33.7 minutes, with zero
+retries. Its complete unit/integration gate passed **4,151/4,151 tests in 401
+files**, without skips. Typecheck, lint, formatting, production build,
+documentation and benchmark gates passed. CI was green; production deployment
+matched that commit. Fourteen real Chrome/WebKit production cases passed, and
+all 24 direct-route/reload checks produced no console errors or overflow.
+
+The same signed/notarised Mac core passed all ten desktop certification steps:
+smoke 17/17, window chrome 109/109, restart 7/7, engine fleet 25/25, suspend
+14/14, the 1,000-action walk, the 300-action fault walk, DMG verification,
+zero-skip scan and the full unit gate. Both walks had zero invariant findings.
+The fault walk logged two console errors during intentionally killed services;
+this is not reported as a zero-console-error run. Real packaged MultiPV and
+evaluation-band regressions passed 2/2.
+
+The user then requested roughly 100 famous games and explicitly instructed
+**not to repeat all tests**. The existing Databases classics catalog now adds
+100 factual scores: 21 individually named classics plus 79 championship games.
+It includes Immortal, Evergreen, Opera, Game of the Century, Kasparov–Topalov
+and Anand's Immortal. Every source is a pinned Wikimedia revision, credited
+and licensed CC BY-SA 4.0. Modern commentary and images were excluded;
+unknown exact dates remain unknown. This is not a measured top-100 ranking.
+
+The addition changes the static collection, its existing importer copy, and
+the data-licences page. No new database provider, board renderer, storage schema
+or engine behaviour was added. All 100 scores replay completely through the
+real rules/parser (**8,661 legal half-moves**, no duplicate complete scores),
+survive PGN export, and carry source identity. Golden tests check the actual
+checkmating finishes of Immortal, Evergreen and Opera. Targeted tests passed:
+10 unit cases (two files) and both browser cases, including the original
+annotated book, importing 100 games twice without duplication, searching and
+opening four named classics, and reload persistence. Full suites were not
+repeated for this final collection change, as the user explicitly requested.
+
+No fabricated analytics, accounts or large database infrastructure were added.
+The earlier failures and checkpoints above are retained as investigation
+history; they are superseded by the completed frozen core gate, not erased.

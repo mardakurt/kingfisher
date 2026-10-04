@@ -45,3 +45,43 @@ test('a public-domain annotated book is added to my games with its notes', async
       .getByRole('button', { name: /The object of this move is to bring/ }),
   ).toBeVisible({ timeout: 15_000 });
 });
+
+test('100 credited classics import once and named games open from Library search', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/databases');
+  await ready(page);
+  const set = page.locator('[data-annotated-set="famous-games-and-championship-classics"]');
+  await expect(set).toContainText('100 games');
+  await expect(set).toContainText('CC BY-SA 4.0');
+  await expect(set).not.toContainText('public domain');
+  await set.getByRole('button', { name: 'Add to my games' }).click();
+  await expect(
+    page.getByText('100 games from Famous games and championship classics added to your games.'),
+  ).toBeVisible({ timeout: 45_000 });
+  await set.getByRole('button', { name: 'Add to my games' }).click();
+  await expect(
+    page.getByText(
+      'Every game of Famous games and championship classics is already in your games.',
+    ),
+  ).toBeVisible({ timeout: 45_000 });
+  for (const [name, players] of [
+    ['Immortal Game, 1851', /Adolf Anderssen.*Kieseritzky/],
+    ['Evergreen Game, 1852', /Adolf Anderssen.*Dufresne/],
+    ['Opera Game, 1858', /Paul Morphy.*Duke Karl/],
+    ["Kasparov's Immortal", /Garry Kasparov.*Veselin Topalov/],
+  ] as const) {
+    await page.goto('/games');
+    await ready(page);
+    await page.getByRole('searchbox', { name: 'Search games' }).fill(name);
+    const row = page.getByRole('row', { name: players });
+    await expect(row).toBeVisible();
+    await row.dblclick();
+    await expect(page.getByRole('region', { name: 'Notation' })).toContainText('e4');
+  }
+  await page.reload();
+  await ready(page);
+  await expect(page.getByRole('region', { name: 'Notation' })).toContainText('e4');
+});

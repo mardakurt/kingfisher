@@ -6,6 +6,10 @@ real users notice.
 
 ## 1.4.7 — 2026-10-04
 
+- Add 100 credited famous games and championship classics to the existing
+  Databases importer, including the Immortal, Evergreen, Opera, Game of the
+  Century and Kasparov–Topalov games. No commentary or popularity ranking is claimed.
+
 - The evaluation bar keeps its black/white bands opaque between moves. While
   the engine catches up, the previous geometry is held with an ellipsis instead
   of flashing grey or presenting an old score as current.

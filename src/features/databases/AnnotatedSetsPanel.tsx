@@ -32,6 +32,8 @@ interface AnnotatedSet {
   readonly sha256: string;
   readonly games: number;
   readonly notes: number;
+  readonly rightsLabel?: string;
+  readonly description?: string;
 }
 
 const BASE = '/data/annotated';
@@ -75,7 +77,7 @@ export function AnnotatedSetsPanel() {
             ? `Every game of ${set.title} is already in your games.`
             : `${summary.imported} game${summary.imported === 1 ? '' : 's'} from ${set.title} added to your games.`,
         detail:
-          `${set.author}, ${set.year}, with the author's notes. ${summary.duplicates ? `${summary.duplicates} were already there.` : ''}`.trim(),
+          `${set.author}, ${set.year}. ${set.notes ? "With the author's notes." : 'No commentary is included.'} ${summary.duplicates ? `${summary.duplicates} were already there.` : ''}`.trim(),
       });
     } catch (error) {
       notify({
@@ -90,10 +92,10 @@ export function AnnotatedSetsPanel() {
 
   return (
     <section className="border-t border-line-subtle px-4 py-3" aria-label="Annotated classics">
-      <h2 className="text-xs font-semibold text-tertiary">Annotated classics</h2>
+      <h2 className="text-xs font-semibold text-tertiary">Classic games and annotated books</h2>
       <p className="mt-1 text-[11px] leading-snug text-tertiary">
-        Games from public-domain books, with the author&apos;s own notes, every move checked against
-        the rules as it was transcribed.
+        Public-domain annotated books and credited classic game scores. Every move is checked
+        against the rules; each collection states its licence and whether it includes notes.
       </p>
       {catalog.isError ? (
         <p className="mt-2 text-xs text-tertiary">{catalog.error.message}</p>
@@ -108,8 +110,34 @@ export function AnnotatedSetsPanel() {
                 </span>
               </div>
               <p className="text-[11px] leading-snug text-tertiary tabular">
-                {set.games} games · {set.notes} notes · public domain · {set.edition}
+                {set.games} games · {set.notes} notes · {set.rightsLabel ?? 'public domain'} ·{' '}
+                {set.edition}
               </p>
+              {set.description && (
+                <p className="mt-1 text-[11px] leading-snug text-tertiary">{set.description}</p>
+              )}
+              <a
+                href={set.source}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[11px] underline text-tertiary"
+              >
+                Source
+              </a>
+              {set.rightsLabel && (
+                <>
+                  {' '}
+                  ·{' '}
+                  <a
+                    href="https://creativecommons.org/licenses/by-sa/4.0/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] underline text-tertiary"
+                  >
+                    Licence
+                  </a>
+                </>
+              )}
               <Button
                 size="sm"
                 className="mt-1"
