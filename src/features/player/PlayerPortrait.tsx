@@ -56,11 +56,15 @@ export function PlayerPortrait({
   size = 'lg',
 }: {
   readonly name: string;
-  /** `lg` for a player's own page, `sm` beside a name in a game's header. */
-  readonly size?: 'lg' | 'sm';
+  /**
+   * `lg` for a player's own page, `sm` beside a name in a game's header, `xs`
+   * within a line of text — as tall as the line, so it adds no height.
+   */
+  readonly size?: 'lg' | 'sm' | 'xs';
 }) {
   const photo = usePlayerPhoto(name).data;
-  const box = size === 'sm' ? 'size-7 text-[10px]' : 'size-14 text-lg';
+  const box =
+    size === 'xs' ? 'size-5 text-[8px]' : size === 'sm' ? 'size-7 text-[10px]' : 'size-14 text-lg';
   if (photo) {
     return (
       // A blob URL from bytes already fetched; next/image has nothing to add.

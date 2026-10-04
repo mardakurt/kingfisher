@@ -1776,8 +1776,13 @@ function GamePreview({
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-library-preview={game.id}>
       <div className="shrink-0 px-4 pt-4">
-        <p className="flex min-w-0 items-center gap-2 text-[13px] font-semibold text-primary">
-          <PlayerPortrait name={game.white} size="sm" />
+        {/*
+          A portrait as tall as the line (`xs`): the preview's board is square
+          and full width, so a taller row pushed Open, Review and Tournament
+          under the status bar at 1280 × 720.
+        */}
+        <p className="flex min-w-0 items-center gap-1.5 text-[13px] font-semibold text-primary">
+          <PlayerPortrait name={game.white} size="xs" />
           <span className="truncate">
             <CountryFlag name={game.white} />
             {game.white}
@@ -1786,8 +1791,8 @@ function GamePreview({
             ) : null}
           </span>
         </p>
-        <p className="flex min-w-0 items-center gap-2 text-[13px] font-semibold text-primary">
-          <PlayerPortrait name={game.black} size="sm" />
+        <p className="flex min-w-0 items-center gap-1.5 text-[13px] font-semibold text-primary">
+          <PlayerPortrait name={game.black} size="xs" />
           <span className="truncate">
             <CountryFlag name={game.black} />
             {game.black}
