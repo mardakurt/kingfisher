@@ -21,7 +21,7 @@ import { useRouter } from 'next/navigation';
 import { Search } from '@/components/icons';
 import { Button } from '@/components/ui/Button';
 import { federatedSearch, supportedFilters } from '@/database/collections/federated';
-import { openStoredGame } from '@/features/games/open-game';
+import { librarySource, openSourceGame } from '@/features/games/library-source';
 import type { FederatedResult } from '@/database/collections/federated';
 import { openCollections } from '@/database/collections/registry';
 import type { CollectionFacts } from '@/database/collections/types';
@@ -189,20 +189,9 @@ export function MultiSearchPanel({ selected, onCreateFromResults }: MultiSearchP
                       type="button"
                       className="min-w-0 flex-1 text-left"
                       onClick={() => {
-                        /*
-                          Only the browser's own collection can hand a game
-                          straight to the board today. Saying so is better than
-                          a button that does nothing: the game is real and the
-                          user is told exactly where it is.
-                        */
-                        if (hit.source.kind !== 'indexeddb') {
-                          notify({
-                            tone: 'info',
-                            message: `That game is in ${hit.source.name}. Copy it to your own collection to open it on the board.`,
-                          });
-                          return;
-                        }
-                        void openStoredGame(hit.game.id)
+                        // Any collection's game opens on the board — a companion
+                        // database's through the same path the Library uses.
+                        void openSourceGame(librarySource(hit.source.id, hit.source.name), hit.game)
                           .then(() => router.push('/analysis'))
                           .catch((error: unknown) =>
                             notify({

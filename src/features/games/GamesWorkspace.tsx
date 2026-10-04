@@ -10,6 +10,7 @@
  * seven-column table at 320px is a table nobody can read.
  */
 
+import { DatabasesPicker, LibraryAcross } from './LibraryAcross';
 import { useResearchHistory } from '@/stores/research-history-store';
 import { CountryFlag } from '@/features/player/CountryFlag';
 import { PlayerPortrait } from '@/features/player/PlayerPortrait';
@@ -153,6 +154,8 @@ export function GamesWorkspace() {
   const [header, setHeader] = useState<HeaderMask>(EMPTY_HEADER);
   const [moves, setMoves] = useState<MoveMask>(EMPTY_MOVES);
   const searchFromAddress = useRef(false);
+  /** Databases searched besides the one in the menu (`?also=`), ChessBase's "Databases 2 of 5". */
+  const [also, setAlso] = useState<readonly string[]>([]);
   const [movePage, setMovePage] = useState(0);
   const deep = useDeepSearch();
   const [eco, setEco] = useState('');
@@ -199,6 +202,7 @@ export function GamesWorkspace() {
     */
     const event = params.get('event');
     const openingParam = params.get('opening');
+    const alsoParam = params.get('also');
     /*
       An annotator, source or team from a database's index. These are read
       from each game's PGN by the move search, so the address fills its
@@ -222,6 +226,7 @@ export function GamesWorkspace() {
     if (who) setPlayer(who);
     if (against) setOpponent(against);
     if (openingParam) setOpening(openingParam);
+    if (alsoParam) setAlso(alsoParam.split(',').filter(Boolean));
     if (metadata.annotator || metadata.source || metadata.team) {
       setMoves({ ...EMPTY_MOVES, ...metadata });
       searchFromAddress.current = true;
@@ -257,6 +262,7 @@ export function GamesWorkspace() {
     set('db', sourceId !== LOCAL_SOURCE.id ? sourceId : '');
     set('event', header.event.trim());
     set('opening', opening.trim());
+    set('also', also.join(','));
     set('from', header.fromDate);
     set('to', header.toDate);
     return params;
@@ -285,7 +291,17 @@ export function GamesWorkspace() {
     return () => window.clearTimeout(timer);
     // withSearch reads exactly these.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text, player, opponent, sourceId, header.event, header.fromDate, header.toDate, opening]);
+  }, [
+    text,
+    player,
+    opponent,
+    sourceId,
+    header.event,
+    header.fromDate,
+    header.toDate,
+    opening,
+    also,
+  ]);
   /*
     The page and the previewed game go into the address at once, not after
     the typing debounce: a click on a row and a double-click to open it come
@@ -363,6 +379,11 @@ export function GamesWorkspace() {
   );
 
   const compiledMoves = useMemo(() => compileMoves(moves), [moves]);
+  // Several databases: the one in the menu and the others ticked beside it.
+  const across =
+    source.kind === 'reference' || also.length === 0
+      ? []
+      : [source.id, ...also.filter((id) => id !== source.id)];
   // The header half of the query, without paging: what a move search reads.
   const headerOnly = useMemo(() => {
     const { limit: _limit, offset: _offset, ...rest } = query;
@@ -803,6 +824,19 @@ export function GamesWorkspace() {
             ) : null}
           </select>
         </label>
+        {source.kind !== 'reference' ? (
+          <DatabasesPicker
+            collections={(collections.data ?? []).filter(
+              (entry) => entry.kind === 'indexeddb' || entry.kind === 'sqlite',
+            )}
+            current={source.id}
+            also={also.filter((id) => id !== source.id)}
+            onChange={(next) => {
+              setAlso(next);
+              setPreviewId(null);
+            }}
+          />
+        ) : null}
         <Button
           id="library-filters-trigger"
           active={filtersOpen || filtersActive}
@@ -954,7 +988,14 @@ export function GamesWorkspace() {
 
       <div className="relative flex min-h-0 flex-1 border-t border-line-subtle">
         <div className="min-h-0 min-w-0 flex-1 overflow-auto" data-library-list>
-          {games.isError ? (
+          {across.length > 1 ? (
+            <LibraryAcross
+              ids={across}
+              names={new Map((collections.data ?? []).map((entry) => [entry.id, entry.name]))}
+              query={headerOnly}
+              label={`the Library across ${across.length} databases`}
+            />
+          ) : games.isError ? (
             <EmptyState
               title={local ? 'Local storage is unavailable' : `${source.name} could not be read`}
               description={
