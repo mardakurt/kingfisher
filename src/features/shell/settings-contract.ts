@@ -1,7 +1,7 @@
 /**
  * What every user-visible setting is supposed to do, and who does it.
  *
- * Kingfisher has forty-four preferences across twenty-two consumer modules,
+ * Kingfisher has forty-five preferences across twenty-three consumer modules,
  * which is more than anybody can hold in their head — and Phase 17 opened with a
  * reported bug where a setting persisted correctly, had two runtime consumers,
  * and still changed nothing a user could see. "It is wired up" turned out not
@@ -128,6 +128,18 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     indexedAs: 'piece-notation',
     previewable: true,
     verifiedBy: 'e2e/piece-notation.spec.ts',
+  },
+  {
+    key: 'databaseIcons',
+    label: 'Database icons',
+    surface: 'in-place',
+    control: 'features/databases/DatabaseIconDialog.tsx',
+    consumer: 'features/databases/database-appearance.tsx',
+    effect:
+      "A database tile's glyph and colour, chosen from its menu (Change icon…), on the Databases grid and beside its name in the sidebar; Use the default returns it to the one for where it is stored.",
+    indexedAs: null,
+    previewable: true,
+    verifiedBy: 'e2e/database-icons.spec.ts',
   },
   {
     key: 'animationSpeed',

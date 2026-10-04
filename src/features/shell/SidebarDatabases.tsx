@@ -15,7 +15,8 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
-import { ChevronDown, ChevronUp, Database, Library } from '@/components/icons';
+import { ChevronDown, ChevronUp } from '@/components/icons';
+import { DatabaseGlyph } from '@/features/databases/database-appearance';
 import { useCompanionStatus } from '@/companion/useCompanion';
 import { listCollections } from '@/database/collections/registry';
 import { cn } from '@/lib/cn';
@@ -83,11 +84,7 @@ export function SidebarDatabases({ onNavigate }: { readonly onNavigate?: () => v
               data-sidebar-database={collection.id}
               className={cn(ROW, active ? ACTIVE : IDLE)}
             >
-              {collection.kind === 'sqlite' ? (
-                <Database className="h-[15px] w-[15px] shrink-0 text-tertiary" />
-              ) : (
-                <Library className="h-[15px] w-[15px] shrink-0 text-accent-ink" />
-              )}
+              <DatabaseGlyph collection={collection} className="h-[15px] w-[15px] shrink-0" />
               <span className="min-w-0 flex-1 truncate">{collection.name}</span>
               <span className="shrink-0 text-[11px] text-tertiary tabular">
                 {sidebarCount(collection.games)}

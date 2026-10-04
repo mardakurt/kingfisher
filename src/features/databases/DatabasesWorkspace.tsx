@@ -17,6 +17,8 @@
  * has already taught everybody.
  */
 
+import { DatabaseIconDialog } from './DatabaseIconDialog';
+import { DatabaseTileIcon } from './database-appearance';
 import { useTabField } from '@/features/tabs/tab-fields';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -30,7 +32,7 @@ import {
   Dossier,
   Folder,
   Import,
-  Library,
+  Pencil,
   Plus,
   Search,
   Settings,
@@ -729,6 +731,8 @@ function DatabaseGrid({
   const openFolder = folderList.find((entry) => entry.id === openFolderId) ?? null;
   const [naming, setNaming] = useState<'new' | 'rename' | null>(null);
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+  /** The database whose icon is being chosen. */
+  const [iconFor, setIconFor] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
 
   const placement = useMemo(
@@ -895,21 +899,7 @@ function DatabaseGrid({
                 aria-current={collection.id === focusedId}
                 className={cn(TILE, isChecked ? 'bg-accent-muted' : 'hover:bg-surface-2')}
               >
-                <span
-                  aria-hidden
-                  className={cn(
-                    TILE_ICON,
-                    collection.kind === 'sqlite'
-                      ? 'bg-gradient-to-b from-[#6f7785] to-[#4b525d] text-white'
-                      : 'bg-gradient-to-b from-[#4f8ff0] to-[#2563d4] text-white',
-                  )}
-                >
-                  {collection.kind === 'sqlite' ? (
-                    <Database className="h-7 w-7" />
-                  ) : (
-                    <Library className="h-7 w-7" />
-                  )}
-                </span>
+                <DatabaseTileIcon collection={collection} className={TILE_ICON} />
                 <span className="line-clamp-2 text-[12.5px] leading-tight font-medium text-primary">
                   {collection.name}
                 </span>
@@ -1032,9 +1022,24 @@ function DatabaseGrid({
                 },
               ],
             },
+            {
+              id: 'appearance',
+              items: [
+                {
+                  id: 'icon',
+                  label: 'Change icon…',
+                  icon: <Pencil />,
+                  run: () => setIconFor(menuFor.id),
+                },
+              ],
+            },
           ]}
         />
       ) : null}
+      <DatabaseIconDialog
+        collection={collections.find((entry) => entry.id === iconFor) ?? null}
+        onClose={() => setIconFor(null)}
+      />
       <PromptDialog
         key={naming ?? 'closed'}
         open={naming !== null}

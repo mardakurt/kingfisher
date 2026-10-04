@@ -27,6 +27,22 @@ import type {
 
 export type AppTheme = 'dark' | 'light';
 
+/** A database's chosen icon on the Databases grid and in the sidebar. */
+export interface DatabaseIconChoice {
+  readonly glyph:
+    | 'database'
+    | 'library'
+    | 'opening'
+    | 'repertoire'
+    | 'players'
+    | 'team'
+    | 'tactics'
+    | 'endgame'
+    | 'notebook'
+    | 'target';
+  readonly colour: 'blue' | 'slate' | 'gold' | 'green' | 'red' | 'purple';
+}
+
 export interface Preferences {
   theme: AppTheme;
   boardTheme: BoardThemeId;
@@ -110,6 +126,11 @@ export interface Preferences {
    * ChessBase and printed books show them. Display only; PGN stays letters.
    */
   pieceNotation: 'letters' | 'figurines';
+  /**
+   * Each database's chosen icon, by collection id (ChessBase's database
+   * pictures). Absent means the default for where it is stored.
+   */
+  databaseIcons: Readonly<Record<string, DatabaseIconChoice>>;
   /**
    * Which half of the Openings route was last used.
    *
@@ -236,6 +257,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   explorerBoardArrows: false,
   showPlayerPhotos: true,
   pieceNotation: 'letters',
+  databaseIcons: {},
   boardPriority: DEFAULT_BOARD_PRIORITY,
   hiddenEngineIds: [],
   openingsMode: 'library',
