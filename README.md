@@ -2,12 +2,14 @@
 
 A local-first chess research workstation for serious players.
 
-Source 1.4.5 adds **local video lessons in Studies** with timed board cues,
-**PGN annotator, source and team filters** in the Library, and **frequent
-players per move in My games**. Video files stay local and are reattached on
-reopening; the filename and cues travel in PGN and workspace backups. See the
-[1.4.5 comparison](docs/product/chessbase-mac-comparison-1.4.5.md) for the
-remaining ChessBase data and service boundaries.
+Source 1.4.6 puts **every database in the sidebar** with its game count,
+names an opened game's **players with photographs and flags** above its moves,
+lists a database's **openings, top games, annotators, sources and teams**,
+shows a player's **opening families by colour** in Preparation, counts
+**frequent players in companion databases**, and offers **figurine
+notation**. See the [1.4.6 comparison](docs/product/chessbase-mac-comparison-1.4.6.md)
+for what remains different, and the
+[big-data and accounts proposal](docs/product/big-data-and-accounts-proposal.md).
 
 > **Public release · 1.4.5** (macOS, Developer ID signed and notarised)
 > Research remains opt-in under Layout.

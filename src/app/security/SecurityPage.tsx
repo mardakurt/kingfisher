@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import { DocsLayout } from '@/app/_docs/DocsLayout';
+import { macosDownload } from '@/release/macos-download';
 
 export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element {
   return (
@@ -21,12 +22,14 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
         <tbody>
           <tr>
             <td>Web application</td>
-            <td>Kingfisher 1.4.5</td>
+            <td>Kingfisher 1.4.6</td>
             <td>Current. Served at kingfisherchess.app from every push to master.</td>
           </tr>
           <tr>
             <td>macOS application</td>
-            <td>Kingfisher 1.4.4</td>
+            {/* The published build, from the one file that names it — this
+                cell said 1.4.4 for a release after 1.4.5 was public. */}
+            <td>Kingfisher {macosDownload.version}</td>
             <td>
               Apple Silicon DMG, signed with Developer ID and <strong>notarised by Apple</strong>;
               opens with a double-click.

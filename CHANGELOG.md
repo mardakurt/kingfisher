@@ -4,6 +4,23 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## 1.4.6 — 2026-10-04
+
+- **Databases in the sidebar**, with game counts; an open database has an
+  address, so Back, reload and tabs keep it.
+- **A database's openings, top games, newest tournaments, annotators,
+  sources and teams**, each opening exactly its games.
+- **Game header** above the notation and in the Library preview: players with
+  rating, photograph and country flag, result, event and date.
+- **Opening families by colour** and **recent opponents** in Preparation.
+- **Back to the Library / preparation** from an opened game.
+- **Frequent players** in companion databases; **figurine notation**; the
+  engine's threads and hash beside its name.
+- Fixed: tournament links opened games that merely shared words with the
+  event; the Dossier missed games under another spelling; Set up position
+  hid its FEN; Skip was the loudest control on an unsolved puzzle.
+- `SHA256SUMS` reads with `shasum -c`.
+
 ## 1.4.5 — 2026-10-03
 
 - **Video lesson** in Studies: local video playback with timed chapter

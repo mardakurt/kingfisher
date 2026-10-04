@@ -123,21 +123,24 @@ the installed reference packs hold no games for, and it says so: every row it
 adds to the player library shows zero games until a source supplies some, and
 none of them is offered in a browse list.
 
-| Field    | Value                                                                                                 |
-| -------- | ----------------------------------------------------------------------------------------------------- |
-| Source   | Wikidata, via the public SPARQL endpoint — <https://query.wikidata.org/>                              |
-| Query    | humans (P31 = Q5) with a FIDE title (P2962) of Q105269, Q3417060, Q752119 or Q3314851; see the script |
-| Licence  | CC0 1.0 Public Domain Dedication (all Wikidata structured data)                                       |
-| Fetched  | 2026-09-12, by `scripts/build-player-roster.mjs`                                                      |
-| Entries  | 8,339 people — 2,126 GM, 530 WGM, 4,657 IM, 1,026 WIM (highest title each)                            |
-| Coverage | 7,677 with a FIDE ID, 8,322 with a birth year, 3,442 with at least one alternative spelling           |
-| Size     | 892 KB on disk, about 260 KB compressed; fetched lazily on first player search, never in the bundle   |
-| Verified | `npm run players:roster:check` compares the file's SHA-256 with `titled-players.manifest.json`        |
+| Field    | Value                                                                                                                                                                             |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Source   | Wikidata, via the public SPARQL endpoint — <https://query.wikidata.org/>                                                                                                          |
+| Query    | humans (P31 = Q5) with a FIDE title (P2962) of Q105269, Q3417060, Q752119 or Q3314851; see the script                                                                             |
+| Licence  | CC0 1.0 Public Domain Dedication (all Wikidata structured data)                                                                                                                   |
+| Fetched  | 2026-09-12, by `scripts/build-player-roster.mjs`                                                                                                                                  |
+| Entries  | 8,339 people — 2,126 GM, 530 WGM, 4,657 IM, 1,026 WIM (highest title each)                                                                                                        |
+| Coverage | 7,677 with a FIDE ID, 8,322 with a birth year, 3,442 with at least one alternative spelling                                                                                       |
+| Size     | 892 KB on disk, about 260 KB compressed; fetched lazily, from Kingfisher's own origin, the first time a player search, a game list or a game header needs it; never in the bundle |
+| Verified | `npm run players:roster:check` compares the file's SHA-256 with `titled-players.manifest.json`                                                                                    |
 
 What the roster is not: a rating list, a game count, or a claim that a person
 is who a pack means by a name. Attachment to a pack row happens only on an
 exact folded-name or alias match, and a person on the curated historical
-roster keeps that entry's checked facts. Aliases are the labels Wikidata
+roster keeps that entry's checked facts. Since 1.4.6 the country of citizenship is
+drawn as a flag beside a name in game lists and a game's header, only when the
+name matches exactly one person; citizenship is not the federation a player
+represents, and the flag's title says which it is. Aliases are the labels Wikidata
 holds in Latin-script languages, shortest first, at most eight, with handles
 and epithets dropped by rule — nothing is generated.
 

@@ -1,5 +1,8 @@
 # Kingfisher documentation
 
+- [1.4.6 release notes](release/1.4.6.md)
+- [ChessBase Mac comparison for 1.4.6](product/chessbase-mac-comparison-1.4.6.md)
+- [Big data and accounts — a proposal](product/big-data-and-accounts-proposal.md)
 - [1.4.5 release notes](release/1.4.5.md)
 - [ChessBase Mac comparison for 1.4.5](product/chessbase-mac-comparison-1.4.5.md)
 - [Local video lessons](design/video-lessons.md)
