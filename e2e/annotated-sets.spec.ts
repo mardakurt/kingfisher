@@ -67,11 +67,11 @@ test('100 credited classics import once and named games open from Library search
       'Every game of Famous games and championship classics is already in your games.',
     ),
   ).toBeVisible({ timeout: 45_000 });
-  for (const [name, players] of [
-    ['Immortal Game, 1851', /Adolf Anderssen.*Kieseritzky/],
-    ['Evergreen Game, 1852', /Adolf Anderssen.*Dufresne/],
-    ['Opera Game, 1858', /Paul Morphy.*Duke Karl/],
-    ["Kasparov's Immortal", /Garry Kasparov.*Veselin Topalov/],
+  for (const [name, players, finish] of [
+    ['Immortal Game, 1851', /Adolf Anderssen.*Kieseritzky/, 'Be7#'],
+    ['Evergreen Game, 1852', /Adolf Anderssen.*Dufresne/, 'Bxe7#'],
+    ['Opera Game, 1858', /Paul Morphy.*Duke Karl/, 'Rd8#'],
+    ["Kasparov's Immortal", /Garry Kasparov.*Veselin Topalov/, 'Qa7'],
   ] as const) {
     await page.goto('/games');
     await ready(page);
@@ -79,7 +79,7 @@ test('100 credited classics import once and named games open from Library search
     const row = page.getByRole('row', { name: players });
     await expect(row).toBeVisible();
     await row.dblclick();
-    await expect(page.getByRole('region', { name: 'Notation' })).toContainText('e4');
+    await expect(page.getByRole('region', { name: 'Notation' })).toContainText(finish);
   }
   await page.reload();
   await ready(page);

@@ -1,11 +1,16 @@
 # Platform parity — the web application and the macOS application
 
-**Unreleased stabilization audit (2026-10-04).** The working checkout adds
-engine request ownership, retry/cancellation, Library source isolation and
-protected asynchronous document loads. These shared renderer changes affect
-both browser and macOS. The public descriptor still names 1.4.6 build 1105;
-it does not yet contain this audit's changes. No new package or deployment is
-claimed here until the corresponding gates and publication finish.
+**Published revision check (2026-10-04, 1.4.7).** The public Mac download is
+1.4.7 build 1113 from `43044cde134cca9a4db8c3023ab2ad4235a68e95`, stable and
+clean at packaging. It contains the engine, Library, study and reload repairs,
+the steady evaluation bar, and 100 credited classic scores. The downloaded
+public DMG matches the final package and passed the identity/signature gate.
+The web shares this application implementation. Subsequent publication metadata
+updates its download/security claims; the immutable package embeds the prior
+1.4.6 download descriptor. The full stabilization core was certified at build
+1112; the final classics addition received focused source, live and packaged
+checks instead of another complete suite, at the user's explicit request.
+See [stability audit](../reports/2026-10-04-professional-stability-audit.md).
 
 **Published revision check (2026-10-04, 1.4.6).** The public Mac download is
 1.4.6 build 1105 from `7c8e40e8a1d62967a79ae5906389729a5658c498`, stable and

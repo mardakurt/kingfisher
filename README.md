@@ -19,7 +19,7 @@ notation**. See the [1.4.6 comparison](docs/product/chessbase-mac-comparison-1.4
 for what remains different, and the
 [big-data and accounts proposal](docs/product/big-data-and-accounts-proposal.md).
 
-> **Public release · 1.4.6** (macOS, Developer ID signed and notarised)
+> **Public release · 1.4.7** (macOS, Developer ID signed and notarised)
 > Research remains opt-in under Layout.
 > No account. No cookies. No subscription.
 

@@ -1,8 +1,9 @@
 # Professional-use stability audit — 2026-10-04
 
 Starting checkout: clean `master`, `e19e37a`, source version 1.4.6, Node 24.14.0.
-This is stabilization of existing capabilities. No account, corpus, cloud service
-or new chess feature was added.
+This session stabilizes existing capabilities. At the user's later request, it
+also adds a small, credited collection of 100 classic scores through the existing
+importer. No accounts, cloud service or large-data infrastructure was added.
 
 ## Reproduced defects and their causes
 
@@ -231,38 +232,49 @@ of this machine/run, not a change attributable to this patch.
 
 ## Verification status
 
-- Initial unit/integration suite: 398 files, 4,123 tests passed.
-- Final expanded unit/integration suite: 401 files, 4,151 tests passed, no skips.
-- Typecheck, lint, format and diff checks passed after application edits.
-- Documentation check: 363/363 before final report linkage.
-- New browser regressions: 10/10 passed in targeted runs; 25 restoration, reload and tab cases passed together; the evolving audit suite passed 508/508 in 34.4 minutes. The subsequent frozen 510-case run failed the FEN handoff case above;
-  the 512-case candidate was subsequently stopped for the additional reload defects;
-  the final candidate (build 1110) must complete all 514 cases.
-- Native fleet verifier: Stockfish native 19, Stormphrax 8, Viridithas 20,
-  Halogen 16.8, PlentyChess 8 and locally installed Lc0 each verified.
-  Berserk, Koivisto and Obsidian have no published darwin-arm64 build.
-- Exploratory full browser run intentionally stopped after 342 passed cases (one interrupted and 161 not run) to build
-  and restart against the final source. It is not a completed release gate.
-- Frozen 1.4.7 production build passed again after the evaluation-bar fix. Benchmark passed: 100,000-game PGN parsing
-  and aggregation, 20,000 rules operations, 10,000-game SQLite collections,
-  preparation, seven performance tests and the bundle report. The live SQLite
-  benchmark was skipped because no external companion token was configured;
-  the collection benchmark used a real in-process SQLite database.
-- Final full browser suite, extended soak and new packaged acceptance: pending
-  at this checkpoint.
+- ✓ Frozen stabilization core `1077fd0` / build 1112: **517/517 browser tests**,
+  zero retries; **4,151/4,151 unit/integration tests**, 401 files, no skips.
+- ✓ Typecheck, lint, formatting, production build, documentation (363/363),
+  benchmark and diff checks passed. The 100,000-game parser/index benchmark and
+  real 10,000-game in-process SQLite benchmark passed. The optional external
+  companion benchmark was not configured; it is not claimed as run.
+- ✓ Fourteen production Chrome/WebKit regression cases and all 24 direct-route
+  / reload checks passed without console errors or horizontal overflow.
+- ✓ Core packaged certification: all ten steps passed, including a 1,000-action
+  walk, a 300-action fault walk, all six available native engines, restart,
+  suspension, window chrome, DMG verification and full unit suite.
+- ✓ Core extended resource-leak soak: 3/3 cases, 17.3 minutes, 52 navigation
+  cycles and 13 chain passes; no accumulating observable workers/listeners.
+- ✓ Core upgrade, real Sparkle update, quarantined launch and optional reference
+  pack offline/restart field checks passed.
+- △ Final core timed 30-minute walk was interrupted during continuation after
+  about 490 seconds / 210 actions. Earlier candidates completed three separate
+  30-minute walks, but those are supporting evidence, not a final-core pass.
+- ✓ Final application core `43044cd` / build 1113 adds the 100-game collection.
+  CI passed **4,154 tests in 402 files**. Targeted parser/provenance tests passed
+  10/10; actual live and packaged importer / named-game / reload tests passed
+  2/2 each. All four named games were checked through their finishing moves.
+- ✓ Final 1.4.7 Mac build: signed, notarised, stapled, booted and verified;
+  smoke 17/17 and focused classics 2/2. Published DMG bytes independently
+  downloaded and verified. Actual public Sparkle 1.4.6 → 1.4.7 update passed,
+  retaining the authored study and isolated profile, with clean shutdown.
+- ✓ Final Databases viewport and committed visual baseline: 2/2 passed; no
+  baseline replacement was needed. Standard release checksum verification passed.
+- △ Full suites and full desktop certification were deliberately not repeated
+  after the static collection addition, following the user's explicit request.
 
 ## Coverage boundaries
 
-| Area                                         | Evidence and boundary                                                                                                                               |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shared board and position                    | Real browser Stockfish, 40 rapid cursor changes, route switching, orientation, reload; all 24 direct routes checked                                 |
-| Studies and move trees                       | Existing conflict, persistence, annotation and large-tree regressions; measured 20,000-node browser workflow                                        |
-| Engine lifecycle                             | Startup, cancellation, failure, retry, same-FEN stale callbacks and configuration regressions; real browser engine and six native searches          |
-| Explorer and databases                       | Provider-failure regressions, actual companion collections, source switching and aborted fetches; public Lichess authentication requirement checked |
-| PGN and scale                                | Domain tests and 100,000-game parser/aggregation benchmarks; no 10-million-game acceptance                                                          |
-| Repertoire, preparation, training and review | Existing full browser workflows are being rerun; default direct-route/reload scan passed                                                            |
-| Accessibility and panel layouts              | Existing keyboard, focus and resize browser gates plus a 1024×700 overflow scan; no radical restyle                                                 |
-| Long sessions and packaged Mac               | Extended leak soak, full packaged certification and wall-clock soak still pending                                                                   |
+| Area                                      | Evidence and boundary                                                                                                                 |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared board and position                 | Real Stockfish, rapid cursor navigation, route switching, orientation, reload; 24 direct routes                                       |
+| Studies and move trees                    | Actual held-I/O races, cross-tab conflicts, annotations, persistence, nested PGN and 20,000-node workflow                             |
+| Engine lifecycle                          | Startup, stop, failure, retry, stale callbacks, configuration; real browser engine and six native engines                             |
+| Explorer and databases                    | Provider failure boundaries, real companion collections, source changes and cancellation; authenticated remote accounts not exercised |
+| PGN and scale                             | Complete score round trips, 100,000-game synthetic benchmarks and real 10,000-game SQLite; no 10-million-game acceptance              |
+| Repertoire, preparation, training, review | Complete frozen-core browser workflows and direct-route/reload checks                                                                 |
+| Accessibility and layout                  | Keyboard, focus, resize browser gates, laptop overflow scan and 109 packaged chrome checks                                            |
+| Long sessions                             | Packaged resource soak and hostile walks passed; final timed 30-minute walk incomplete; no multi-day plateau claim                    |
 
 ## Build dependency maintenance
 
@@ -273,25 +285,33 @@ The compatible dependency was refreshed to 4.3.0; npm reports zero desktop
 vulnerabilities. This is dependency maintenance, not a reproduced runtime
 security fix or a full security audit.
 
-## Remaining acceptance and technical debt
+## Remaining known issues, technical debt and hardening
 
-Provider failure paths are covered by repository/browser boundaries; no live
-signed-in Lichess/Chess.com account was exercised in this audit. External service
-availability cannot be inferred from mocked error cases. Native engine fleet
-verification is separate from packaged renderer/session verification.
+No meaningful reproduced application defect remains open in the covered
+workflows. This is a bounded conclusion, not proof that every possible daily
+workflow is defect-free. Exact Giri–MVL game identification was not supplied;
+the evaluation flash was reproduced and checked on another real game.
 
-No acceptance at a real 10-million-game corpus is claimed. The route scan and
-nested-PGN workflow do not represent hours spent in every combination of settings,
-source, chapter conflict and training state. Browser memory/resource soaks and
-packaged long walks must be recorded separately. No Windows run is claimed.
+Live signed-in Lichess/Chess.com integrations still need credentialed acceptance.
+Firefox targeted launch failed during profile setup before the application
+loaded; there is no full Firefox, Safari, Windows or older macOS matrix claim.
+WebKit regression coverage is narrower than a complete Safari acceptance run.
 
-The public Mac descriptor still names 1.4.6 build 1105 and does not contain these
-working changes. Production deployment and publication are independent evidence.
-The large-data/accounts proposal remains a proposal, outside this stabilization.
+The final core timed 30-minute walk remains incomplete, and the final collection
+build has focused acceptance rather than another complete certification run.
+Multi-hour cross-tab editing, real very-large corpora and multi-day memory
+plateau measurements remain useful additional hardening.
 
-Checkpoint verdict: PARTIALLY. Concrete races and source-identity defects are
-fixed and covered, but final browser/build/long-session/package gates must finish
-before a professional-use production-readiness claim.
+The Studies bundle remains approximately 620.8 kB gzip; large PGN parsing and
+index construction remain expensive at scale. The audit removes obsolete
+requests, duplicate engine work and unused secondary sessions, but does not
+claim a measured overall speedup. Signing static resources and aliases adds
+release-time cost; the trusted pipeline was preserved rather than changed
+while publishing. The large-data/accounts proposal remains outside this task.
+
+The 100 games are curated classics and championship scores, not an objectively
+measured popularity ranking. Expanding historical coverage still requires
+verified source rights and score provenance.
 
 ## Final stabilization checkpoint and user-requested classics
 
@@ -333,3 +353,27 @@ repeated for this final collection change, as the user explicitly requested.
 No fabricated analytics, accounts or large database infrastructure were added.
 The earlier failures and checkpoints above are retained as investigation
 history; they are superseded by the completed frozen core gate, not erased.
+
+## Published deliverable and verdict
+
+**Kingfisher 1.4.7, build 1113**, application core
+`43044cde134cca9a4db8c3023ab2ad4235a68e95`, is published at
+[the immutable release](https://github.com/mardakurt/kingfisher/releases/tag/v1.4.7).
+The public DMG is 194,197,766 bytes, SHA-256
+`8ec4e679a73d8ebaa03774cd0c3e11626560c896d2f84f5ffbc30026ae6fd799`.
+Its downloaded bytes, Developer ID signature and notarisation were checked;
+the public Sparkle feed actually updated the isolated 1.4.6 installation.
+Publication metadata follows the frozen artifact and does not change its bytes.
+
+The engine bar keeps stable black/white bands during position changes while
+honestly showing a pending score. Engine evidence remains keyed to the correct
+position. The existing Databases page offers **Famous games and championship
+classics → Add 100 games**; imported games are searchable in My games and survive
+reload, and importing the collection twice adds no duplicates.
+
+**Professional-use stability verdict: PARTIALLY.** The exercised Mac and Chrome
+workflows are substantially more dependable, with reproduced data-loss and
+synchronization defects fixed and regression-protected. A universal professional
+readiness claim still needs the remaining authenticated-provider, platform and
+long-duration coverage described above. No missing acceptance is reported as a
+pass.
