@@ -19,6 +19,9 @@ real users notice.
   One engine releases the secondary session.
 - Library database switching clears old header and move-search results. Obsolete
   companion searches are cancelled; companion filters no longer also scan My games.
+- Direct FEN links keep their position if a route payload fails. URL cleanup is
+  local, preserves other query parameters and the fragment, and permits handing
+  the same FEN to the mounted route again.
 - Slow game loads cannot overwrite a more recent choice, an intervening edit,
   or the workspace after leaving the requesting route.
 

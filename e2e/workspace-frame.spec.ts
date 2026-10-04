@@ -35,6 +35,41 @@ test('a ?fen= in the address puts that position on the board, in Explorer mode',
   await expect(page).not.toHaveURL(/fen=/);
 });
 
+test('consuming a FEN is a local URL edit even when route payloads fail', async ({ page }) => {
+  let routePayloads = 0;
+  await page.route('**/openings?**', async (route) => {
+    const request = route.request();
+    if (request.headers()['rsc'] === '1' && !request.headers()['next-router-prefetch']) {
+      routePayloads += 1;
+      await route.abort('failed');
+    } else await route.continue();
+  });
+  await page.goto(`/openings?fen=${encodeURIComponent(SICILIAN)}&handoff=keep#position`);
+  await ready(page);
+  await expect(page).not.toHaveURL(/fen=/);
+  const board = page.getByRole('grid', { name: 'Chessboard' }).first();
+  await expect(board.getByRole('gridcell', { name: /^c5, Black pawn/ })).toBeVisible();
+  await expect(board.getByRole('gridcell', { name: /^e4, White pawn/ })).toBeVisible();
+  expect(routePayloads, 'URL cleanup must not need a server transition').toBe(0);
+  expect(new URL(page.url()).searchParams.get('handoff')).toBe('keep');
+  expect(new URL(page.url()).hash).toBe('#position');
+});
+
+test('the same FEN can be explicitly handed to the mounted route again', async ({ page }) => {
+  await page.goto(`/openings?fen=${encodeURIComponent(SICILIAN)}`);
+  await ready(page);
+  await expect(page).not.toHaveURL(/fen=/);
+  const board = page.getByRole('grid', { name: 'Chessboard' }).first();
+  await board.getByRole('gridcell', { name: /^e4, White pawn/ }).click();
+  await board.getByRole('gridcell', { name: /^e5, empty/ }).click();
+  await expect(board.getByRole('gridcell', { name: /^e5, White pawn/ })).toBeVisible();
+  await page.evaluate((fen) => {
+    window.history.pushState(null, '', `/openings?fen=${encodeURIComponent(fen)}`);
+  }, SICILIAN);
+  await expect(page).not.toHaveURL(/fen=/);
+  await expect(board.getByRole('gridcell', { name: /^e4, White pawn/ })).toBeVisible();
+});
+
 test('every board route offers position setup from its header', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   for (const route of [

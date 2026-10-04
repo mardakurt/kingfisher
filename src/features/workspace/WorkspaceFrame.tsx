@@ -46,7 +46,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 import { positionKey, START_FEN } from '@/chess/fen';
 import { Position } from '@/chess/position';
@@ -619,7 +619,6 @@ function Rail({
  */
 function PositionFromUrl({ onPosition }: { readonly onPosition?: () => void }) {
   const params = useSearchParams();
-  const router = useRouter();
   const pathname = usePathname();
   const requested = params.get('fen');
   const openDocument = useAnalysis((state) => state.openDocument);
@@ -627,7 +626,11 @@ function PositionFromUrl({ onPosition }: { readonly onPosition?: () => void }) {
   const applied = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!requested || applied.current === requested) return;
+    if (!requested) {
+      applied.current = null;
+      return;
+    }
+    if (applied.current === requested) return;
     applied.current = requested;
     const parsed = Position.fromFen(requested);
     if (!parsed.ok) {
@@ -646,8 +649,15 @@ function PositionFromUrl({ onPosition }: { readonly onPosition?: () => void }) {
     const rest = new URLSearchParams(params.toString());
     rest.delete('fen');
     const query = rest.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname);
-  }, [notify, onPosition, openDocument, params, pathname, requested, router]);
+    // Consuming an input parameter is a local history edit, not a server
+    // transition. An RSC fetch failure here could hard-reload before the
+    // new position was saved and replace it with the previous draft.
+    window.history.replaceState(
+      null,
+      '',
+      `${query ? `${pathname}?${query}` : pathname}${window.location.hash}`,
+    );
+  }, [notify, onPosition, openDocument, params, pathname, requested]);
 
   return null;
 }

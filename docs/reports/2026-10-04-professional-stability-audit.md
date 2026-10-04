@@ -51,6 +51,23 @@ one interrupted and 318 not run to include this fix. The build-1107 packaging
 attempt was cancelled during signing and was never published. A new frozen
 candidate must complete all gates.
 
+## FEN handoff failures found by the full browser gate
+
+The frozen 510-case run finished with 509 passed and one failure: a direct
+`/openings?fen=…` link reverted to the starting position after a failed route
+payload triggered full navigation. Consuming the FEN used `router.replace`, which
+unnecessarily requested server content; a fallback reload could race the draft
+write. The underlying transient transport failure was not diagnosed.
+
+URL consumption now uses Next.js's supported native history integration, avoiding
+that server transition and retaining unrelated query parameters and the fragment.
+A second reproduced defect prevented the same FEN from being handed to an already
+mounted route twice: the applied-input latch never reset after URL consumption.
+It now resets when the input parameter disappears. Both browser regressions failed
+against the previous implementation. All 11 workspace-frame/tab cases passed with
+the fix. The final full suite now contains 512 cases; the failed 510-case run is
+not a green release gate. Build 1108 is superseded and will not be published.
+
 ## Architecture and data integrity
 
 The workspace remains one analysis store and one canonical board pipeline.
@@ -140,8 +157,8 @@ of this machine/run, not a change attributable to this patch.
 - Final expanded unit/integration suite: 400 files, 4,144 tests passed, no skips.
 - Typecheck, lint, format and diff checks passed after application edits.
 - Documentation check: 363/363 before final report linkage.
-- New browser regressions: 6/6 passed; the evolving audit suite passed 508/508 in 34.4 minutes. A fresh frozen
-  candidate run includes all 510 cases after the evaluation-bar fix.
+- New browser regressions: 8/8 passed in targeted runs; the evolving audit suite passed 508/508 in 34.4 minutes. The subsequent frozen 510-case run failed the FEN handoff case above;
+  the final candidate must complete all 512 cases.
 - Native fleet verifier: Stockfish native 19, Stormphrax 8, Viridithas 20,
   Halogen 16.8, PlentyChess 8 and locally installed Lc0 each verified.
   Berserk, Koivisto and Obsidian have no published darwin-arm64 build.
