@@ -1,0 +1,69 @@
+# Does a published Kingfisher.app launch and work on other versions of macOS?
+#
+# The release is certified on the maintainer's Mac, one macOS version. This
+# downloads the published ZIP of a release onto GitHub's Apple-silicon macOS
+# runners — real machines with a window server — checks its signature and
+# Gatekeeper assessment, and drives it with the same packaged smoke harness
+# (`scripts/desktop-smoke.mjs`, 17 checks: launch, bridge, companion, PGN,
+# tablebase, quit). macOS 13, the documented floor, has no Apple-silicon
+# hosted runner; this workflow does not and cannot claim it.
+name: macOS launch
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to download (e.g. v1.4.7)'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  launch:
+    name: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: The machine
+        run: |
+          sw_vers
+          uname -m
+
+      - name: Download the published application
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          version="${TAG#v}"
+          mkdir -p "$RUNNER_TEMP/release"
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" -D "$RUNNER_TEMP/release" \
+            -p "Kingfisher-${version}-arm64.zip" -p SHA256SUMS
+          cd "$RUNNER_TEMP/release"
+          grep "Kingfisher-${version}-arm64.zip" SHA256SUMS | shasum -a 256 -c -
+          ditto -x -k "Kingfisher-${version}-arm64.zip" .
+          echo "KINGFISHER_DESKTOP_APP=$RUNNER_TEMP/release/Kingfisher.app" >> "$GITHUB_ENV"
+
+      - name: Signature and Gatekeeper
+        run: |
+          codesign --verify --deep --strict --verbose=2 "$KINGFISHER_DESKTOP_APP"
+          spctl --assess --type execute --verbose=4 "$KINGFISHER_DESKTOP_APP"
+          xcrun stapler validate "$KINGFISHER_DESKTOP_APP"
+          defaults read "$KINGFISHER_DESKTOP_APP/Contents/Info.plist" CFBundleShortVersionString
+          defaults read "$KINGFISHER_DESKTOP_APP/Contents/Info.plist" LSMinimumSystemVersion
+
+      - name: Packaged smoke
+        run: node scripts/desktop-smoke.mjs --packaged
