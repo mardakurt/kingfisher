@@ -11,6 +11,8 @@
  */
 
 import { CountryFlag } from '@/features/player/CountryFlag';
+import { PlayerPortrait } from '@/features/player/PlayerPortrait';
+import { siteLabel } from '@/features/movetree/GameHeaderCard';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -1706,22 +1708,28 @@ function GamePreview({
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-library-preview={game.id}>
       <div className="shrink-0 px-4 pt-4">
-        <p className="truncate text-[13px] font-semibold text-primary">
-          <CountryFlag name={game.white} />
-          {game.white}
-          {game.whiteRating ? (
-            <span className="font-normal text-tertiary"> {game.whiteRating}</span>
-          ) : null}
+        <p className="flex min-w-0 items-center gap-2 text-[13px] font-semibold text-primary">
+          <PlayerPortrait name={game.white} size="sm" />
+          <span className="truncate">
+            <CountryFlag name={game.white} />
+            {game.white}
+            {game.whiteRating ? (
+              <span className="font-normal text-tertiary"> {game.whiteRating}</span>
+            ) : null}
+          </span>
         </p>
-        <p className="truncate text-[13px] font-semibold text-primary">
-          <CountryFlag name={game.black} />
-          {game.black}
-          {game.blackRating ? (
-            <span className="font-normal text-tertiary"> {game.blackRating}</span>
-          ) : null}
+        <p className="flex min-w-0 items-center gap-2 text-[13px] font-semibold text-primary">
+          <PlayerPortrait name={game.black} size="sm" />
+          <span className="truncate">
+            <CountryFlag name={game.black} />
+            {game.black}
+            {game.blackRating ? (
+              <span className="font-normal text-tertiary"> {game.blackRating}</span>
+            ) : null}
+          </span>
         </p>
         <p className="mt-1 truncate text-[11px] text-tertiary">
-          {[game.event, game.site, formatPgnDate(game.date)].filter(Boolean).join(' · ')}
+          {[game.event, siteLabel(game.site), formatPgnDate(game.date)].filter(Boolean).join(' · ')}
         </p>
         <p className="truncate text-[11px] text-tertiary">
           {[display.eco, display.label].filter(Boolean).join(' ')} · {game.result}
