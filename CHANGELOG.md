@@ -21,6 +21,8 @@ real users notice.
   the companion as not connected.
 - Annotation arrows have a clean point, on the board and in exported diagrams.
 - Safari: keyboard focus stays inside an open dialog.
+- Reopening the Mac application right after quitting no longer reports that
+  another program holds its port.
 - Firefox no longer logs a Content-Security-Policy violation on every page.
 
 ## 1.4.7 — 2026-10-04

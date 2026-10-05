@@ -44,6 +44,7 @@ import {
   engineProcesses,
   launchKingfisher,
   ROOT,
+  shellLog,
   waitForReady,
 } from './desktop-lib/launch.mjs';
 
@@ -571,6 +572,22 @@ async function offlineRound(n) {
 }
 
 async function restart(n) {
+  // Compare like with like: the chapter's last move, before quitting and after.
+  // (The offline round leaves the cursor four plies in, and an earlier version
+  // of this check compared that with the end after reopening.)
+  await route('Studies');
+  await page()
+    .getByRole('button', { name: new RegExp(`^\\d+\\. ${GAME_TITLE}`) })
+    .first()
+    .click();
+  await page()
+    .locator('footer')
+    .filter({ hasText: GAME_TITLE })
+    .first()
+    .waitFor({ timeout: 20_000 });
+  await page().evaluate(() => document.activeElement?.blur?.());
+  await page().keyboard.press('End');
+  await saved();
   const before = await fen();
   const closed = await session.launched.close({ keepProfile: true });
   if (closed.survivors.length)
@@ -594,6 +611,7 @@ async function restart(n) {
     .filter({ hasText: GAME_TITLE })
     .first()
     .waitFor({ timeout: 20_000 });
+  await page().evaluate(() => document.activeElement?.blur?.());
   await page().keyboard.press('End');
   const after = await fen();
   if (after !== before) finding(n, 'restart', `game end ${before} → ${after}`);
@@ -653,6 +671,56 @@ async function main() {
     try {
       entry.work = await cycle(n);
     } catch (error) {
+      if (/has been closed/.test(String(error?.message))) {
+        /*
+          The application went away under the harness. Say what its own log
+          says, reopen the same profile, and check the work came back — a run
+          that loops on a dead window measures nothing (the first 4-hour run
+          did, from an outside quit request at 1 h 37 m).
+        */
+        const tail = shellLog(PROFILE).split('\n').slice(-6).join(' | ');
+        finding(n, 'unexpected-quit', tail.slice(0, 1200));
+        const owned = [
+          session.launched.pid,
+          ...descendants(session.launched.pid).map((d) => d.pid),
+        ];
+        await session.launched.close({ keepProfile: true }).catch(() => undefined);
+        // The old instance holds the profile's port until its services stop;
+        // the shell rightly refuses to start on it meanwhile (origin.mjs).
+        for (let i = 0; i < 60 && owned.some(alive); i++) await wait(500);
+        for (let attempt = 1; ; attempt++) {
+          try {
+            await open();
+            break;
+          } catch (reopenError) {
+            if (attempt >= 3) throw reopenError;
+            await wait(5_000);
+          }
+        }
+        await route('Studies');
+        await page()
+          .getByRole('button', { name: new RegExp(`^\\d+\\. ${GAME_TITLE}`) })
+          .first()
+          .click();
+        await page()
+          .locator('footer')
+          .filter({ hasText: GAME_TITLE })
+          .first()
+          .waitFor({ timeout: 20_000 });
+        if (
+          lastComment &&
+          !(await page()
+            .getByText(lastComment)
+            .first()
+            .isVisible()
+            .catch(() => false))
+        )
+          finding(n, 'restart', `after the unexpected quit "${lastComment}" is not shown`);
+        entry.reopened = true;
+        report.cycles.push(entry);
+        save();
+        continue;
+      }
       finding(
         n,
         'cycle-threw',
@@ -697,9 +765,11 @@ async function main() {
       `cycle ${n}: ${Math.round((entry.work?.cycleMs ?? 0) / 1000)} s, heap ${m.jsHeapMb} MB, listeners ${m.listeners}, nodes ${m.domNodes}, engines ${m.engineProcesses}, keys p95 ${entry.work?.keyLatency?.p95} ms, renderer ${m.memoryMb?.Tab ?? '?'} MB`,
     );
     if (Date.now() - lastShot >= 60 * 60_000) {
-      await page().screenshot({
-        path: path.join(OUT, `inspect-${Math.round((Date.now() - startedAt) / 3_600_000)}h.png`),
-      });
+      await page()
+        .screenshot({
+          path: path.join(OUT, `inspect-${Math.round((Date.now() - startedAt) / 3_600_000)}h.png`),
+        })
+        .catch(() => undefined);
       lastShot = Date.now();
     }
   }

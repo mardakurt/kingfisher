@@ -14,8 +14,8 @@
  * reopening and reading it back.
  */
 
-import { describe, expect, it } from 'vitest';
-import { mkdtempSync, mkdirSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
+import { afterAll, describe, expect, it } from 'vitest';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -27,7 +27,23 @@ import {
   resolveAppPort,
 } from './origin.mjs';
 
-const profile = () => mkdtempSync(path.join(tmpdir(), 'kingfisher-origin-'));
+/*
+  Every profile is removed afterwards: this file left one temporary directory
+  per test behind, thousands across a working week (found clearing 12 GB of
+  test debris at the start of the closure audit).
+*/
+const made = [];
+const profile = () => {
+  const directory = mkdtempSync(path.join(tmpdir(), 'kingfisher-origin-'));
+  made.push(directory);
+  return directory;
+};
+afterAll(() => {
+  for (const directory of made) rmSync(directory, { recursive: true, force: true });
+});
+
+/** The grace period, without its real time. */
+const instantly = { sleep: async () => undefined };
 
 /** A `portFree` that says yes to exactly these ports. */
 const allow = (...ports) => {
@@ -115,7 +131,9 @@ describe('choosing the port a profile is served on', () => {
     await resolveAppPort(userData, allow(mine));
 
     const other = mine === PORT_BAND.last ? PORT_BAND.first : mine + 1;
-    const failure = await resolveAppPort(userData, allow(other)).catch((error) => error);
+    const failure = await resolveAppPort(userData, allow(other), '127.0.0.1', instantly).catch(
+      (error) => error,
+    );
     expect(failure).toBeInstanceOf(PortUnavailableError);
     expect(failure.port).toBe(mine);
     expect(failure.message).toContain('still there');
@@ -159,10 +177,51 @@ describe('adopting a profile written before any of this existed', () => {
   it('and refuses to start rather than abandoning it, if that port is taken', async () => {
     const userData = profile();
     idb(userData, 56531, Date.now() - 60_000);
-    const failure = await resolveAppPort(userData, allow(preferredPort(userData))).catch(
-      (error) => error,
-    );
+    const failure = await resolveAppPort(
+      userData,
+      allow(preferredPort(userData)),
+      '127.0.0.1',
+      instantly,
+    ).catch((error) => error);
     expect(failure).toBeInstanceOf(PortUnavailableError);
     expect(failure.port).toBe(56531);
+  });
+});
+
+/*
+  The owner quit Kingfisher and it was reopened 1.8 s later: the previous
+  instance was still stopping its services on this profile's port, and the
+  launch refused with "another program is using that port". The other program
+  was Kingfisher, closing. A launch now waits for its own port.
+*/
+describe('reopening while the previous instance is still closing', () => {
+  it('waits for the port to be released and keeps the same origin', async () => {
+    const userData = profile();
+    const mine = preferredPort(userData);
+    await resolveAppPort(userData, allow(mine));
+
+    let checks = 0;
+    const releasedAfterThree = async (_host, port) => port === mine && ++checks > 3;
+    const slept = [];
+    const port = await resolveAppPort(userData, releasedAfterThree, '127.0.0.1', {
+      sleep: async (ms) => void slept.push(ms),
+    });
+    expect(port).toBe(mine);
+    expect(slept.length).toBe(3);
+  });
+
+  it('still refuses once the grace period is over, naming the port', async () => {
+    const userData = profile();
+    const mine = preferredPort(userData);
+    await resolveAppPort(userData, allow(mine));
+    const slept = [];
+    const failure = await resolveAppPort(userData, allow(), '127.0.0.1', {
+      graceMs: 1_000,
+      intervalMs: 250,
+      sleep: async (ms) => void slept.push(ms),
+    }).catch((error) => error);
+    expect(failure).toBeInstanceOf(PortUnavailableError);
+    expect(failure.port).toBe(mine);
+    expect(slept.reduce((sum, ms) => sum + ms, 0)).toBe(1_000);
   });
 });

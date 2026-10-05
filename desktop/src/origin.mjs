@@ -168,16 +168,43 @@ export class PortUnavailableError extends Error {
 }
 
 /**
+ * How long a launch waits for its own port before refusing.
+ *
+ * Quitting and reopening Kingfisher within a few seconds met the previous
+ * instance still stopping its services on this profile's port, and the launch
+ * refused with "another program is using that port" — the other program being
+ * Kingfisher, closing (seen by the owner during the closure audit, 1.8 s after
+ * a quit). Stopping the services takes about four seconds; ten is the margin.
+ * Something else genuinely holding the port is still refused, ten seconds on.
+ */
+export const PORT_GRACE_MS = 10_000;
+
+/**
  * The port this profile is served on.
  *
  * @param {string} userData          the application-support directory
  * @param {(host: string, port: number) => Promise<boolean>} [free] test seam
  * @param {string} [host]
+ * @param {{ graceMs?: number, intervalMs?: number, sleep?: (ms: number) => Promise<void> }} [options]
  */
-export async function resolveAppPort(userData, free = portFree, host = '127.0.0.1') {
+export async function resolveAppPort(
+  userData,
+  free = portFree,
+  host = '127.0.0.1',
+  {
+    graceMs = PORT_GRACE_MS,
+    intervalMs = 250,
+    sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  } = {},
+) {
   const recorded = readRecord(userData) ?? adoptedPort(userData);
   if (recorded !== null) {
-    if (!(await free(host, recorded))) throw new PortUnavailableError(recorded);
+    let available = await free(host, recorded);
+    for (let waited = 0; !available && waited < graceMs; waited += intervalMs) {
+      await sleep(intervalMs);
+      available = await free(host, recorded);
+    }
+    if (!available) throw new PortUnavailableError(recorded);
     writeRecord(userData, recorded);
     return recorded;
   }
