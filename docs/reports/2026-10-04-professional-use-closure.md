@@ -531,3 +531,73 @@ request; no release assets or descriptor were changed. `gh release view
 --json tagName` still names `v1.4.8`. Publication is a source/web commit and
 push, followed by `npm run deploy:status` and a live browser check; their
 outputs are retained in the same evidence directory.
+
+## Shipped build 1141 — the complete four-hour session (2026-10-05)
+
+Start verified: clean `master` = `origin/master` = `65c41a9`; production
+`npm run deploy:status` up to date (`65c41a9`); `gh release view` names
+`v1.4.8`, stable, published. The package's recorded identity, read from
+`app.asar` in memory (nothing extracted): 1.4.8 build 1141, `7545726`,
+`dirty: false`, stable; `spctl` accepts it as _Notarized Developer ID_; the
+local DMG hashes to the descriptor's `f667e09f…`. Host: macOS 27.0.1
+(26A434), Apple M3 Pro, 18 GiB. No Kingfisher instance, build, packaged gate or
+test suite was running; the harness's own isolated profile was used.
+
+```bash
+KINGFISHER_DESKTOP_APP=$HOME/KingfisherWork/desktop-out-148b/mac-arm64/Kingfisher.app \
+  node scripts/desktop-session.mjs --duration=4h --warmup=2 --restart-every=6 \
+  --offline-every=4 --suspend-every=60m \
+  --out=$HOME/KingfisherWork/evidence/closure/session4h-1141-complete-20261005T175320Z
+```
+
+Launched with `nohup` in its own process session (runner PID 66067),
+`caffeinate -i -w` on the runner, an atomic exit marker. No application or
+harness code was changed, built or tested while it ran; source edits for the
+owner's two later requests were made but nothing was run against them until
+the marker existed.
+
+**Result: exit marker 0; harness verdict `pass`, 100 steady cycles, no
+failures.** Workload 17:53:51 → 21:54:18 UTC (14,427 s, 4 h 0 m 27 s), 102
+cycles. Sixteen quit/reopen checks, each with the chapter's final move and
+comment back and **0 survivors** (close 5.66–5.69 s); 25 offline rounds, all
+answered from the built-in reference; three 20 s suspends (cycles 25, 51, 77),
+six processes each, all responsive. **0 findings, 0 console errors, 0 failed
+requests, 0 unexpected quits.** Shutdown: 5,667 ms, not forced, 5 owned
+processes, 0 survivors, 0 orphan engines; afterwards `pgrep` finds no
+Kingfisher, engine or web-server process. The profile's `kingfisher.log` holds
+17 launches and 17 orderly quits (all harness-initiated) and no error,
+exception or crash line.
+
+Pooled first/last thirds after warm-up (the harness's own comparison): heap
+40 → 39 MB, listeners 664 → 662, DOM nodes 1,664 → 1,642, workers 0 → 0,
+channels 1 → 1, intervals 3 → 3, resize observers 4 → 4, window listeners
+32 → 32, key p95 47 → 49 ms, cycle 134 → 135 s, renderer 526 → 533 MB, main
+232 → 234 MB, services 268 → 259 MB.
+
+Pooled means mix page states, so each state is compared with itself:
+
+| State (first / last third) | Heap    | Listeners | DOM nodes   | Key p95        |
+| -------------------------- | ------- | --------- | ----------- | -------------- |
+| Ordinary (21 / 22 cycles)  | 28 / 28 | 649 / 649 | 1528 / 1528 | 47.5 / 48.0 ms |
+| Offline only (6 / 5)       | 64 / 64 | 718 / 718 | 2262 / 2262 | 45.5 / 46.8 ms |
+| Restart (3 / 2)            | 64 / 64 | 666 / 666 | 1547 / 1546 | 48 / 52 ms     |
+| Restart + offline (2 / 3)  | 64 / 64 | 666 / 666 | 1546 / 1546 | 48.5 / 53 ms   |
+| Suspend (1 / 1)            | 29 / 28 | 658 / 658 | 1527 / 1527 | 51 / 51 ms     |
+
+The post-GC heap was 28 MB in every one of the 64 ordinary cycles; workers,
+channels, intervals, observers and window listeners never changed; engine
+processes after each settled cycle were 0 throughout; the worst cycle's key
+p95 was 63 ms. The offline-only state (13 documents, 718 listeners) is the
+same at cycle 4 and cycle 100: a page state, not growth.
+
+Inspected personally: `inspect-start`, `-1h`, `-2h`, `-3h`, `-end`. Each shows
+the session study and chapter, _Saved_, 120 moves, the board equal to the
+notation's 60…Kg8, that cycle's comment on the move, and the explorer's
+truthful "past this source's depth". The e2–e4 arrow toggles on alternate
+cycles (drawing the same arrow erases it), so its absence from a screenshot is
+expected.
+
+`session.json` is the raw harness report; the independent review is
+`independent-review.json` beside it. **The four-hour acceptance condition is
+met on build 1141.** It is one continuous run; the shortened 2 h 47 m run
+stays recorded separately and is not added to it.
