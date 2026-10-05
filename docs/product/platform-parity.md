@@ -1,13 +1,17 @@
 # Platform parity — the web application and the macOS application
 
-**Unreleased renderer changes (2026-10-05/06).** Authored arrows share the
-engine best-move geometry on every board and in exported diagrams; a plain
-right-drag now draws the blue brush, rendered exactly as the engine best-move
-arrow (⌥ is green); and historical players resolve to a Wikidata item, so
-Capablanca, Morphy or Steinitz show a credited photo. All three are
-Mac-facing renderer code. The published 1.4.8 build 1141 has none of them;
-they ship as 1.4.9. The complete four-hour session in the closure log was run
-on that unchanged build 1141.
+**Published revision check (2026-10-06, 1.4.9).** The public Mac download is
+1.4.9 build 1147 from `d9c5aae065cfece4932e3ffadf91cd93a6156d07`, stable and
+clean at packaging; Developer ID signed, app and DMG notarised and stapled,
+trust GREEN, `desktop:certify` 11/11, and a real Sparkle update from 1.4.8
+over the public feed passed. It carries the renderer changes that were
+web-only after 1.4.8: every authored arrow in the engine best-move geometry, a
+plain right-drag drawing the blue brush exactly as the engine best-move arrow
+(⌥ is green), and photographs for the historical roster. The web and the Mac
+application serve the same application source again (`362517b`; `d9c5aae`
+changes only versions and release text). The four-hour professional session
+was run on 1.4.8 build 1141, not on 1147; see the
+[closure log](../reports/2026-10-04-professional-use-closure.md).
 
 **Published revision check (2026-10-05, 1.4.8).** The public Mac download is
 1.4.8 build 1141 from `754572610a67a3ab05a44dae8c0193e0854f2aa5`, stable and

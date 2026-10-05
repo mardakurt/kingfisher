@@ -601,3 +601,58 @@ expected.
 `independent-review.json` beside it. **The four-hour acceptance condition is
 met on build 1141.** It is one continuous run; the shortened 2 h 47 m run
 stays recorded separately and is not added to it.
+
+## Owner requests after the session, and Kingfisher 1.4.9 (2026-10-06)
+
+While the session ran the owner asked for two changes and a 1.4.9 release.
+Source was edited during the run; nothing was built, tested or packaged
+against it until the session's exit marker existed.
+
+**The plain arrow is the engine's.** `65c41a9` had unified only the outline:
+a plain right-drag still chose the green brush, which is what the owner (and
+the session harness) kept seeing. A plain right-drag now draws the blue brush,
+and a blue authored arrow is rendered with the engine best-move layer's colour
+token, halo, edge and opacity, on the board and in exported diagrams; ⌥ draws
+green. Regression: `BoardShapes.test.ts` — with the blue branch removed and
+the old default restored, **2 fail**; with the fix the board group passes
+**91/91** (`v149/arrow-regression-{before,after}.log`); a diagram test asserts
+the exported paint. Live on production after `362517b`: the engine's d2–d4
+arrow and a drawn e2–e4 arrow have identical paint attributes (fill and edge
+`var(--engine-a-color)` = `rgb(58, 108, 173)`, halo, opacity 0.82).
+
+**Historical players' photographs.** Photos were looked up only through the
+titled roster, and FIDE titles begin in 1950. `npm run players:legends`
+resolves each historical-roster person to a Wikidata item from Wikidata
+(human, chess player, the roster's birth/death years, exactly one survivor):
+104 of 106, every label checked; 83 are the same items the titled roster
+holds, 21 are new (Capablanca, Morphy, Steinitz, Lasker, Alekhine…). Where both
+rosters know a name they must agree. Regression: with the lookup roster-only,
+**2 unit cases fail** and the Capablanca browser test fails ("element(s) not
+found"); with the fix 15/15 and 4/4. Live: Capablanca's page shows his Commons
+photograph credited "Anonymous Unknown author (Keystone-France), Public domain".
+
+Source gates on `362517b`: unit **4,196/4,196**, 0 skipped; Chrome
+**526/526**, zero retries, 36.8 min; typecheck, lint, format, docs 363/363,
+build, benchmark, `git diff --check`; `deploy:status` up to date (`362517b`).
+
+**Release 1.4.9 (section B).** `d9c5aae` (versions, changelog, release notes).
+Preflight GREEN; `desktop:dist` stable: **1.4.9 build 1147, `d9c5aae`**,
+signed, app notarised, fresh packaged boot verified; DMG notarised and
+stapled; trust GREEN; `verify-dmg` with version and commit passed.
+`desktop:certify` failed its unit step twice with `Failed to start forks
+worker` on three files (406/409 ran, all green): iCloud had evicted 2,820
+`node_modules` files to dataless placeholders and a worker importing one
+blocked past vitest's 60 s start limit. `npm ci` (root and `desktop/`)
+restored them locally and the third, complete run was **DESKTOP CERTIFIED
+11/11** (smoke 17/17, chrome 109/109, restart 7/7, engines 25/25, suspend
+14/14, killed, walks 0 findings, dmg, zero skips, unit 409/409 files, 4,196
+tests). Published `v1.4.9` (latest): DMG 193,109,138 bytes, SHA-256
+`7b7c704329775a373f95c9095c1941f80924dd789f528e519049762ae3e4fd9a`. Real
+Sparkle update 1.4.8 → 1.4.9 over the public feed: **PASS 19/19**, study
+preserved, test profile adopted, nothing survived. Logs:
+`~/KingfisherWork/evidence/closure/v149/`.
+
+The four-hour session certifies build 1141. Build 1147 differs from it in
+the renderer's arrow paint and the photo lookup, both covered above, and is
+certified by `desktop:certify` and the update test; it has not had its own
+four-hour session, and the verdict says so.

@@ -485,6 +485,12 @@ own page state, key latency flat, and every owned process gone at the end
 the checklist above was verified earlier and is carried forward, not rerun;
 each names the build or source revision it was measured on.
 
+Kingfisher 1.4.9 build 1147 (`d9c5aae`), published 2026-10-06 at the
+owner's request, adds the engine-style blue arrow and historical players'
+photographs. It is `desktop:certify` 11/11 and passed a real Sparkle update
+from 1.4.8; it has not had its own four-hour session, so the four-hour
+evidence above belongs to build 1141 and is not claimed for 1147.
+
 Not claimed: macOS 13, the documented floor (no Apple-silicon runner exists
 to run it); Intel Macs, Windows and Linux desktop builds; Edge as a separately
 tested browser; collections beyond the measured sizes; multi-day sessions;
