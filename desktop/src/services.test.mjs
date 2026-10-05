@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { Service, freePort, waitForHttp } from './services.mjs';
 
@@ -259,6 +260,40 @@ describe('the parent-death watchdog', () => {
     // leave the process alone.
     service.disconnectForTest();
 
+    for (let i = 0; i < 60 && alive(pid); i += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    expect(alive(pid)).toBe(false);
+  });
+});
+
+/*
+  Next's generated server.js has no disconnect handler, so the shell loads one
+  into it (web-parent-watch.cjs). A shell that exited before its services
+  stopped left the web server orphaned on the profile's port, and Kingfisher
+  could not be opened again (closure audit).
+*/
+describe('the web server, which has no watch of its own', () => {
+  const UNWATCHED = `
+import { createServer } from 'node:http';
+const server = createServer((_req, res) => { res.writeHead(200); res.end('ok'); });
+server.listen(Number(process.env.PORT), '127.0.0.1');
+setTimeout(() => process.exit(0), 60_000);
+`;
+  const watch = fileURLToPath(new URL('./web-parent-watch.cjs', import.meta.url));
+
+  it('ends with the shell when the parent watch is loaded into it', async () => {
+    const port = await freePort();
+    const service = new Service({
+      name: 'web',
+      entry: script('unwatched.mjs', UNWATCHED),
+      healthUrl: `http://127.0.0.1:${port}/health`,
+      env: { PORT: String(port) },
+      execArgv: ['--require', watch],
+    });
+    await service.start();
+    const { pid } = service;
+    service.disconnectForTest();
     for (let i = 0; i < 60 && alive(pid); i += 1) {
       await new Promise((resolve) => setTimeout(resolve, 50));
     }

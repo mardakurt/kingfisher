@@ -283,6 +283,11 @@ async function startServices() {
     name: 'The Kingfisher server',
     entry: layout.webEntry,
     cwd: path.dirname(layout.webEntry),
+    // Next's server has no parent watch of its own; this one ends it with the shell.
+    execArgv: [
+      '--require',
+      path.join(path.dirname(layout.webEntry), 'kingfisher-parent-watch.cjs'),
+    ],
     healthUrl: `${state.appUrl}/analysis`,
     onUnexpectedExit: (exit) => void reviveService('web', exit),
     env: {

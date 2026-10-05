@@ -25,6 +25,7 @@
  *   3. restart    quit and reopen; the work is still there
  *   4. engines    every managed engine installed and searched in the bundle (skipped with --quick)
  *   5. suspend    stop every process for 20 s, resume
+ *   5b. killed    kill the shell outright; every service ends; it opens again
  *   6. walk       a 200-action seeded walk with invariants, one with faults injected (skipped with --quick)
  *   7. dmg        the disk image: launchable bundle, identity, signature, layout
  *   8. tests      the unit and integration suite, with the zero-skip scan
@@ -158,6 +159,9 @@ if (!quick) {
 run('suspend: every process stopped for 20 s, then resumed', node, [
   script('desktop-suspend.mjs'),
   '--packaged',
+]);
+run('killed: the shell killed outright takes its services, and opens again', node, [
+  script('desktop-killed-shell.mjs'),
 ]);
 if (!quick) {
   run(`walk: ${walkActions} seeded actions with invariants (seed 46)`, node, [

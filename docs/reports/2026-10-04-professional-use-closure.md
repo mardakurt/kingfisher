@@ -345,3 +345,80 @@ bridge pairing and mirrors the connection synchronously at load and on every
 change. Unit tests (stored pairing, bridge pairing): 3/3 fail without the
 mirror, pass with it. Production build: after a companion restart and reload
 the Library lists 224,679 of 224,679 games (`large-db-ui-3.json`).
+
+## Final candidate — `08bf7d4`, Kingfisher 1.4.8 build 1138
+
+Frozen at `08bf7d4c69253b869fc04cb2a6b1b6e215956813`, clean
+(`final-gates/summary.txt`):
+
+| Gate                          | Result                              |
+| ----------------------------- | ----------------------------------- |
+| `npm test`                    | 4,180/4,180, 408 files, 0 skipped   |
+| typecheck, lint, format, docs | pass (docs 363/363)                 |
+| `npm run build`               | pass                                |
+| `npm run benchmark`           | pass                                |
+| `git diff --check`            | pass                                |
+| `npm run test:e2e` (Chrome)   | **525/525**, zero retries, 37.0 min |
+
+CI on `08bf7d4`: success. Production `kingfisherchess.app`: up to date
+(`08bf7d4`). Real Safari 27.0.1 on the live site: **15/15**
+(`safari-live-08bf7d4.json`); the web build is not cross-origin isolated by
+design, so browser Stockfish runs single-threaded there and does search.
+
+Package: `desktop:dist` (stable) — signed with Developer ID, notarised,
+booted fresh (renderer, web, companion, engine catalogue, Sparkle 2.10.0),
+signature re-verified after boot. Identity in the bundle: 1.4.8, build 1138,
+commit `08bf7d4`, `dirty: false`, channel `stable`. DMG notarised (submission
+`9ce7e452-…`, Accepted) and stapled; `desktop:trust:verify` GREEN;
+`verify-dmg` 48 checks pass after stapling.
+
+| Artifact                     | SHA-256                                                            |
+| ---------------------------- | ------------------------------------------------------------------ |
+| `Kingfisher-1.4.8-arm64.dmg` | `ce2e6535330bb5ebd7e754cb25b7e07eb7427b003675b23819288d7caf58fcea` |
+| `Kingfisher-1.4.8-arm64.zip` | `c21325c2c7b26181f888b98b267e94e23928be5115c1bd658364b50c19fad0d6` |
+
+Process note, recorded as it happened: after the build, extracting the
+packaged `package.json` with `asar extract-file` into the checkout overwrote
+and then deleted the repository's own `package.json`. The package had already
+been built from the clean tree (its identity says `dirty: false`); the file
+was restored byte-for-byte from `HEAD` and the tree is clean. The first DMG
+notarisation and trust runs failed for that reason only and were rerun.
+
+## The 4-hour session on build 1138, and what it found (D11, D12)
+
+The chain on build 1138 (`long/summary.txt`): 1,000-action walk 0 findings,
+0 console errors; 300-action fault walk 0 findings (2 console errors from
+killed services); **timed 30-minute soak complete: 833 actions, 1,808 s, 0
+console errors, 0 findings, 0 survivors** (G1 closed); leak soak 3/3 (52 cycles,
+12 chain passes; workers 0, observers 1, listeners 18, intervals 2); upgrade
+from 1.4.7 passed.
+
+The 4-hour session stopped measuring at 1 h 37 m. Cycles 0–40 were steady —
+post-GC heap 28 MB, listeners 649, DOM nodes ≈1,527, renderer 450–580 MB, key
+p95 31–62 ms, the same at cycle 40 as at cycle 2 — and the work survived every
+restart (comment on screen after reopening). Then the shell logged
+`[quit] requested` with no cause of its own (an outside quit; source not
+determinable from the logs), and the harness, which had no recovery, looped
+on a dead window. Three "restart" findings were the harness comparing the
+cursor after an offline round with the game's end; corrected.
+
+Reproducing the outside quit to make the harness recover found two defects:
+
+**D11 — reopening within seconds of quitting was refused (fixed).** The
+previous instance was still stopping its services on the profile's port, and
+the new launch showed "Kingfisher needs its own port … another program is
+using that port" — the owner saw this dialog. `resolveAppPort` now waits up to
+10 s for its own port; a foreign holder is still refused. Two tests fail
+without the grace.
+
+**D12 — a killed shell left its web server running, and Kingfisher would not
+open again (fixed).** The companion ends when the shell's IPC channel closes;
+Next's generated web server had no such watch. Each of three outside quits
+during validation left an orphaned `next-server` (parent PID 1) on its
+profile's port. On build 1138, `scripts/desktop-killed-shell.mjs` (SIGKILL the
+shell, require every service gone in 10 s, reopen the profile): **1/3 — the web
+server survived, the reopen failed**. The shell now loads
+`desktop/src/web-parent-watch.cjs` into the web server with `--require`; it is
+staged beside `server.js` and listed in the required packaged resources. The
+unit test fails with the watch emptied. The check is now a `desktop:certify`
+step.

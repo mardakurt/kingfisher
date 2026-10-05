@@ -35,6 +35,7 @@
     "desktop:restart": "node scripts/desktop-restart.mjs",
     "desktop:deep-night": "node scripts/desktop-deep-night.mjs",
     "desktop:suspend": "node scripts/desktop-suspend.mjs",
+    "desktop:killed-shell": "node scripts/desktop-killed-shell.mjs",
     "desktop:upgrade": "node scripts/desktop-upgrade.mjs",
     "desktop:chrome": "node scripts/desktop-chrome.mjs",
     "diagnostics:phase-69": "node scripts/diagnostics/phase-69-mate-bar.mjs && node scripts/diagnostics/phase-69-colorblind-palette.mjs && node scripts/diagnostics/phase-69-companion-setup-url.mjs && node scripts/diagnostics/phase-69-diagnostics-buttons.mjs",

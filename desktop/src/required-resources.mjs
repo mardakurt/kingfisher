@@ -9,6 +9,7 @@ import path from 'node:path';
 export const REQUIRED_DESKTOP_RESOURCES = Object.freeze(
   [
     { path: 'web/server.js', kind: 'file' },
+    { path: 'web/kingfisher-parent-watch.cjs', kind: 'file' },
     { path: 'web/package.json', kind: 'file' },
     { path: 'web/node_modules/next/package.json', kind: 'file' },
     { path: 'web/node_modules/react/package.json', kind: 'file' },

@@ -117,6 +117,8 @@ export class Service {
     env = {},
     healthUrl,
     cwd,
+    /** Node options for the child — the web server's parent watch is `--require`d here. */
+    execArgv = [],
     forkImpl = fork,
     onUnexpectedExit = null,
   }) {
@@ -126,6 +128,7 @@ export class Service {
     this.env = env;
     this.healthUrl = healthUrl;
     this.cwd = cwd;
+    this.execArgv = execArgv;
     this.forkImpl = forkImpl;
     /**
      * Called when the child exits without `stop()` having been asked for —
@@ -173,6 +176,7 @@ export class Service {
       // The channel is not used for messages. It exists so that the child can
       // notice this process going away; see the shutdown contract above.
       stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+      execArgv: this.execArgv,
       env: { ...this.env, ELECTRON_RUN_AS_NODE: '1' },
     });
     this.#child = child;

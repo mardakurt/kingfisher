@@ -101,6 +101,11 @@ rmSync(OUT, { recursive: true, force: true });
 mkdirSync(path.dirname(OUT), { recursive: true });
 cpSync(STANDALONE, OUT, { recursive: true });
 cpSync(path.join(ROOT, '.next', 'static'), path.join(OUT, '.next', 'static'), { recursive: true });
+// The web server's parent watch, beside the server it guards (desktop/src/web-parent-watch.cjs).
+cpSync(
+  path.join(ROOT, 'desktop', 'src', 'web-parent-watch.cjs'),
+  path.join(OUT, 'kingfisher-parent-watch.cjs'),
+);
 /*
   `public/`, minus the developer artefacts, and only once what must be there is.
 

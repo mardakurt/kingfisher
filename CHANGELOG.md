@@ -23,6 +23,8 @@ real users notice.
 - Safari: keyboard focus stays inside an open dialog.
 - Reopening the Mac application right after quitting no longer reports that
   another program holds its port.
+- After a crash or force quit the Mac application opens again; its web server no
+  longer outlives it on its port.
 - Firefox no longer logs a Content-Security-Policy violation on every page.
 
 ## 1.4.7 — 2026-10-04
