@@ -334,6 +334,33 @@ export function BoardShapes({
             const to = centre(shape.to, orientation);
             const points = userArrowPoints(from.cx, from.cy, to.cx, to.cy);
             if (!points) return null;
+            if (shape.brush === 'blue') {
+              // The blue arrow is the engine best-move arrow, drawn by a person:
+              // the same colour, halo, edge and opacity as the engine layer's.
+              const engine = ENGINE_ARROW_STYLES['engine-a'].color;
+              return (
+                <g
+                  key={`a${index}-${shape.from}${shape.to}`}
+                  opacity={ENGINE_ARROW.opacity}
+                  data-user-arrow={`${shape.from}${shape.to}`}
+                >
+                  <polygon
+                    points={points}
+                    fill="none"
+                    stroke="rgb(255 255 255 / 0.35)"
+                    strokeWidth={0.05}
+                    strokeLinejoin="round"
+                  />
+                  <polygon
+                    points={points}
+                    fill={engine}
+                    stroke={engine}
+                    strokeWidth={0.02}
+                    strokeLinejoin="round"
+                  />
+                </g>
+              );
+            }
             return (
               <polygon
                 key={`a${index}-${shape.from}${shape.to}`}

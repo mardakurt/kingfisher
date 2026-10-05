@@ -50,7 +50,9 @@ export const artworkKey = (piece: Piece): string => `${piece.color}${LETTER[piec
 const BRUSH: Record<string, string> = {
   green: '#15781b',
   red: '#882020',
-  blue: '#003088',
+  // The light theme's engine best-move colour (`--engine-a-color`): a blue
+  // arrow on a printed diagram is the board's engine-style arrow.
+  blue: '#3a6cad',
   yellow: '#e68f00',
 };
 
@@ -121,7 +123,14 @@ export function diagramSvg(options: DiagramOptions): string | null {
     const [x1, y1] = centre(arrow.from);
     const [x2, y2] = centre(arrow.to);
     const points = userArrowPoints(x1, y1, x2, y2, s);
-    if (points) parts.push(`<polygon points="${points}" fill="${colour}" fill-opacity="0.85"/>`);
+    if (!points) continue;
+    if (arrow.brush === 'blue') {
+      // As BoardShapes draws it: the engine best-move arrow's halo, edge and opacity.
+      const edge = Math.max(0.5, s * 0.02);
+      parts.push(
+        `<g opacity="0.82"><polygon points="${points}" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="${s * 0.05}" stroke-linejoin="round"/><polygon points="${points}" fill="${colour}" stroke="${colour}" stroke-width="${edge}" stroke-linejoin="round"/></g>`,
+      );
+    } else parts.push(`<polygon points="${points}" fill="${colour}" fill-opacity="0.85"/>`);
   }
 
   if (margin > 0) {

@@ -183,13 +183,25 @@ Wikidata item and that item states an image (P18). Nothing is bundled or
 stored: the picture is fetched when the page is shown and held in memory for
 the session.
 
+Since 1.4.9 the historical roster (`src/reference/legends.ts`) resolves too:
+FIDE titles begin in 1950, so Capablanca, Morphy, Steinitz, Lasker or
+Alekhine are on no titled roster. `src/reference/legend-wikidata.json` names
+each person's Wikidata item (CC0), written by `npm run players:legends` from
+Wikidata's own search, keeping a candidate only when it is human (P31 Q5), a
+chess player (P106 Q10873124) and born — and, where the roster says, died — in
+the roster's years; exactly one survivor or nothing. On 2026-10-05: 104 of 106
+resolved (Beliavsky has no search result under that spelling and is on the
+titled roster anyway; La Bourdonnais's recorded years do not match). Where
+both rosters know a name they must name the same item, or no photo is shown.
+`npm run players:legends:check` verifies the file against the roster.
+
 | Field    | Value                                                                                                      |
 | -------- | ---------------------------------------------------------------------------------------------------------- |
 | Source   | Wikidata item → its P18 file on Wikimedia Commons, read with the Commons `imageinfo` API                   |
 | Licence  | Per file — mostly CC BY-SA or CC BY; a file Commons names no licence for is not shown                      |
 | Credit   | The author and licence from the file's own Commons metadata, printed beside the photo, linking to its page |
 | Requests | `wikidata.org`, `commons.wikimedia.org`, Wikimedia's image host; disclosed on the privacy page             |
-| Code     | `src/reference/player-photo.ts`, `src/features/player/PlayerPortrait.tsx`                                  |
+| Code     | `src/reference/player-photo.ts`, `src/features/player/PlayerPortrait.tsx`, `legend-wikidata.json`          |
 
 ---
 

@@ -41,3 +41,50 @@ function render(orientation: Color, from: Square, to: Square) {
     }),
   );
 }
+
+describe('the blue arrow is the engine best-move arrow', () => {
+  // Every polygon's paint attributes, in order, inside one layer's markup.
+  const paints = (markup: string) =>
+    [...markup.matchAll(/<polygon points="[^"]+"([^>]*?)\/?>/g)].map((m) => m[1]!.trim());
+
+  it('draws a person’s blue arrow with the engine’s colour, halo, edge and opacity', () => {
+    const html = renderToStaticMarkup(
+      createElement(BoardShapes, {
+        orientation: 'w',
+        shapes: [{ kind: 'arrow', from: 'e2', to: 'e4', brush: 'blue' }],
+        engineArrows: [
+          { kind: 'arrow', from: 'g1', to: 'f3', identity: 'engine-a', engineName: 'Stockfish' },
+        ],
+      }),
+    );
+    const engine = /<g opacity="([^"]+)"[^>]*data-engine-arrow-rank="1"[^>]*>([\s\S]*?)<line/.exec(
+      html,
+    );
+    const authored = /<g opacity="([^"]+)" data-user-arrow="e2e4">([\s\S]*?)<\/g>/.exec(html);
+    expect(engine).not.toBeNull();
+    expect(authored).not.toBeNull();
+    expect(authored![1]).toBe(engine![1]);
+    expect(paints(authored![2]!)).toEqual(paints(engine![2]!));
+    expect(paints(authored![2]!)).toHaveLength(2);
+  });
+
+  it('leaves the other brushes in their own colours', () => {
+    const html = renderToStaticMarkup(
+      createElement(BoardShapes, {
+        orientation: 'w',
+        shapes: [{ kind: 'arrow', from: 'e2', to: 'e4', brush: 'red' }],
+      }),
+    );
+    expect(html).toContain('fill="var(--shape-red)"');
+    expect(html).not.toContain('engine-a-color');
+  });
+
+  it('is what a plain right-drag draws; the modifiers pick the others', async () => {
+    const { brushFor } = await import('./Chessboard');
+    const keys = { shiftKey: false, altKey: false, ctrlKey: false };
+    expect(brushFor(keys)).toBe('blue');
+    expect(brushFor({ ...keys, altKey: true })).toBe('green');
+    expect(brushFor({ ...keys, shiftKey: true })).toBe('red');
+    expect(brushFor({ ...keys, shiftKey: true, altKey: true })).toBe('yellow');
+  });
+});

@@ -187,3 +187,42 @@ describe('rosterIndex', () => {
     expect(flagOf('nor')).toBe('');
   });
 });
+
+describe('photoIdentityFor', () => {
+  // Capablanca died in 1942, eight years before FIDE's first titles.
+  it('finds a pre-FIDE player, whom the titled roster cannot, through the historical roster', async () => {
+    const { photoIdentityFor } = await import('./player-photo');
+    const roster = [person('Q106807', 'Magnus Carlsen')];
+    expect(rosterEntryFor('Capablanca, J. R.', roster)).toBeNull();
+    expect(photoIdentityFor('Capablanca, J. R.', roster)).toBe('Q160702');
+    expect(photoIdentityFor('Jose Raul Capablanca', roster)).toBe('Q160702');
+    expect(photoIdentityFor('Morphy, Paul', roster)).toBe('Q105589');
+    expect(photoIdentityFor('Steinitz, Wilhelm', roster)).toBe('Q102648');
+  });
+
+  it('agrees with the titled roster where both know the person', async () => {
+    const { photoIdentityFor } = await import('./player-photo');
+    expect(photoIdentityFor('Carlsen, Magnus', [person('Q106807', 'Magnus Carlsen')])).toBe(
+      'Q106807',
+    );
+  });
+
+  it('shows no one when the two rosters name different people', async () => {
+    const { photoIdentityFor } = await import('./player-photo');
+    expect(photoIdentityFor('Capablanca, J. R.', [person('Q9', 'J. R. Capablanca')])).toBeNull();
+    expect(photoIdentityFor('Nobody, At All', [])).toBeNull();
+  });
+
+  it('records one item per resolved person, each on the roster, none shared', async () => {
+    const { LEGENDS } = await import('./legends');
+    const { default: file } = await import('./legend-wikidata.json');
+    const names = new Set(LEGENDS.map((legend) => legend.name));
+    const items = Object.entries(file.items as Record<string, string>);
+    expect(items.length).toBeGreaterThan(100);
+    for (const [name, qid] of items) {
+      expect(names.has(name), name).toBe(true);
+      expect(qid).toMatch(/^Q\d+$/);
+    }
+    expect(new Set(items.map(([, qid]) => qid)).size).toBe(items.length);
+  });
+});

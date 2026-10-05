@@ -7,7 +7,13 @@ real users notice.
 ## Unreleased (web)
 
 - Authored board arrows and exported diagrams use the engine best-move arrow’s
-  shape consistently; annotation colors are preserved.
+  shape consistently.
+- A plain right-drag draws a blue arrow identical to the engine's best-move
+  arrow — colour, halo and opacity — on the board and in exported diagrams.
+  ⌥ now draws green; ⇧ red and ⇧⌥ yellow are unchanged.
+- Historical players — Capablanca, Morphy, Steinitz, Lasker, Alekhine and the
+  rest of the pre-FIDE roster — show their Wikimedia Commons photo, with its
+  credit, as titled players already did.
 
 ## 1.4.8 — 2026-10-05
 

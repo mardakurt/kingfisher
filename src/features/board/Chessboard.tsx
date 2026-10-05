@@ -78,12 +78,16 @@ interface PendingPromotion {
 
 const PROMOTION_ORDER: readonly PromotionPiece[] = ['q', 'n', 'r', 'b'];
 
-/** Modifier keys pick the annotation colour, as in every board annotation tool. */
-function brushFor(event: { shiftKey: boolean; altKey: boolean; ctrlKey: boolean }): Brush {
+/**
+ * Modifier keys pick the annotation colour, as in every board annotation tool.
+ * A plain right-drag is blue, the engine best-move arrow's colour: one arrow
+ * on every board (owner's decision, 1.4.9). Green moved to ⌥.
+ */
+export function brushFor(event: { shiftKey: boolean; altKey: boolean; ctrlKey: boolean }): Brush {
   if (event.shiftKey && event.altKey) return 'yellow';
   if (event.shiftKey) return 'red';
-  if (event.altKey || event.ctrlKey) return 'blue';
-  return 'green';
+  if (event.altKey || event.ctrlKey) return 'green';
+  return 'blue';
 }
 
 export function Chessboard({

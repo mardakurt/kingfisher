@@ -11,7 +11,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 
-import { playerPhoto, rosterEntryFor, type PlayerPhoto } from '@/reference/player-photo';
+import { photoIdentityFor, playerPhoto, type PlayerPhoto } from '@/reference/player-photo';
 import { loadTitledRoster } from '@/reference/titled-players';
 import { usePreferences } from '@/stores/preferences-store';
 
@@ -29,9 +29,9 @@ export function usePlayerPhoto(name: string) {
     gcTime: 30 * 60_000,
     retry: false,
     queryFn: async ({ signal }): Promise<LoadedPhoto | null> => {
-      const entry = rosterEntryFor(name, await loadTitledRoster());
-      if (!entry) return null;
-      const photo = await playerPhoto(entry.wikidata, (url) => fetch(url, { signal }));
+      const qid = photoIdentityFor(name, await loadTitledRoster());
+      if (!qid) return null;
+      const photo = await playerPhoto(qid, (url) => fetch(url, { signal }));
       if (!photo) return null;
       const response = await fetch(photo.url, { signal });
       if (!response.ok) return null;

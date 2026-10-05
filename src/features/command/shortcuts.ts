@@ -206,9 +206,9 @@ export const DEFAULT_BINDINGS: Readonly<Record<string, Binding>> = Object.fromEn
 
 /** Board annotation is mouse-driven, but the modifiers deserve documenting. */
 export const ANNOTATION_HINTS: readonly { keys: string; label: string }[] = [
-  { keys: 'Right-drag', label: 'Draw a green arrow' },
+  { keys: 'Right-drag', label: 'Draw an arrow (blue, as the engine’s)' },
   { keys: 'Right-click', label: 'Highlight a square' },
   { keys: '⇧ Right-drag', label: 'Red' },
-  { keys: '⌥ Right-drag', label: 'Blue' },
+  { keys: '⌥ Right-drag', label: 'Green' },
   { keys: '⇧⌥ Right-drag', label: 'Yellow' },
 ];

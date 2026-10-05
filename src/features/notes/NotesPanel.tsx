@@ -88,8 +88,9 @@ export function NotesPanel() {
             />
 
             <p className="mt-1 text-[10.5px] leading-relaxed text-tertiary">
-              Right-drag on the board to draw an arrow, right-click to highlight a square. Hold ⇧
-              for red, ⌥ for blue, ⇧⌥ for yellow. Everything here is written back out with the PGN.
+              Right-drag on the board to draw an arrow, right-click to highlight a square. Arrows
+              are blue, as the engine’s; hold ⇧ for red, ⌥ for green, ⇧⌥ for yellow. Everything here
+              is written back out with the PGN.
             </p>
           </>
         )}

@@ -61,6 +61,8 @@
     "openings:build": "node scripts/build-opening-index.mjs && prettier --write src/theory/opening-index.generated.ts",
     "players:roster": "node scripts/build-player-roster.mjs",
     "players:roster:check": "node scripts/build-player-roster.mjs --check",
+    "players:legends": "node --no-warnings scripts/build-legend-identities.mjs",
+    "players:legends:check": "node --no-warnings scripts/build-legend-identities.mjs --check",
     "puzzles:build": "node scripts/build-puzzles.mjs",
     "puzzles:check": "node scripts/build-puzzles.mjs --check",
     "annotated:build": "node scripts/build-annotated-sets.mjs",

@@ -1,11 +1,13 @@
 # Platform parity — the web application and the macOS application
 
-**Unreleased arrow change (2026-10-05).** Authored arrows now share the
-engine best-move geometry on every board and in exported diagrams; brush
-colors are unchanged. This is Mac-facing renderer code. At the owner’s
-request no version bump or Mac release is made for this change yet, so the
-published 1.4.8 build 1141 still has the previous annotation geometry. The
-shortened stability session in the closure log was run on that unchanged build.
+**Unreleased renderer changes (2026-10-05/06).** Authored arrows share the
+engine best-move geometry on every board and in exported diagrams; a plain
+right-drag now draws the blue brush, rendered exactly as the engine best-move
+arrow (⌥ is green); and historical players resolve to a Wikidata item, so
+Capablanca, Morphy or Steinitz show a credited photo. All three are
+Mac-facing renderer code. The published 1.4.8 build 1141 has none of them;
+they ship as 1.4.9. The complete four-hour session in the closure log was run
+on that unchanged build 1141.
 
 **Published revision check (2026-10-05, 1.4.8).** The public Mac download is
 1.4.8 build 1141 from `754572610a67a3ab05a44dae8c0193e0854f2aa5`, stable and

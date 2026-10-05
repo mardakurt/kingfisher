@@ -81,6 +81,20 @@ describe('a diagram', () => {
     expect(svg).toContain('>White to move</text>');
   });
 
+  it('prints a blue arrow as the board draws the engine best move', () => {
+    const svg = diagramSvg({
+      fen: START_FEN,
+      orientation: 'w',
+      colours,
+      artwork,
+      shapes: [{ kind: 'arrow', from: 'g1' as never, to: 'f3' as never, brush: 'blue' }],
+    })!;
+    // The light theme's --engine-a-color, its white halo, and the engine layer's opacity.
+    expect(svg).toMatch(/<g opacity="0\.82"><polygon points="[^"]+" fill="none" stroke="#ffffff"/);
+    expect(svg).toMatch(/fill="#3a6cad" stroke="#3a6cad"/);
+    expect(svg).not.toContain('#003088');
+  });
+
   it('refuses a FEN that does not parse', () => {
     expect(diagramSvg({ fen: 'not a fen', orientation: 'w', colours, artwork })).toBeNull();
   });

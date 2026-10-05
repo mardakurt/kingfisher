@@ -933,8 +933,9 @@ A binding already in use is reported before it is taken, with the choice to
 replace it or cancel; `Esc` is fixed because it is the way out of every dialog
 and out of focus mode.
 
-On the board: right-drag draws an arrow, right-click highlights a square. Hold
-`⇧` for red, `⌥` for blue, `⇧⌥` for yellow. In the notation window, right-click
+On the board: right-drag draws an arrow — blue, drawn exactly as the engine's
+best move — and right-click highlights a square. Hold `⇧` for red, `⌥` for
+green, `⇧⌥` for yellow. In the notation window, right-click
 any move for comments, glyphs, variation ordering and deletion.
 
 ---

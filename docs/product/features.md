@@ -31,8 +31,8 @@ starting point:
   and check highlights, piece animation that keeps identity across a move
   (including the castling rook and a promoted pawn), coordinates inside,
   outside or off, and a flip (`F`) that snaps with a short fade.
-- **Annotations on the board** — right-drag draws an arrow (green; ⇧ red, ⌥
-  blue, ⇧⌥ yellow), right-click highlights a square, drawing the same shape
+- **Annotations on the board** — right-drag draws an arrow (blue, drawn as the
+  engine's best move; ⇧ red, ⌥ green, ⇧⌥ yellow), right-click highlights a square, drawing the same shape
   again erases it, and every shape survives a PGN round trip as `[%cal]` /
   `[%csl]` comment commands. A colour-blind palette (Okabe–Ito) is a
   setting.

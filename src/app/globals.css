@@ -194,7 +194,8 @@
 
   --shape-green: #5fa96b;
   --shape-red: #c25b52;
-  --shape-blue: #4d82c4;
+  /* The blue brush is the engine best-move colour: one arrow on every board. */
+  --shape-blue: var(--engine-a-color);
   --shape-yellow: #cba43f;
 
   /*
@@ -276,7 +277,7 @@
 
   --shape-green: #4a8f57;
   --shape-red: #b24a41;
-  --shape-blue: #3a6cad;
+  --shape-blue: var(--engine-a-color);
   --shape-yellow: #b08a26;
 
   --engine-a-color: #3a6cad;

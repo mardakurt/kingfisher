@@ -11,11 +11,16 @@
  *
  * A person is matched to a roster row only when exactly one row has the
  * name, in either order; two candidates mean no photo rather than a guess.
+ * FIDE titles begin in 1950, so Capablanca, Morphy or Steinitz are not on
+ * the titled roster at all; the historical roster (`legends.ts`) carries
+ * their items, resolved from Wikidata by `npm run players:legends`.
  *
  * Requests: wikidata.org (the item), commons.wikimedia.org (the credit) and
  * Wikimedia's image host (the picture), disclosed on the privacy page.
  */
 
+import legendIdentities from './legend-wikidata.json' with { type: 'json' };
+import { LEGENDS } from './legends';
 import { matchKey, nameOrders } from './players';
 import type { TitledPlayer } from './titled-players';
 
@@ -67,6 +72,35 @@ export function rosterIndex(
     }
     return found.size === 1 ? [...found][0]! : null;
   };
+}
+
+const LEGEND_ITEMS: Readonly<Record<string, string>> = legendIdentities.items;
+
+/** The historical-roster person a name refers to, by name or alias, or null. */
+export function legendWikidataFor(name: string): string | null {
+  const wanted = new Set([name, ...nameOrders(name)].map(matchKey).filter(Boolean));
+  const found = new Set<string>();
+  for (const legend of LEGENDS) {
+    const qid = LEGEND_ITEMS[legend.name];
+    if (!qid) continue;
+    const keys = [legend.name, ...legend.aliases].flatMap((n) => [n, ...nameOrders(n)]);
+    if (keys.map(matchKey).some((key) => wanted.has(key))) found.add(qid);
+  }
+  return found.size === 1 ? [...found][0]! : null;
+}
+
+/**
+ * The Wikidata item whose photograph is this person's: the titled roster's
+ * row, else the historical roster's. When the two name different people the
+ * name is ambiguous, and there is no photo.
+ */
+export function photoIdentityFor(name: string, roster: readonly TitledPlayer[]): string | null {
+  const ids = new Set(
+    [rosterEntryFor(name, roster)?.wikidata, legendWikidataFor(name)].filter((qid): qid is string =>
+      Boolean(qid),
+    ),
+  );
+  return ids.size === 1 ? [...ids][0]! : null;
 }
 
 /** A flag from an ISO 3166-1 alpha-2 code, as regional-indicator letters. */
