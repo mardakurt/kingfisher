@@ -6,6 +6,8 @@ real users notice.
 
 ## Unreleased (web)
 
+## 1.4.9 — 2026-10-06
+
 - Authored board arrows and exported diagrams use the engine best-move arrow’s
   shape consistently.
 - A plain right-drag draws a blue arrow identical to the engine's best-move
