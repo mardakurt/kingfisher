@@ -422,3 +422,112 @@ server survived, the reopen failed**. The shell now loads
 staged beside `server.js` and listed in the required packaged resources. The
 unit test fails with the watch emptied. The check is now a `desktop:certify`
 step.
+
+## Shipped build 1141 session — owner-requested early stop (2026-10-05)
+
+Start verified: clean `master` = `origin/master` = `ae763d8`. The package's
+recorded identity is 1.4.8 build 1141, `7545726`, stable, `dirty: false`.
+The local DMG hashes to the descriptor's `f667e09f…`; `gh release view v1.4.8`
+reports a published stable release. `npm run deploy:status` reports production
+`f68d4ad`, up to date with a docs-only skipped commit.
+
+Command, detached with `nohup`, a separate process session, log and exit marker:
+
+```bash
+KINGFISHER_DESKTOP_APP=$HOME/KingfisherWork/desktop-out-148b/mac-arm64/Kingfisher.app \
+  node scripts/desktop-session.mjs --duration=4h --warmup=2 --restart-every=6 \
+  --offline-every=4 --suspend-every=60m \
+  --out=$HOME/KingfisherWork/evidence/closure/session4h-1141
+```
+
+The owner asked to end early. Measured duration: **10,028 s (2 h 47 m 8 s)**,
+71 cycles with measurements, 69 after warm-up. Eleven quit/reopen checks
+preserved the chapter's final position and comment, each with zero survivors
+and ~5.7 s shutdown. Seventeen offline rounds answered from the built-in
+reference; both 20 s suspends resumed responsively (six processes each).
+No lost-work, stale-analysis, unexplained quit or console finding before stop.
+
+The first and last thirds after warm-up (23 cycles each):
+
+| Measurement                                     | First      | Last       |
+| ----------------------------------------------- | ---------- | ---------- |
+| Post-GC heap                                    | 41 MB      | 41 MB      |
+| Renderer working set                            | 483 MB     | 507 MB     |
+| Main process                                    | 218 MB     | 226 MB     |
+| Services                                        | 245 MB     | 245 MB     |
+| DOM listeners                                   | 664        | 664        |
+| DOM nodes                                       | 1,659      | 1,659      |
+| Live workers / channels                         | 0 / 1      | 0 / 1      |
+| Intervals / resize observers / window listeners | 3 / 4 / 32 | 3 / 4 / 32 |
+| Key latency p95 (mean of cycle p95s)            | 47 ms      | 48 ms      |
+| Cycle time                                      | 134 s      | 131 s      |
+
+Ordinary cycles return to 28 MB heap, 649 listeners and ~1,527–1,531 nodes;
+offline and restart cycles leave different page states, hence higher pooled
+means. Renderer working-set variation alone is not evidence of a leak.
+The Library step's ~7.85 s includes the harness's wait for a nonempty search
+result; it is not a measured slow successful query or a new latency claim.
+
+Inspected `inspect-start.png`, `inspect-1h.png` and `inspect-2h.png` personally:
+correct chapter and saved state, notation and board intact; the hourly images
+show cycle-25 and cycle-51 comments. No end/hour-3/hour-4 image was produced.
+
+**Termination attribution:** at 16:59:33 UTC (19:59:33 Istanbul), the agent
+issued normal application quit in response to the owner's request. The harness
+recorded this as `unexpected-quit`, correctly identifying the outside request.
+SIGTERM did not stop its Playwright recovery, so it reopened once; the harness
+was terminated and the recovered app quit normally. The log records services
+stopped at 17:00:21 UTC. Both shells, all captured owned processes and all
+Kingfisher services/engines are gone. Exit marker **137 is intentional
+termination, not a completed harness pass**. `session.json` is preserved raw;
+`early-stop-review.json` records attribution, comparison and cleanup separately.
+The raw shortened comparison fails on that known termination finding; all
+resource/latency growth checks are within its thresholds.
+
+**Verdict: PARTIALLY under the original four-hour acceptance criterion.**
+The observed session supports stability for the measured duration; it does not
+prove four hours or multi-day use. macOS 13 remains unverified. The owner
+explicitly waived further waiting, not the distinction between evidence and
+an unperformed test.
+
+### Arrow consistency follow-up
+
+At the owner's request, use the engine best-move arrow's shape everywhere,
+retaining existing colors. `arrow-shape.ts` now supplies authored, engine and
+reference geometry and exported diagrams. Reference shafts retain their
+population-weighted widths. No new version or Mac release is requested yet;
+the published 1.4.8 package retains the previous authored geometry.
+
+Regression: `vitest run src/features/board/BoardShapes.test.ts` compares rendered
+engine/authored/reference outlines for a straight and knight move in both
+orientations. With both implementation files restored to HEAD: **4/4 fail**.
+With the fix and neighboring shape/diagram tests: **12/12 pass**.
+Logs: `arrow-unification/regression-before.log` and `regression-after.log`.
+Source validation: `npm test` **4,188/4,188**, 409 files, zero skipped;
+`npm run typecheck`, `lint`, `format:check`, `build`, `benchmark` and
+`git diff --check` passed; `npm run docs:check` **363/363**.
+
+Rendered QA: the production build (`next start --port 3211`), real Chrome,
+1440×920 and 390×844; Analysis → draw an actual engine-suggested move → file
+as a study → Studies → compare the rendered engine/authored coordinates.
+Light and dark: four geometry comparisons passed, original green brush
+preserved, mobile board visible, zero console/page errors. Desktop and mobile
+screenshots inspected; no framework overlay or missing board. Evidence:
+`arrow-unification/browser-qa.json`, `analysis-light.png`, `studies-dark.png`,
+`studies-mobile-light.png` (the other theme images are beside them).
+The Browser plugin was unavailable; the repository's Playwright API was used.
+The first probe incorrectly waited for a transparent engine data line to be
+visible; after changing that wait to attached, the same flow passed.
+
+Full browser gate: `CI=1 npm run test:e2e` **525/525**, zero retries,
+38.1 minutes. The two-tab stress case authored 49 moves over 70 actions,
+with three conflict copies and four injected write failures: zero chapter
+moves missing. The browser resource-leak soak and visual snapshots also passed.
+Log: `arrow-unification/e2e.log`.
+
+All source gates are green for this arrow change. The public Mac remains
+1.4.8 build 1141 with the old authored geometry at the owner's explicit
+request; no release assets or descriptor were changed. `gh release view
+--json tagName` still names `v1.4.8`. Publication is a source/web commit and
+push, followed by `npm run deploy:status` and a live browser check; their
+outputs are retained in the same evidence directory.

@@ -4,6 +4,11 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## Unreleased (web)
+
+- Authored board arrows and exported diagrams use the engine best-move arrow’s
+  shape consistently; annotation colors are preserved.
+
 ## 1.4.8 — 2026-10-05
 
 - Safari: an unsaved edit survives leaving Kingfisher by a link or address and

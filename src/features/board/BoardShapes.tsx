@@ -16,7 +16,7 @@
 import type { Shape } from '@/chess/annotations';
 import { useMemo, useRef } from 'react';
 
-import { userArrowPoints } from './arrow-shape';
+import { arrowGeometry, USER_ARROW, userArrowPoints } from './arrow-shape';
 
 import type { Color } from '@/chess/types';
 
@@ -56,22 +56,8 @@ const centre = (square: Parameters<typeof squareOffset>[0], orientation: Color) 
   return { cx: x / 100 + 0.5, cy: y / 100 + 0.5 };
 };
 
-/**
- * Engine-arrow geometry, in squares. One shaft width for every board size:
- * the overlay is drawn in board units, so a 0.11-square shaft is 2.6 px on a
- * 190 px study thumbnail and 11 px on an 800 px analysis board, and the
- * proportion to the pieces is the same on both.
- */
+/** Engine identity styling; geometry comes from arrow-shape.ts. */
 const ENGINE_ARROW = {
-  /** Shaft width. */
-  shaft: 0.11,
-  /** Head length along the move, and half its width across it. */
-  headLength: 0.3,
-  headHalfWidth: 0.18,
-  /** The tail starts this far from the origin square's centre … */
-  startInset: 0.3,
-  /** … and the tip stops this far before the destination's, off the piece. */
-  endInset: 0.2,
   opacity: 0.82,
   /** The dashed core drawn down a shared (agreed) arrow, and its dashes. */
   coreWidth: 0.045,
@@ -146,57 +132,6 @@ function resolveEngineArrows(
 const variationOpacity = (rank: number): number =>
   rank <= 1 ? ENGINE_ARROW.opacity : Math.max(0.22, ENGINE_ARROW.opacity * 0.62 ** (rank - 1));
 
-/** The shaft and head of an arrow as one outline, in board units. */
-function arrowGeometry(
-  arrow: Pick<ResolvedArrow, 'fromX' | 'fromY' | 'toX' | 'toY'> & { readonly shaft?: number },
-) {
-  const dx = arrow.toX - arrow.fromX;
-  const dy = arrow.toY - arrow.fromY;
-  const length = Math.hypot(dx, dy);
-  if (length < 0.01) return null;
-  const ux = dx / length;
-  const uy = dy / length;
-  // Perpendicular unit, for the width.
-  const nx = -uy;
-  const ny = ux;
-  const { headLength, startInset, endInset } = ENGINE_ARROW;
-  const shaft = arrow.shaft ?? ENGINE_ARROW.shaft;
-  // A wide reference arrow keeps a head wider than its shaft.
-  const headHalfWidth = Math.max(ENGINE_ARROW.headHalfWidth, shaft * 0.9);
-  const startX = arrow.fromX + ux * startInset;
-  const startY = arrow.fromY + uy * startInset;
-  const tipX = arrow.toX - ux * endInset;
-  const tipY = arrow.toY - uy * endInset;
-  // A knight's move is the shortest arrow; keep some shaft even there.
-  const shaftEnd = Math.max(0.12, length - startInset - endInset - headLength);
-  const baseX = startX + ux * shaftEnd;
-  const baseY = startY + uy * shaftEnd;
-  const w = shaft / 2;
-  const point = (x: number, y: number) => `${x.toFixed(3)},${y.toFixed(3)}`;
-  return {
-    startX,
-    startY,
-    baseX,
-    baseY,
-    tipX,
-    tipY,
-    outline: [
-      point(startX + nx * w, startY + ny * w),
-      point(baseX + nx * w, baseY + ny * w),
-      point(baseX + nx * headHalfWidth, baseY + ny * headHalfWidth),
-      point(tipX, tipY),
-      point(baseX - nx * headHalfWidth, baseY - ny * headHalfWidth),
-      point(baseX - nx * w, baseY - ny * w),
-      point(startX - nx * w, startY - ny * w),
-    ].join(' '),
-    head: [
-      point(baseX + nx * headHalfWidth, baseY + ny * headHalfWidth),
-      point(tipX, tipY),
-      point(baseX - nx * headHalfWidth, baseY - ny * headHalfWidth),
-    ].join(' '),
-  };
-}
-
 export function BoardShapes({
   shapes,
   engineArrows = [],
@@ -226,13 +161,7 @@ export function BoardShapes({
           {referenceArrows.map((arrow) => {
             const from = centre(arrow.from, orientation);
             const to = centre(arrow.to, orientation);
-            const geometry = arrowGeometry({
-              fromX: from.cx,
-              fromY: from.cy,
-              toX: to.cx,
-              toY: to.cy,
-              shaft: arrow.width,
-            });
+            const geometry = arrowGeometry(from.cx, from.cy, to.cx, to.cy, 1, arrow.width);
             if (!geometry) return null;
             return (
               <g
@@ -267,7 +196,7 @@ export function BoardShapes({
           aria-hidden
         >
           {resolvedEngine.map((arrow, index) => {
-            const geometry = arrowGeometry(arrow);
+            const geometry = arrowGeometry(arrow.fromX, arrow.fromY, arrow.toX, arrow.toY);
             if (!geometry) return null;
             const shared = arrow.arrows.length > 1;
             const b = ENGINE_ARROW_STYLES['engine-b'];
@@ -301,7 +230,7 @@ export function BoardShapes({
                       x2={geometry.baseX}
                       y2={geometry.baseY}
                       stroke={arrow.style.color}
-                      strokeWidth={ENGINE_ARROW.shaft}
+                      strokeWidth={USER_ARROW.shaft}
                       strokeLinecap="round"
                       strokeDasharray={ENGINE_ARROW.dash}
                     />

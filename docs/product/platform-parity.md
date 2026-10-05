@@ -1,10 +1,18 @@
 # Platform parity — the web application and the macOS application
 
+**Unreleased arrow change (2026-10-05).** Authored arrows now share the
+engine best-move geometry on every board and in exported diagrams; brush
+colors are unchanged. This is Mac-facing renderer code. At the owner’s
+request no version bump or Mac release is made for this change yet, so the
+published 1.4.8 build 1141 still has the previous annotation geometry. The
+shortened stability session in the closure log was run on that unchanged build.
+
 **Published revision check (2026-10-05, 1.4.8).** The public Mac download is
 1.4.8 build 1141 from `754572610a67a3ab05a44dae8c0193e0854f2aa5`, stable and
 clean at packaging; Developer ID signed, app and DMG notarised and stapled,
-`desktop:certify` passed every step including the new killed-shell check. The
-web serves the same application source (no `src/` change after the frozen
+`desktop:certify` passed every step including the new killed-shell check. At that
+publication checkpoint, the web served the same application source (no `src/`
+change after the frozen
 `08bf7d4` browser gate; later commits change the shell, harnesses and
 documentation). See the
 [closure log](../reports/2026-10-04-professional-use-closure.md).

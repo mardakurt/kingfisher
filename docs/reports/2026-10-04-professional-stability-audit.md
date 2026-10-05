@@ -416,26 +416,35 @@ raw logs in `~/KingfisherWork/evidence/closure/`.
 
 ### Checklist
 
-| Area                                          | State    | Evidence                                                                                                                                                                                                            |
-| --------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Source gates on the web candidate `08bf7d4`   | verified | unit 4,180/4,180; browser **525/525** zero retries; typecheck, lint, format, docs 363/363, build, benchmark, diff                                                                                                   |
-| Source gates on the shell candidate `7545726` | verified | unit 4,184/4,184 and the static gates; no `src/` or `e2e/` change after `08bf7d4`                                                                                                                                   |
-| Package 1.4.8 build 1141                      | verified | signed, app + DMG notarised and stapled; trust GREEN; `desktop:certify` every step incl. killed-shell                                                                                                               |
-| Published release and public bytes            | verified | v1.4.8 latest; `desktop:public:verify --landing --full` **68/68**; production `f68d4ad`                                                                                                                             |
-| Real Sparkle update 1.4.7 → 1.4.8             | verified | public feed, study preserved, test profile adopted, no survivors                                                                                                                                                    |
-| macOS 14.8.9 and 15.7.9 (hosted runners)      | verified | 16/16 each on the published 1.4.8                                                                                                                                                                                   |
-| macOS 13 (documented floor)                   | **open** | no Apple-silicon hosted runner exists; not claimed                                                                                                                                                                  |
-| Chrome / Firefox / WebKit                     | verified | Chrome full gate; Firefox focused set 78/78; WebKit focused set + accessibility 132/132 (three engines)                                                                                                             |
-| Real Safari 27.0.1                            | verified | 15/15 locally and on the live site (`08bf7d4`)                                                                                                                                                                      |
-| Two-tab persistence under slowed I/O          | verified | four 120-action seeds, 0 authored chapter moves lost; deterministic regressions for D3/D4                                                                                                                           |
-| Signed-in Lichess                             | verified | live 25/25 on build 1138 incl. revocation (Lichess answers 401 afterwards); renderer source identical in 1141                                                                                                       |
-| Chess.com (username, public API)              | verified | live sync and re-sync without duplicates                                                                                                                                                                            |
-| Real corpora 224,679 / 578,262 / 1,048,440    | verified | exact counts; filters equal SQLite counts; interactive 36–99 ms; stop 2.0 s; reimport deduplicates                                                                                                                  |
-| 30-minute timed soak                          | verified | build 1138: 833 actions, 0 console errors, 0 findings, 0 survivors                                                                                                                                                  |
-| Leak soak (52 cycles, 12 chain passes)        | verified | build 1138: 3/3                                                                                                                                                                                                     |
-| 1,000 / 300-action walks                      | verified | build 1138: 0 findings; build 1141 certify walks: 0 findings                                                                                                                                                        |
-| **4-hour professional session**               | **open** | build 1138: 1 h 37 m steady (heap 28 MB, listeners 649, nodes ≈1,527, key p95 31–62 ms at cycles 2 and 40), then stopped by an outside quit; the rerun on 1141 was stopped at the owner's request before it started |
-| Giri–Vachier-Lagrave evaluation bar           | verified | Tata Steel 2021 (Lichess CC0 broadcast), Chrome and WebKit; the owner's exact game remains unidentified                                                                                                             |
+| Area                                          | State       | Evidence                                                                                                                                                                                                                                                                                                                                   |
+| --------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Source gates on the web candidate `08bf7d4`   | verified    | unit 4,180/4,180; browser **525/525** zero retries; typecheck, lint, format, docs 363/363, build, benchmark, diff                                                                                                                                                                                                                          |
+| Source gates on the shell candidate `7545726` | verified    | unit 4,184/4,184 and the static gates; no `src/` or `e2e/` change after `08bf7d4`                                                                                                                                                                                                                                                          |
+| Package 1.4.8 build 1141                      | verified    | signed, app + DMG notarised and stapled; trust GREEN; `desktop:certify` every step incl. killed-shell                                                                                                                                                                                                                                      |
+| Published release and public bytes            | verified    | v1.4.8 latest; `desktop:public:verify --landing --full` **68/68**; production `f68d4ad`                                                                                                                                                                                                                                                    |
+| Real Sparkle update 1.4.7 → 1.4.8             | verified    | public feed, study preserved, test profile adopted, no survivors                                                                                                                                                                                                                                                                           |
+| macOS 14.8.9 and 15.7.9 (hosted runners)      | verified    | 16/16 each on the published 1.4.8                                                                                                                                                                                                                                                                                                          |
+| macOS 13 (documented floor)                   | **open**    | no Apple-silicon hosted runner exists; not claimed                                                                                                                                                                                                                                                                                         |
+| Chrome / Firefox / WebKit                     | verified    | Chrome full gate; Firefox focused set 78/78; WebKit focused set + accessibility 132/132 (three engines)                                                                                                                                                                                                                                    |
+| Real Safari 27.0.1                            | verified    | 15/15 locally and on the live site (`08bf7d4`)                                                                                                                                                                                                                                                                                             |
+| Two-tab persistence under slowed I/O          | verified    | four 120-action seeds, 0 authored chapter moves lost; deterministic regressions for D3/D4                                                                                                                                                                                                                                                  |
+| Signed-in Lichess                             | verified    | live 25/25 on build 1138 incl. revocation (Lichess answers 401 afterwards); renderer source identical in 1141                                                                                                                                                                                                                              |
+| Chess.com (username, public API)              | verified    | live sync and re-sync without duplicates                                                                                                                                                                                                                                                                                                   |
+| Real corpora 224,679 / 578,262 / 1,048,440    | verified    | exact counts; filters equal SQLite counts; interactive 36–99 ms; stop 2.0 s; reimport deduplicates                                                                                                                                                                                                                                         |
+| 30-minute timed soak                          | verified    | build 1138: 833 actions, 0 console errors, 0 findings, 0 survivors                                                                                                                                                                                                                                                                         |
+| Leak soak (52 cycles, 12 chain passes)        | verified    | build 1138: 3/3                                                                                                                                                                                                                                                                                                                            |
+| 1,000 / 300-action walks                      | verified    | build 1138: 0 findings; build 1141 certify walks: 0 findings                                                                                                                                                                                                                                                                               |
+| **4-hour professional session**               | **partial** | build 1141: owner stopped at 2 h 47 m 8 s; 71 measured cycles (69 after warm-up), 11 restarts, 17 offline rounds, 2 suspend/resume checks; 0 findings before controlled termination; heap 41→41 MB, listeners 664→664, nodes 1,659→1,659, key p95 47→48 ms (first/last thirds); all processes gone after cleanup; four hours not completed |
+| Giri–Vachier-Lagrave evaluation bar           | verified    | Tata Steel 2021 (Lichess CC0 broadcast), Chrome and WebKit; the owner's exact game remains unidentified                                                                                                                                                                                                                                    |
+
+Arrow follow-up (owner-requested, unreleased on Mac): authored arrows and
+exported diagrams now share the engine best-move geometry, retaining colors.
+Regression 4/4 fail on the old implementation; 12/12 focused tests pass after.
+Source gate: unit 4,188/4,188, Chrome 525/525 (zero retries), all static gates,
+build and benchmark pass. Production-build Analysis/Studies geometry and
+light/dark desktop/mobile QA pass. This source change is separate from the
+unchanged shipped build 1141 used for the shortened session; no version bump
+or Mac publication is made yet.
 
 ### Remaining non-blocking debt
 
@@ -458,14 +467,17 @@ Within the stated scope — Kingfisher 1.4.8 on Apple-silicon macOS 14, 15 and
 Safari, browser and native engines, local SQLite collections to 1,048,440 real
 games, signed-in Lichess and public Chess.com — every reproduced data-loss,
 identity, engine-lifecycle and recovery defect is fixed, regression-protected
-and delivered. One condition of a YES is not met: the practical multi-hour
-session. The evidence stops at 1 h 37 m of steady use on build 1138 plus the
-30-minute soak and leak soak; no four-hour run has completed on the shipped
-build 1141. The smallest remaining step is one command on the published app:
+and delivered. The shipped-build rerun was stopped at the owner's request after 2 h 47 m 8 s,
+with steady resources and latency, successful restart/offline/suspend checks,
+and no findings before the controlled termination. First/last-third means
+exclude the two warm-up cycles. The raw harness records one `unexpected-quit`
+when the agent issued the requested quit; its source is known and documented
+in `session4h-1141/early-stop-review.json`. It briefly recovered before the
+harness was terminated, and both instances' processes are gone.
 
-    KINGFISHER_DESKTOP_APP=<Kingfisher 1.4.8.app> node scripts/desktop-session.mjs \
-      --duration=4h --warmup=2 --restart-every=6 --offline-every=4 \
-      --suspend-every=60m --out=<evidence dir>
-
-and the same audit table updated with its verdict JSON. Multi-day plateaus
-remain outside any claim.
+The observed duration supports professional-use stability on build 1141, but
+the original four-hour acceptance condition is still unmet. Start and hourly
+1h/2h screenshots were inspected; no 3h/4h/end checkpoint was reached. The
+owner explicitly chose to stop rather than continue to four hours. This
+verdict therefore remains PARTIALLY against the original checklist, with no
+new unexplained product failure. Multi-day plateaus remain outside any claim.
