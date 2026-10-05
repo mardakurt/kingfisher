@@ -389,3 +389,83 @@ synchronization defects fixed and regression-protected. A universal professional
 readiness claim still needs the remaining authenticated-provider, platform and
 long-duration coverage described above. No missing acceptance is reported as a
 pass.
+
+## Closure (2026-10-05): Kingfisher 1.4.8
+
+Full evidence: [closure working log](2026-10-04-professional-use-closure.md);
+raw logs in `~/KingfisherWork/evidence/closure/`.
+
+### Defects found and fixed (each with a regression shown to fail first)
+
+| #   | Defect                                                                                                                             | Where found                     |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| D1  | Safari: a stalled Lichess/tablebase/companion/assistant request read "Reading…" for ever (`AbortSignal.any` + GC in WebKit)        | provider-states spec, WebKit    |
+| D2  | Signed in to Lichess, reopening on Masters said "connect Lichess" (token mirrored after the first query)                           | live signed-in run, package     |
+| D3  | A cancelled chapter switch kept naming a chapter the board did not hold; then the board vanished                                   | two-tab stress                  |
+| D4  | A tab reloaded mid-save restored the other tab's draft and lost its last edit                                                      | two-tab stress, seed 20261004   |
+| D5  | Safari: leaving and returning lost the last edit and stalled saving behind a false "saved" (history cache froze an IndexedDB lock) | real Safari 27 via safaridriver |
+| D6  | Lichess archive games imported undated (only `UTCDate`)                                                                            | 1,048,440-game import           |
+| D7  | Library footer said "0–0 of N games" while a query ran                                                                             | large-collection UI             |
+| D8  | Player sort scanned the whole table (4.8 s at 578k)                                                                                | large-collection UI             |
+| D9  | Safari: Tab left an open dialog for the page behind it                                                                             | WebKit accessibility            |
+| D10 | Reloading the Library on a companion database said "not connected"                                                                 | large-collection UI             |
+| D11 | Reopening within seconds of quitting: "Kingfisher needs its own port"                                                              | session harness; owner saw it   |
+| D12 | A killed shell left its web server on the port; Kingfisher would not open again                                                    | session harness; 1/3 → 4/4      |
+| —   | Annotation arrows: round blob past the point, narrow head (board and exported diagrams)                                            | owner report                    |
+| —   | zod (via a lint plugin) shipped and logged a CSP violation in every Firefox session                                                | Firefox on production build     |
+
+### Checklist
+
+| Area                                          | State    | Evidence                                                                                                                                                                                                            |
+| --------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Source gates on the web candidate `08bf7d4`   | verified | unit 4,180/4,180; browser **525/525** zero retries; typecheck, lint, format, docs 363/363, build, benchmark, diff                                                                                                   |
+| Source gates on the shell candidate `7545726` | verified | unit 4,184/4,184 and the static gates; no `src/` or `e2e/` change after `08bf7d4`                                                                                                                                   |
+| Package 1.4.8 build 1141                      | verified | signed, app + DMG notarised and stapled; trust GREEN; `desktop:certify` every step incl. killed-shell                                                                                                               |
+| Published release and public bytes            | verified | v1.4.8 latest; `desktop:public:verify --landing --full` **68/68**; production `f68d4ad`                                                                                                                             |
+| Real Sparkle update 1.4.7 → 1.4.8             | verified | public feed, study preserved, test profile adopted, no survivors                                                                                                                                                    |
+| macOS 14.8.9 and 15.7.9 (hosted runners)      | verified | 16/16 each on the published 1.4.8                                                                                                                                                                                   |
+| macOS 13 (documented floor)                   | **open** | no Apple-silicon hosted runner exists; not claimed                                                                                                                                                                  |
+| Chrome / Firefox / WebKit                     | verified | Chrome full gate; Firefox focused set 78/78; WebKit focused set + accessibility 132/132 (three engines)                                                                                                             |
+| Real Safari 27.0.1                            | verified | 15/15 locally and on the live site (`08bf7d4`)                                                                                                                                                                      |
+| Two-tab persistence under slowed I/O          | verified | four 120-action seeds, 0 authored chapter moves lost; deterministic regressions for D3/D4                                                                                                                           |
+| Signed-in Lichess                             | verified | live 25/25 on build 1138 incl. revocation (Lichess answers 401 afterwards); renderer source identical in 1141                                                                                                       |
+| Chess.com (username, public API)              | verified | live sync and re-sync without duplicates                                                                                                                                                                            |
+| Real corpora 224,679 / 578,262 / 1,048,440    | verified | exact counts; filters equal SQLite counts; interactive 36–99 ms; stop 2.0 s; reimport deduplicates                                                                                                                  |
+| 30-minute timed soak                          | verified | build 1138: 833 actions, 0 console errors, 0 findings, 0 survivors                                                                                                                                                  |
+| Leak soak (52 cycles, 12 chain passes)        | verified | build 1138: 3/3                                                                                                                                                                                                     |
+| 1,000 / 300-action walks                      | verified | build 1138: 0 findings; build 1141 certify walks: 0 findings                                                                                                                                                        |
+| **4-hour professional session**               | **open** | build 1138: 1 h 37 m steady (heap 28 MB, listeners 649, nodes ≈1,527, key p95 31–62 ms at cycles 2 and 40), then stopped by an outside quit; the rerun on 1141 was stopped at the owner's request before it started |
+| Giri–Vachier-Lagrave evaluation bar           | verified | Tata Steel 2021 (Lichess CC0 broadcast), Chrome and WebKit; the owner's exact game remains unidentified                                                                                                             |
+
+### Remaining non-blocking debt
+
+- First _unindexed_ sort (Opening, Date) of a cold multi-GB collection pays one
+  read of the file: 4.8 s at 578k games, 1.8 s at 225k; ~100–330 ms warm. The
+  page stays interactive and says "Reading…". Remedy: indexes built on open.
+- Under artificially slowed storage the Studies list can highlight the first
+  chapter for up to ~0.8 s before converging on the restored one.
+- Companion status polls during a large import occasionally see a reset
+  keep-alive socket; one retry succeeds.
+- Browser Stockfish on the web is single-threaded by design (no cross-origin
+  isolation); the Mac application is isolated.
+
+### Verdict
+
+**Professional-use stability verdict: PARTIALLY.**
+
+Within the stated scope — Kingfisher 1.4.8 on Apple-silicon macOS 14, 15 and
+27 (macOS 13 unverified), the web application in current Chrome, Firefox and
+Safari, browser and native engines, local SQLite collections to 1,048,440 real
+games, signed-in Lichess and public Chess.com — every reproduced data-loss,
+identity, engine-lifecycle and recovery defect is fixed, regression-protected
+and delivered. One condition of a YES is not met: the practical multi-hour
+session. The evidence stops at 1 h 37 m of steady use on build 1138 plus the
+30-minute soak and leak soak; no four-hour run has completed on the shipped
+build 1141. The smallest remaining step is one command on the published app:
+
+    KINGFISHER_DESKTOP_APP=<Kingfisher 1.4.8.app> node scripts/desktop-session.mjs \
+      --duration=4h --warmup=2 --restart-every=6 --offline-every=4 \
+      --suspend-every=60m --out=<evidence dir>
+
+and the same audit table updated with its verdict JSON. Multi-day plateaus
+remain outside any claim.
