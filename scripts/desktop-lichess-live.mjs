@@ -228,17 +228,22 @@ async function main() {
           .catch(() => '')
       ).trim();
       const before = await page.locator('[data-move-tree] [data-current]').count();
+      const at = await boardFen(page);
       await first.click();
       const current = page.locator('[data-move-tree] [data-current="true"]');
+      // Opened at this position (as e2e/explorer-top-games.spec.ts defines it): the
+      // whole game in the notation, the cursor still on the position explored.
       let opened = false;
       for (let i = 0; i < 100 && !opened; i++) {
         await wait(200);
-        opened = played !== '' && (await current.innerText().catch(() => '')).includes(played);
+        opened =
+          (await page.locator('[data-move-tree] [data-current]').count()) > before + 10 &&
+          (await boardFen(page)) === at;
       }
       const total = await page.locator('[data-move-tree] [data-current]').count();
       check(
         'a master game opens from its PGN at this position',
-        opened && total > before,
+        opened,
         `current ${(await current.innerText().catch(() => '?')).trim()} (played ${played}); ${before} → ${total} moves in the notation`,
       );
     }
@@ -320,15 +325,26 @@ async function main() {
     );
     await app.evaluate(({ session }) => session.defaultSession.webRequest.onBeforeRequest(null));
     await play(page, 'a7', 'a6');
-    const recovered = await dock
-      .locator('[data-explorer-row]')
-      .first()
-      .waitFor({ timeout: 25_000 })
-      .then(
-        () => true,
-        () => false,
-      );
-    check('with the network back, the next position answers', recovered);
+    // Answered means Lichess's own answer: moves when it has games here, the
+    // empty state when it has none — not an error and not a spinner.
+    const truth = await direct(page, 'masters', await boardFen(page));
+    const answered = await Promise.race([
+      dock
+        .locator('[data-explorer-row]')
+        .first()
+        .waitFor({ timeout: 25_000 })
+        .then(() => 'rows'),
+      dock
+        .getByText(/No games reach this position|Past this source/)
+        .first()
+        .waitFor({ timeout: 25_000 })
+        .then(() => 'empty'),
+    ]).catch(() => 'nothing');
+    check(
+      'with the network back, the next position answers',
+      answered === (truth.total > 0 ? 'rows' : 'empty'),
+      `panel ${answered}; Lichess has ${truth.total ?? '?'} games here (HTTP ${truth.status})`,
+    );
 
     // --- account sync: Lichess with the token, Chess.com by username ----------------
     dialog = await openAccounts(page);
