@@ -2,8 +2,9 @@
 
 A local-first chess research workstation for serious players.
 
-Source 1.4.7 hardens engine lifecycle, database switching, study ownership and
-reload persistence, and keeps the evaluation bar steady between moves. It also
+Source 1.4.8 makes Safari, two-tab editing, large Lichess databases and the Mac
+application's recovery from a crash dependable, on top of 1.4.7's engine,
+study and reload hardening. It also
 offers **100 famous games and championship classics** in Databases: click
 **Add to my games**, then search the Library for Immortal, Evergreen or Opera.
 The collection contains credited scores, without modern commentary or a
@@ -19,7 +20,7 @@ notation**. See the [1.4.6 comparison](docs/product/chessbase-mac-comparison-1.4
 for what remains different, and the
 [big-data and accounts proposal](docs/product/big-data-and-accounts-proposal.md).
 
-> **Public release · 1.4.7** (macOS, Developer ID signed and notarised)
+> **Public release · 1.4.8** (macOS, Developer ID signed and notarised)
 > Research remains opt-in under Layout.
 > No account. No cookies. No subscription.
 
@@ -280,7 +281,7 @@ source-labelled variation tree of recorded practice and copy its PGN.
 
 The sections below are the record of what each phase set out to fix, kept
 because the reasons are still the reasons. They are history, not a status line:
-the source and the public Mac download are both **Kingfisher 1.4.7**. Current release status is in
+the source and the public Mac download are both **Kingfisher 1.4.8**. Current release status is in
 [`docs/product/platform-parity.md`](docs/product/platform-parity.md), and
 what changed is in [`CHANGELOG.md`](CHANGELOG.md); the 1.0.0 notes are in
 [`docs/release/1.0.0.md`](docs/release/1.0.0.md).

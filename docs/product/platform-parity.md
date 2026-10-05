@@ -1,5 +1,14 @@
 # Platform parity — the web application and the macOS application
 
+**Published revision check (2026-10-05, 1.4.8).** The public Mac download is
+1.4.8 build 1141 from `754572610a67a3ab05a44dae8c0193e0854f2aa5`, stable and
+clean at packaging; Developer ID signed, app and DMG notarised and stapled,
+`desktop:certify` passed every step including the new killed-shell check. The
+web serves the same application source (no `src/` change after the frozen
+`08bf7d4` browser gate; later commits change the shell, harnesses and
+documentation). See the
+[closure log](../reports/2026-10-04-professional-use-closure.md).
+
 **Published revision check (2026-10-04, 1.4.7).** The public Mac download is
 1.4.7 build 1113 from `43044cde134cca9a4db8c3023ab2ad4235a68e95`, stable and
 clean at packaging. It contains the engine, Library, study and reload repairs,
