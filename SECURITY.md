@@ -10,7 +10,7 @@ The user-facing surfaces link here from their footers and from
 
 ## What the current public product is
 
-- **Web:** Kingfisher 1.5.0 at <https://kingfisherchess.app>, deployed from
+- **Web:** Kingfisher 1.4.9 at <https://kingfisherchess.app>, deployed from
   `master` on every push, so it can be ahead of the macOS release.
 - **macOS:** Kingfisher 1.4.9 for Apple Silicon — Developer ID signed,
   notarised by Apple, stapled. The exact build (number, commit, SHA-256)
