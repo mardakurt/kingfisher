@@ -1,9 +1,6 @@
 # Kingfisher documentation
 
 - [1.4.9 release notes](release/1.4.9.md)
-- [1.5.0 release notes](release/1.5.0.md)
-- [ChessBase Mac comparison for 1.5.0](product/chessbase-mac-comparison-1.5.0.md)
-- [Prompt: close the remaining ChessBase for Mac gaps](operations/chessbase-parity-closure-prompt.md)
 - [1.4.8 release notes](release/1.4.8.md)
 - [1.4.7 release notes](release/1.4.7.md)
 - [Professional-use stabilization audit](reports/2026-10-04-professional-stability-audit.md)

@@ -1,5 +1,13 @@
 # Platform parity — the web application and the macOS application
 
+**Unreleased source changes (2026-10-06, after 1.4.9).** `469df0a` is
+Mac-facing and not in any published build: the bundle declares macOS 14 as
+its minimum (13 was never tested), the first Date or Opening sort of a
+companion collection builds its index, a slow reload no longer highlights a
+study's first chapter, and a companion GET is retried once after a reset
+connection. The web serves them now; the public Mac download is still 1.4.9
+build 1147 until the next release.
+
 **Published revision check (2026-10-06, 1.4.9).** The public Mac download is
 1.4.9 build 1147 from `d9c5aae065cfece4932e3ffadf91cd93a6156d07`, stable and
 clean at packaging; Developer ID signed, app and DMG notarised and stapled,
