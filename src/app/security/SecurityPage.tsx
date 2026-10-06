@@ -22,7 +22,7 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
         <tbody>
           <tr>
             <td>Web application</td>
-            <td>Kingfisher 1.4.9</td>
+            <td>Kingfisher 1.5.0</td>
             <td>Current. Served at kingfisherchess.app from every push to master.</td>
           </tr>
           <tr>

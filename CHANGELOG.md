@@ -6,6 +6,8 @@ real users notice.
 
 ## Unreleased (web)
 
+## 1.5.0 — 2026-10-06
+
 - Sorting a large companion collection by Date or Opening is instant after
   the first time: that first sort builds the index (0.9 s at 1,048,440 games,
   where every Date sort used to take 10.4 s).
