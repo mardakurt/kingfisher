@@ -2,6 +2,7 @@
 
 - [ChessBase Mac closure candidate for 1.5.0](product/chessbase-mac-comparison-1.5.0.md) — claim/control matrix and explicitly pending acceptance.
 
+- [1.5.0 release notes](release/1.5.0.md)
 - [1.4.9 release notes](release/1.4.9.md)
 - [1.4.8 release notes](release/1.4.8.md)
 - [1.4.7 release notes](release/1.4.7.md)

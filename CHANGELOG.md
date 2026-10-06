@@ -4,7 +4,7 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
-## Unreleased (web)
+## 1.5.0 — 2026-10-06
 
 - Browse recorded game titles in a collection and open exactly the games carrying a selected Title tag, in local and companion SQLite databases.
 
