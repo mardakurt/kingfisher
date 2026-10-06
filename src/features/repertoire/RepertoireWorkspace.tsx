@@ -297,12 +297,6 @@ export function RepertoireWorkspace() {
                 dataAttribute: 'data-add-to-repertoire',
               },
               {
-                id: 'overview',
-                label: 'Your openings',
-                shortLabel: 'Openings',
-                onClick: () => setOverviewOpen(true),
-              },
-              {
                 id: 'review',
                 label: 'Review repertoire',
                 shortLabel: 'Review',
@@ -326,6 +320,17 @@ export function RepertoireWorkspace() {
                 shortLabel: 'PGN',
                 icon: <Export />,
                 onClick: () => void exportPgn(),
+              },
+              /*
+                Last of the repertoire's own actions: the header keeps a prefix
+                of this list and folds the rest, so an action placed earlier
+                pushes Review out of the row.
+              */
+              {
+                id: 'overview',
+                label: 'Your openings',
+                shortLabel: 'Openings',
+                onClick: () => setOverviewOpen(true),
               },
             ]
           : []),
