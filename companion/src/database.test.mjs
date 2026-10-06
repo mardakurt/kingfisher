@@ -71,6 +71,50 @@ describe('GameDatabase', () => {
     expect(database.explore(POSITION).totalGames).toBe(2);
   });
 
+  it('builds the Date and Opening sort indexes on first use, and the page then uses them', () => {
+    // A cold Opening or Date sort of a multi-GB collection read the whole
+    // file every time (4.8 s at 578,262 games): neither column was indexed.
+    const game = {
+      white: 'Alpha',
+      black: 'Beta',
+      result: '1-0',
+      rating: 2400,
+      uci: 'e2e4',
+      san: 'e4',
+    };
+    database.insertGames(
+      [2021, 2023, 2022].map((year) => entry({ ...game, year, fingerprint: `sort-${year}` })),
+    );
+    const raw = new DatabaseSync(path.join(directory, 'games.sqlite'));
+    const indexes = () =>
+      raw
+        .prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'games'")
+        .all()
+        .map((row) => row.name);
+    const plan = (column) =>
+      raw
+        .prepare(
+          `EXPLAIN QUERY PLAN SELECT * FROM games ORDER BY ${column} DESC, id DESC LIMIT 101 OFFSET 0`,
+        )
+        .all()
+        .map((row) => row.detail)
+        .join(' | ');
+    try {
+      expect(indexes()).not.toContain('games_date');
+      expect(indexes()).not.toContain('games_opening');
+      const page = database.search({ sortBy: 'date', sortDirection: 'desc', limit: 10 });
+      expect(page.games.map((g) => g.year)).toEqual([2023, 2022, 2021]);
+      database.search({ sortBy: 'opening', sortDirection: 'asc', limit: 10 });
+      expect(indexes()).toEqual(expect.arrayContaining(['games_date', 'games_opening']));
+      for (const column of ['date', 'opening']) {
+        expect(plan(column)).toContain(`USING INDEX games_${column}`);
+        expect(plan(column)).not.toContain('TEMP B-TREE');
+      }
+    } finally {
+      raw.close();
+    }
+  });
+
   it('finishes the aggregates of a bulk load that was interrupted', () => {
     // A collection with counts before the load: the old check rebuilt only
     // empty aggregates, so an interrupted load left these short for good.

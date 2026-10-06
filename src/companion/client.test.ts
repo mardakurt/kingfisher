@@ -114,3 +114,47 @@ describe('how long the companion is given to answer', () => {
     expect(maintenance).toBeGreaterThan(ordinary);
   });
 });
+
+describe('a connection reset on the way to the companion', () => {
+  const ok = () =>
+    new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  // What fetch throws when a reused keep-alive socket was reset under it.
+  const reset = () => new TypeError('fetch failed', { cause: { code: 'ECONNRESET' } });
+
+  it('asks a GET once more, so one dropped socket is not "not reachable"', async () => {
+    const fetchMock = vi.fn().mockRejectedValueOnce(reset()).mockResolvedValueOnce(ok());
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(client().status()).resolves.toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('still says the companion is not reachable when the second try fails too', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(reset());
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(client().status()).rejects.toThrow('The companion is not reachable.');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('never repeats a POST, which may start an engine or an import', async () => {
+    const fetchMock = vi.fn().mockRejectedValueOnce(reset()).mockResolvedValueOnce(ok());
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(client().startEngine('stockfish')).rejects.toThrow(
+      'The companion is not reachable.',
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not ask again after the caller cancelled', async () => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn().mockImplementation(async () => {
+      controller.abort();
+      throw new DOMException('aborted', 'AbortError');
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(client().status(controller.signal)).rejects.toThrow();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});

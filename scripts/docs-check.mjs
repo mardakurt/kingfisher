@@ -45,7 +45,7 @@ import { readFileSync, existsSync, statSync, readdirSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { MINIMUM_MACOS, compareMacOSVersions } from '../desktop/src/platform-floor.mjs';
+import { ELECTRON_MINIMUM_MACOS, compareMacOSVersions } from '../desktop/src/platform-floor.mjs';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
@@ -542,8 +542,8 @@ if (descriptor) {
   const major = Number(String(descriptor.minimumMacOS).split('.')[0]);
   record(
     'macos-floor:not-below-electron',
-    compareMacOSVersions(descriptor.minimumMacOS, MINIMUM_MACOS) >= 0,
-    `descriptor ${descriptor.minimumMacOS}, Electron floor ${MINIMUM_MACOS}`,
+    compareMacOSVersions(descriptor.minimumMacOS, ELECTRON_MINIMUM_MACOS) >= 0,
+    `descriptor ${descriptor.minimumMacOS}, Electron floor ${ELECTRON_MINIMUM_MACOS}`,
   );
   const stated = new RegExp(`macOS ${major}\\b`);
   const olderStated = /macOS (?:10\.\d+|1[0-2])\b|Big Sur|Monterey/;

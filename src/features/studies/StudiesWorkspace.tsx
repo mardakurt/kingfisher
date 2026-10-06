@@ -12,6 +12,7 @@
 
 import {
   flushWorkspaceForNavigation,
+  isWorkspaceRestored,
   workspaceRestored,
 } from '@/features/persistence/useWorkspacePersistence';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -144,6 +145,26 @@ export function StudiesWorkspace() {
         ? activeStudyId
         : (list[0]?.id ?? null);
 
+  /*
+    The first-chapter fallback waits for the reload's restore. Before it
+    settles the board is not yet the chapter it will be, so "no chapter on
+    the board" was read as "show the first one": under slow storage a reload
+    highlighted chapter 1 for up to 0.84 s before the restored chapter 3
+    (closure log, reload probe). Nothing is selected until then unless the
+    person or a link chose a chapter.
+  */
+  const [restored, setRestored] = useState(isWorkspaceRestored);
+  useEffect(() => {
+    if (restored) return;
+    let live = true;
+    void workspaceRestored().then(() => {
+      if (live) setRestored(true);
+    });
+    return () => {
+      live = false;
+    };
+  }, [restored]);
+
   const detached =
     detachedFrom !== null &&
     detachedFrom.document === boardDocument &&
@@ -161,7 +182,7 @@ export function StudiesWorkspace() {
       ? chosenChapterId
       : activeChapterId && chapters.some((entry) => entry.id === activeChapterId)
         ? activeChapterId
-        : detached
+        : detached || !restored
           ? null
           : (chapters[0]?.id ?? null);
 

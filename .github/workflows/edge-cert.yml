@@ -1,0 +1,64 @@
+# Microsoft Edge on Windows: the focused professional set.
+#
+# The landing names Edge as a supported browser, and until 1.5.0 no run had
+# ever used it: the maintainer's Mac has no Edge. A GitHub-hosted Windows
+# runner has Edge preinstalled, so this runs the same focused set Firefox and
+# WebKit were certified with (reliability, study reload, workspace frame and
+# FEN links, live engine settings, evaluation write-back, explorer top games,
+# Library databases, accessibility, provider states, and the main spec) at
+# zero retries. Manual: run it before a release.
+name: Edge certification (Windows)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CI: 'true'
+  PLAYWRIGHT_RETRIES: '0'
+  KF_E2E_PROJECT: edge
+
+jobs:
+  edge:
+    name: Edge, focused professional set
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Edge version
+        shell: pwsh
+        run: (Get-Item "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe").VersionInfo.ProductVersion
+
+      - name: Focused set in Edge
+        run: >-
+          npx playwright test
+          e2e/kingfisher.spec.ts
+          e2e/reliability.spec.ts
+          e2e/study-reload.spec.ts
+          e2e/workspace-frame.spec.ts
+          e2e/engine-settings-live.spec.ts
+          e2e/evaluation-write-back.spec.ts
+          e2e/explorer-top-games.spec.ts
+          e2e/library-databases.spec.ts
+          e2e/accessibility.spec.ts
+          e2e/provider-states.spec.ts
+
+      - name: Upload failures
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: edge-failures
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

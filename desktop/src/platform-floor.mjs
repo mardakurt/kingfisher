@@ -1,5 +1,5 @@
 /**
- * The oldest macOS a packaged Kingfisher can run on.
+ * The oldest macOS the Electron runtime inside Kingfisher can run on.
  *
  * This is not Kingfisher's choice; it is Electron's. Every Electron release
  * ships a Chromium that drops operating systems on Chromium's schedule, and
@@ -15,7 +15,21 @@
  * built bundle declares it, and `docs:check` refuses a public document that
  * names a different version.
  */
-export const MINIMUM_MACOS = '13.0';
+export const ELECTRON_MINIMUM_MACOS = '13.0';
+
+/**
+ * The oldest macOS Kingfisher supports: what the bundle declares to Finder
+ * and Sparkle, and what the download page promises.
+ *
+ * It is the oldest macOS a packaged build has actually been run on (14.8.9,
+ * on a hosted Apple-silicon runner), not the oldest the runtime might start
+ * on. macOS 13 was the declared floor until 1.5.0 and was never run: no
+ * Apple-silicon Mac on 13 was available and GitHub's macOS 13 runners were
+ * Intel. A promise nobody has checked is the kind this project removes, so
+ * the owner chose to raise the floor to the evidence (2026-10-06). It may
+ * never be lower than `ELECTRON_MINIMUM_MACOS`; the test says so.
+ */
+export const MINIMUM_MACOS = '14.0';
 
 /** Apple's marketing name for a major version, for the documents that say it. */
 export const MACOS_NAMES = Object.freeze({

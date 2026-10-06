@@ -41,6 +41,19 @@ const browserProjects = [
 
 const matrixMode = process.env.KF_E2E_MATRIX === '1';
 
+/*
+  Microsoft Edge, which the landing names as a supported browser. Not in the
+  matrix: it is not installed on the maintainer's Mac. `edge-cert.yml` runs it
+  on a GitHub-hosted Windows runner, where Edge is preinstalled, by naming it
+  in KF_E2E_PROJECT.
+*/
+const edgeProject = {
+  name: 'edge',
+  use: { ...devices['Desktop Edge'], channel: 'msedge' },
+};
+/** One project by name, for a runner that has exactly that browser. */
+const onlyProject = process.env.KF_E2E_PROJECT;
+
 /**
  * How many times a failing test is retried, from the environment.
  *
@@ -98,9 +111,11 @@ export default defineConfig({
     certification. CI flips the flag so every push gets the matrix for
     free.
   */
-  projects: matrixMode
-    ? browserProjects
-    : browserProjects.filter((project) => project.name === 'chrome'),
+  projects: onlyProject
+    ? [...browserProjects, edgeProject].filter((project) => project.name === onlyProject)
+    : matrixMode
+      ? browserProjects
+      : browserProjects.filter((project) => project.name === 'chrome'),
   use: {
     // Next 16's development HMR origin checks reject 127.0.0.1 while the
     // server advertises localhost; using the canonical host keeps hydration

@@ -392,6 +392,16 @@ export class GameDatabase {
   #totals = null;
   /** Whether a completed build said the claim index can be trusted. */
   #claimIndexReady = false;
+  /*
+    Sort columns whose index is built on first use, and those already tried.
+    `date` and `opening` had none: the first such sort of a cold multi-GB
+    collection read the whole file (4.8 s at 578,262 games). Building the
+    index in SCHEMA would charge every existing collection that cost on open,
+    before the person asked for anything; building it on the first sort
+    charges it once, at the moment it was already being paid.
+  */
+  static #LAZY_SORT_INDEXES = { date: 'games_date', opening: 'games_opening' };
+  #sortIndexTried = new Set();
   /** Phase 85: inside `beginBulk` … `endBulk`, the per-row maintenance is deferred. */
   #bulk = false;
   #bulkPending = 0;
@@ -1460,6 +1470,7 @@ export class GameDatabase {
     };
     // Whitelisted, never interpolated from the request.
     const column = SORTS[query.sortBy] ?? 'imported_at';
+    this.#ensureSortIndex(column);
     const direction = query.sortDirection === 'asc' ? 'ASC' : 'DESC';
     /*
       A total order, so paging is deterministic.
@@ -1494,6 +1505,25 @@ export class GameDatabase {
     }
 
     return { games: page.map(toSummary), hasMore, total, offset, limit };
+  }
+
+  /**
+   * Build the index a sort column needs, once, the first time it is used.
+   *
+   * Tried once per open collection whatever happens. A collection opened
+   * read-only, or one busy with an import on another connection, refuses the
+   * write; the sort then runs as it always did, unindexed and correct, and the
+   * next open tries again.
+   */
+  #ensureSortIndex(column) {
+    const name = GameDatabase.#LAZY_SORT_INDEXES[column];
+    if (!name || this.#sortIndexTried.has(column)) return;
+    this.#sortIndexTried.add(column);
+    try {
+      this.#db.exec(`CREATE INDEX IF NOT EXISTS ${name} ON games(${column})`);
+    } catch {
+      /* read-only or busy: sort without it */
+    }
   }
 
   /**

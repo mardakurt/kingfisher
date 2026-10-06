@@ -4,7 +4,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-import { MINIMUM_MACOS, compareMacOSVersions, describeMinimumMacOS } from './platform-floor.mjs';
+import {
+  ELECTRON_MINIMUM_MACOS,
+  MINIMUM_MACOS,
+  compareMacOSVersions,
+  describeMinimumMacOS,
+} from './platform-floor.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const require_ = createRequire(import.meta.url);
@@ -49,7 +54,7 @@ describe('the macOS floor', () => {
       // The bundle is here, so this really is the check the title promises.
       expect({ source: 'packaged plist', declared }).toEqual({
         source: 'packaged plist',
-        declared: MINIMUM_MACOS,
+        declared: ELECTRON_MINIMUM_MACOS,
       });
       return;
     }
@@ -61,12 +66,18 @@ describe('the macOS floor', () => {
     expect({
       source: 'no bundle; pinned to Electron',
       electronMajor,
-      floor: MINIMUM_MACOS,
+      floor: ELECTRON_MINIMUM_MACOS,
     }).toEqual({
       source: 'no bundle; pinned to Electron',
       electronMajor: 44,
       floor: '13.0',
     });
+  });
+
+  it('supports no macOS older than the runtime starts on, and none it was not run on', () => {
+    expect(compareMacOSVersions(MINIMUM_MACOS, ELECTRON_MINIMUM_MACOS)).toBeGreaterThanOrEqual(0);
+    // 14.8.9 is the oldest macOS a packaged build has been run on (hosted runner).
+    expect(MINIMUM_MACOS).toBe('14.0');
   });
 
   it('is what the build declares to Finder', () => {
@@ -83,7 +94,9 @@ describe('the macOS floor', () => {
     // descriptor is rewritten from the verified bundle at release time); it
     // may never promise an older one, because that is a machine the download
     // will not start on.
-    expect(compareMacOSVersions(descriptor.minimumMacOS, MINIMUM_MACOS)).toBeGreaterThanOrEqual(0);
+    expect(
+      compareMacOSVersions(descriptor.minimumMacOS, ELECTRON_MINIMUM_MACOS),
+    ).toBeGreaterThanOrEqual(0);
   });
 
   it('names the version the way Apple does', () => {

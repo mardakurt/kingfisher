@@ -290,9 +290,8 @@ export class CompanionClient {
     timeoutMs: number = REQUEST_TIMEOUT_MS,
   ): Promise<T> {
     const limit = deadline(timeoutMs, signal);
-    let response: Response;
-    try {
-      response = await fetch(`${this.config.url}${path}`, {
+    const send = () =>
+      fetch(`${this.config.url}${path}`, {
         method: body === undefined ? 'GET' : 'POST',
         headers: {
           authorization: `Bearer ${this.config.token}`,
@@ -307,6 +306,24 @@ export class CompanionClient {
         */
         signal: limit.signal,
       });
+    let response: Response;
+    try {
+      try {
+        response = await send();
+      } catch (first) {
+        /*
+          One more try for a GET that failed at the connection itself. A
+          companion busy with a large import closes idle keep-alive sockets
+          late, and a request that lands on one fails with a reset although
+          the companion is fine — seen as ECONNRESET on status polls during
+          the 1,048,440-game import. A GET asks the same question twice
+          harmlessly; a POST may start an engine or an import, so it is never
+          repeated. Nor is a request that ran out its deadline or was
+          cancelled: that is an answer, not a dropped connection.
+        */
+        if (body !== undefined || signal?.aborted || limit.expired()) throw first;
+        response = await send();
+      }
     } catch (error) {
       if (signal?.aborted) throw error;
       throw new CompanionError(

@@ -57,10 +57,16 @@ let launch: boolean | null = null;
  * put that tab's moves on another tab's board.
  */
 let settleRestore: () => void = () => undefined;
+let restoreDone = false;
 const restoreSettled = new Promise<void>((resolve) => {
-  settleRestore = resolve;
+  settleRestore = () => {
+    restoreDone = true;
+    resolve();
+  };
 });
 export const workspaceRestored = (): Promise<void> => restoreSettled;
+/** The same fact, synchronously, for a first render that must not guess. */
+export const isWorkspaceRestored = (): boolean => restoreDone;
 let flushMountedWorkspace: (() => Promise<boolean>) | null = null;
 
 /** Drain the debounced and in-flight save before replacing a study chapter. */

@@ -6,6 +6,17 @@ real users notice.
 
 ## Unreleased (web)
 
+- Sorting a large companion collection by Date or Opening is instant after
+  the first time: that first sort builds the index (0.9 s at 1,048,440 games,
+  where every Date sort used to take 10.4 s).
+- A reload with slow storage no longer highlights the first chapter of a study
+  before the chapter it actually restores.
+- A request to the companion that lands on a connection the companion has
+  just closed is asked once more instead of reporting the companion as not
+  reachable; requests that start something are never repeated.
+- The Mac application requires macOS 14 (Sonoma) or later — the oldest
+  version it has been run on. macOS 13 was never tested.
+
 ## 1.4.9 — 2026-10-06
 
 - Authored board arrows and exported diagrams use the engine best-move arrow’s
