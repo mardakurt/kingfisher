@@ -160,6 +160,10 @@ export function Menu({ trigger, sections, align = 'start' }: MenuProps) {
   // in the middle of the side panel, and More opened upwards into a region
   // the panel clipped, under the header, with its items unclickable.
   const [room, setRoom] = useState<number | null>(null);
+  // Sideways, the panel is pulled back inside the window: an end-aligned menu
+  // wider than the room left of its trigger — the header's "⋯" on a phone —
+  // otherwise opens with its first characters off-screen.
+  const [shift, setShift] = useState(0);
   useLayoutEffect(() => {
     if (!open) return;
     const trigger = wrapper.current?.getBoundingClientRect();
@@ -171,7 +175,11 @@ export function Menu({ trigger, sections, align = 'start' }: MenuProps) {
     const up = box.height > below - 8 && aboveRoom > below;
     setAbove(up);
     setRoom(Math.max(120, Math.floor((up ? aboveRoom : below) - 8)));
-  }, [open, sections]);
+    const left = box.left - shift;
+    const right = box.right - shift;
+    const limit = window.innerWidth - 4;
+    setShift(left < 4 ? Math.ceil(4 - left) : right > limit ? Math.floor(limit - right) : 0);
+  }, [open, sections, shift]);
 
   useEffect(() => {
     if (!open) return;
@@ -193,7 +201,12 @@ export function Menu({ trigger, sections, align = 'start' }: MenuProps) {
             above ? 'bottom-full mb-1' : 'top-full mt-1',
             align === 'end' ? 'right-0' : 'left-0',
           )}
-          style={room === null ? undefined : ({ '--menu-room': `${room}px` } as CSSProperties)}
+          style={
+            {
+              ...(room === null ? {} : { '--menu-room': `${room}px` }),
+              ...(shift === 0 ? {} : { transform: `translateX(${shift}px)` }),
+            } as CSSProperties
+          }
         >
           <MenuList sections={sections} onClose={() => setOpen(false)} labelledBy={id} />
         </div>

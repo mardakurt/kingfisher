@@ -13,6 +13,9 @@ real users notice.
   unsupported source limitations stated beside the results.
 - Repertoire's Your openings view lists White and Black repertoires together,
   counts recorded intended decisions and opens their named positions.
+  It sits after Review repertoire in the header, which stays in the row.
+- A menu that opens from a control near the edge of a phone-width window
+  opens inside the window instead of losing its first characters off-screen.
 - Recorded PGN game titles appear above the players in the shared game header.
 
 - Sorting a large companion collection by Date or Opening is instant after

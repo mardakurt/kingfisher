@@ -8,6 +8,27 @@ async function routeAction(page: Page, name: string) {
   await page.getByRole('menuitem', { name, exact: true }).click();
 }
 
+test('on a phone the folded header actions open inside the window', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/repertoire');
+  await page.locator('html[data-kingfisher-ready="true"]').waitFor();
+  await page.getByRole('button', { name: 'New repertoire', exact: true }).first().click();
+  const dialog = page.getByRole('dialog', { name: 'New repertoire' });
+  await dialog.getByLabel('Title').fill('Phone plan');
+  await dialog.getByRole('button', { name: 'Create', exact: true }).click();
+  await expect(dialog).toBeHidden();
+  await page.locator('[data-header-actions][data-header-measured]').waitFor();
+  await page.getByRole('button', { name: 'More actions' }).click();
+  for (const name of ['Review repertoire', 'Your openings', 'Scan games against this repertoire']) {
+    const box = await page.getByRole('menuitem', { name, exact: true }).boundingBox();
+    expect(box, name).not.toBeNull();
+    expect(box!.x, name).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width, name).toBeLessThanOrEqual(390);
+  }
+  await page.getByRole('menuitem', { name: 'Review repertoire', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Review repertoire' })).toBeVisible();
+});
+
 // Authored test repertoires; not a claimed reference population.
 test('Your openings shows both colours and opens the chosen repertoire position', async ({
   page,
