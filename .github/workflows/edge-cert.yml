@@ -39,6 +39,11 @@ jobs:
       # record the failure videos the config asks for.
       - run: npx playwright install ffmpeg
 
+      # The browser Stockfish files are git-ignored and installed here, as
+      # `npm run test:e2e` does before it runs Playwright. Without this step
+      # every engine file answered 404 (first Edge run on 603b4ce).
+      - run: npm run engine:install
+
       - name: Edge version
         shell: pwsh
         run: (Get-Item "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe").VersionInfo.ProductVersion
