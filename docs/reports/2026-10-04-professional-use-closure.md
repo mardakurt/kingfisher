@@ -656,3 +656,43 @@ The four-hour session certifies build 1141. Build 1147 differs from it in
 the renderer's arrow paint and the photo lookup, both covered above, and is
 certified by `desktop:certify` and the update test; it has not had its own
 four-hour session, and the verdict says so.
+
+## ChessBase Mac closure continuation (2026-10-06, candidate 1.5.0)
+
+Starting state was inspected before editing: clean master and origin/master at
+`cdb1359510f5b4371d416eff8b15795a22d7ddef`, source 1.4.9. Public descriptor
+still selects 1.4.9 build 1147, commit `d9c5aae`, SHA-256
+`7b7c704329775a373f95c9095c1941f80924dd789f528e519049762ae3e4fd9a`.
+The four unreleased `469df0a` fixes are retained. No published bytes changed.
+
+The live Macland page and all ten excluded preview screenshots were read.
+[Claim/control matrix](../product/chessbase-mac-comparison-1.5.0.md) was written
+before implementation. ChessBase Mac remains an unreleased development preview;
+no installed-product comparison or measurement is claimed.
+
+Current work adds bounded Explorer rating classes, a cross-repertoire Your openings
+overview and recorded PGN Title display. Existing video lessons are retained.
+The reader counts but skips guiding text records; they are not decoded/preserved.
+Server services and paid/editorial datasets remain explicit boundaries.
+
+Evidence directory: `~/KingfisherWork/evidence/closure/chessbase-20261006/`.
+Starting-state record, live Dependabot inspection, dependency audit and regression
+logs are retained there. `sharp` is now 0.35.5, `source-map-js` 1.2.2;
+`npm audit --omit=dev` reports zero vulnerabilities. `sprintf-js` 1.1.3 remains
+in optional desktop build tooling through electron-builder → @electron/get →
+global-agent → roarr, not runtime. A separate newly reported development-only
+`braces` stack-exhaustion advisory has no patched registry version (latest 3.0.3);
+its transitive lint-tooling alerts remain open. No incompatible audit downgrade
+was applied.
+
+Focused logic tests: 8/8. Type checking and lint passed. Each of rating filters,
+overview counts and Title display was disabled once: its zero-retry browser test
+failed (exit 1), then passed with implementation restored (exit 0).
+`mutations/browser-results.json` records all three pairs; corresponding fail/pass
+logs are retained. Logic mutation logs are separate.
+
+Production build and first-mount browser checks passed: 5/5 focused repository checks and 4/4 real-data workflows at zero retries. Local and SQLite imports use two real Starter broadcast games; the CC0 Opera Game video follows three matching real moves and seeks back; the overview selects a position authored from that real game. Desktop/phone and light/dark screenshots were inspected. `production-use-review.md` records scope and limits. A stronger overview navigation regression failed before the fix and passed afterward (`mutations/overview-return-{fail,pass}.log`). The final isolated full unit run passed 4,208/4,208, no skips, after an earlier native Sparkle timeout during a concurrent build. Final typecheck/lint/format and docs 363/363 passed. Full Chrome is running detached with an atomic exit marker and a recorded zero-dataless check. Windows Edge, 10M-game acceptance, exact-package
+certification/public release and the final continuous eight-hour shipped-build
+session have no completed result in this continuation yet.
+
+Recorded PGN titles now have a collection index and exact-title Library search in both stores, plus opened-game display. Real Aronian–Anand 2013 and Botvinnik–Capablanca 1938 titles were imported and opened. Index logic/rendered removal fail/pass pairs and a title-link removal fail/pass pair are retained. Production focused checks passed 7/7. The prior detached full Chrome run was intentionally interrupted before completing the title-index work and has no result. The final full gate will start again on the completed source.

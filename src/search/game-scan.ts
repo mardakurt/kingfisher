@@ -28,6 +28,7 @@ import { findRoute, type Route, type RouteMove } from './route';
 export interface DeepQuery {
   /** Imported PGN metadata, never inferred from comments or player names. */
   readonly metadata?: {
+    readonly title?: string;
     readonly annotator?: string;
     readonly source?: string;
     readonly team?: string;
@@ -118,6 +119,7 @@ export function scanLine(
       : have.includes(wanted.trim().toLocaleLowerCase('en-US'));
   };
   const metadata = query.metadata;
+  if (metadata?.title?.trim() && !includes(headers.Title, metadata.title)) return null;
   if (metadata?.annotator?.trim() && !includes(headers.Annotator, metadata.annotator)) return null;
   if (metadata?.source?.trim() && !includes(headers.Source, metadata.source)) return null;
   if (

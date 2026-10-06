@@ -6,6 +6,15 @@ real users notice.
 
 ## Unreleased (web)
 
+- Browse recorded game titles in a collection and open exactly the games carrying a selected Title tag, in local and companion SQLite databases.
+
+- Explorer rating classes now apply bounded filters to My games, companion
+  SQLite collections and Lichess's native buckets, with the rating rule and
+  unsupported source limitations stated beside the results.
+- Repertoire's Your openings view lists White and Black repertoires together,
+  counts recorded intended decisions and opens their named positions.
+- Recorded PGN game titles appear above the players in the shared game header.
+
 - Sorting a large companion collection by Date or Opening is instant after
   the first time: that first sort builds the index (0.9 s at 1,048,440 games,
   where every Date sort used to take 10.4 s).

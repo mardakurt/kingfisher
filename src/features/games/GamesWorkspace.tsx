@@ -210,6 +210,7 @@ export function GamesWorkspace() {
       reload would quietly run a search of every game again.
     */
     const metadata = {
+      title: params.get('title') ?? '',
       annotator: params.get('annotator') ?? '',
       source: params.get('source') ?? '',
       team: params.get('team') ?? '',
@@ -227,10 +228,10 @@ export function GamesWorkspace() {
     if (against) setOpponent(against);
     if (openingParam) setOpening(openingParam);
     if (alsoParam) setAlso(alsoParam.split(',').filter(Boolean));
-    if (metadata.annotator || metadata.source || metadata.team) {
+    if (metadata.annotator || metadata.source || metadata.team || metadata.title) {
       setMoves({ ...EMPTY_MOVES, ...metadata });
       searchFromAddress.current = true;
-      for (const key of ['annotator', 'source', 'team']) params.delete(key);
+      for (const key of ['annotator', 'source', 'team', 'title']) params.delete(key);
       const rest = params.toString();
       window.history.replaceState(
         window.history.state,
@@ -410,7 +411,7 @@ export function GamesWorkspace() {
   // The search an index row asked for, once its fields are in place.
   useEffect(() => {
     if (!searchFromAddress.current) return;
-    if (!moves.annotator && !moves.source && !moves.team) return;
+    if (!moves.annotator && !moves.source && !moves.team && !moves.title) return;
     searchFromAddress.current = false;
     // The request came from the address, outside React; starting it is the sync.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -620,6 +621,7 @@ export function GamesWorkspace() {
       route: fields.moves.route?.text ?? '',
       routeColour: fields.moves.route?.colour ?? 'either',
       comment: fields.moves.comment ?? '',
+      title: fields.moves.metadata?.title ?? '',
       annotator: fields.moves.metadata?.annotator ?? '',
       source: fields.moves.metadata?.source ?? '',
       team: fields.moves.metadata?.team ?? '',

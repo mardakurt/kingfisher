@@ -142,6 +142,7 @@ export interface CompanionDuplicateKey {
 /** A game's people-and-provenance tags, read from its PGN headers. */
 export interface CompanionTagKey {
   readonly id: string;
+  readonly title?: string;
   readonly annotator?: string;
   readonly source?: string;
   readonly whiteTeam?: string;
@@ -711,7 +712,7 @@ export class CompanionClient {
     return this.request('/db/duplicate-keys', { key, after, limit });
   }
 
-  /** A page of games' Annotator, Source and team tags (`GameDatabase.tagKeys`). */
+  /** A page of games' Title, Annotator, Source and team tags (`GameDatabase.tagKeys`). */
   tagKeys(
     key: string,
     after: string | null,

@@ -57,7 +57,12 @@ import { useRouter } from 'next/navigation';
 
 import { DepartureSection } from './DepartureSection';
 import { RatingClassesSection } from './RatingClassesSection';
-import { applicableExplorerFilters } from './explorer-filters';
+import {
+  applicableExplorerFilters,
+  explorerRatingClasses,
+  ratingClassRule,
+  withRatingClass,
+} from './explorer-filters';
 import { SourceFallback, SourcePicker } from './SourcePicker';
 import { SourceComparison } from './SourceComparison';
 import { useExplorerSource } from './useExplorerSource';
@@ -122,6 +127,8 @@ export function ExplorerPanel() {
   const [comparedSources, setComparedSources] = useState<readonly string[]>([]);
   const [player, setPlayer] = useState('');
   const [playerColor, setPlayerColor] = useState<'w' | 'b'>('w');
+  const ratingClassBySource = useUi((state) => state.explorerRatingClassBySource);
+  const setRatingClass = useUi((state) => state.setExplorerRatingClass);
 
   const sources = useSourcesFor('explorer');
   const catalog = useReferenceSources();
@@ -153,10 +160,18 @@ export function ExplorerPanel() {
   */
   const ratingFilter = provider?.capabilities.ratingFilter ?? false;
   const dateFilter = provider?.capabilities.dateFilter ?? false;
-  const applicable = applicableExplorerFilters(prefs, provider?.capabilities);
+  const ratingClasses = explorerRatingClasses(provider?.id ?? '');
+  const ratingClass =
+    ratingFilter && provider
+      ? ratingClasses.find((entry) => entry.min === ratingClassBySource[provider.id])
+      : undefined;
+  const applicable = applicableExplorerFilters(
+    ratingClass ? { ...prefs, explorerMinRating: null } : prefs,
+    provider?.capabilities,
+  );
   const ignoredFilters = applicable.ignored;
   const filters = {
-    ...applicable.filters,
+    ...withRatingClass(applicable.filters, ratingClass),
     ...(speedFilter && speedFacetEntry.speeds ? { speeds: speedFacetEntry.speeds } : {}),
     ...(playerFilter && player.trim() ? { player: player.trim(), playerColor } : {}),
   };
@@ -480,6 +495,41 @@ export function ExplorerPanel() {
           {query.data ? `${total.toLocaleString()} games here · ` : ''}
           {provider?.description}
         </p>
+        {ratingFilter ? (
+          <div className="mt-1.5" data-explorer-rating-class>
+            <label className="flex items-center gap-2 text-[10px] text-secondary">
+              Rating class
+              <select
+                aria-label="Rating class"
+                value={ratingClass?.min ?? ''}
+                onChange={(event) =>
+                  setRatingClass(
+                    provider!.id,
+                    event.target.value === '' ? null : Number(event.target.value),
+                  )
+                }
+                className="h-6 min-w-0 rounded border border-line bg-surface-inset px-1.5 text-primary"
+              >
+                <option value="">
+                  {prefs.explorerMinRating ? `Min Elo ${prefs.explorerMinRating}` : 'All ratings'}
+                </option>
+                {ratingClasses.map((entry) => (
+                  <option key={entry.min} value={entry.min}>
+                    {entry.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="mt-0.5 text-[9.5px] text-tertiary">
+              {provider?.name}: {ratingClassRule(provider!.id)}
+            </p>
+          </div>
+        ) : provider && !packReader(provider.id)?.manifest.history?.bands?.length ? (
+          <p className="mt-1 text-[10px] text-tertiary" data-explorer-rating-unavailable>
+            {provider.name} does not declare rating-class data. Its move counts cannot be split by
+            rating.
+          </p>
+        ) : null}
         {provider?.capabilities.playerFilter ? (
           <div className="mt-2 flex gap-1.5">
             <input
@@ -531,12 +581,13 @@ export function ExplorerPanel() {
                 value={prefs.explorerMinRating ?? ''}
                 disabled={!ratingFilter}
                 inputMode="numeric"
-                onChange={(event) =>
+                onChange={(event) => {
                   prefs.set(
                     'explorerMinRating',
                     Number(event.target.value.replace(/\D/g, '')) || null,
-                  )
-                }
+                  );
+                  if (provider) setRatingClass(provider.id, null);
+                }}
                 className="mt-0.5 block h-6 w-[70px] rounded-[var(--radius-control)] border border-line bg-surface-inset px-1.5 text-[10.5px] text-primary outline-none focus:border-accent/60 disabled:opacity-50"
               />
             </label>
@@ -561,6 +612,7 @@ export function ExplorerPanel() {
               onClick={() => {
                 prefs.set('explorerMinRating', null);
                 prefs.set('explorerSinceYear', null);
+                if (provider) setRatingClass(provider.id, null);
               }}
             >
               Clear

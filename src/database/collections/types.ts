@@ -96,9 +96,10 @@ export interface DuplicateKey {
   readonly blackRating?: number;
 }
 
-/** A game's Annotator, Source and team tags, which only its PGN carries. */
+/** A game's recorded Title, Annotator, Source and team tags in its PGN. */
 export interface TagKey {
   readonly id: string;
+  readonly title?: string;
   readonly annotator?: string;
   readonly source?: string;
   readonly whiteTeam?: string;

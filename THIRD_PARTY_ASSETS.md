@@ -248,3 +248,9 @@ The captures these replaced (`workspace-2026-09.webp`, `engine-analysis-v2.webp`
 `research-explorer.webp`, the 1440 × 900 `og.png`) showed the toolbar removed
 in 1.2.0, the wooden board and the pre-Phase-71 Training icon, and the
 "research" one was in fact the Theory Book.
+
+## Closure QA media (2026-10-06; not distributed)
+
+The local evidence directory uses Morn's [Opera Game, 1858 animation](https://commons.wikimedia.org/wiki/File:Opera_Game,_1858.gif), CC0 1.0, converted from GIF to H.264 MP4 without changing its frames or timing. The file page supplies the real-game PGN. It is used to check local video/board synchronization, not presented as a commercial course, and is not shipped in Kingfisher.
+
+Selvam231954's [Bishop in Chess](https://commons.wikimedia.org/wiki/File:சதுரங்க_ஆட்டத்தில்_அந்தணர்_-_Bishop_in_Chess.ogv), own work dated 2019-06-23, CC BY-SA 4.0, was also downloaded and converted to H.264/AAC solely for local QA. Attribution and the unchanged licence apply to that conversion. It is not shipped; its physical demonstration is not claimed to have a matching standard-chess move tree.

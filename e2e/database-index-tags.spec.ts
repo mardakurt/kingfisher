@@ -6,7 +6,8 @@
 import { expect, test } from '@playwright/test';
 import { settingsButton } from './support/settings-control';
 
-const PGN = `[Event "Tagged A"]
+const PGN = `[Title "A recorded title"]
+[Event "Tagged A"]
 [White "Alpha"]
 [Black "Beta"]
 [Annotator "Capablanca"]
@@ -14,6 +15,7 @@ const PGN = `[Event "Tagged A"]
 [WhiteTeam "Havana"]
 1. e4 e5 *
 
+[Title "A recorded title extended"]
 [Event "Tagged B"]
 [White "Gamma"]
 [Black "Delta"]
@@ -57,6 +59,33 @@ test('the annotators, sources and teams of My games, each leading to exactly its
   await expect(page.getByText(/1 of 3 games read contain it/)).toBeVisible();
   await expect(page.locator('[data-library-list]')).toContainText('Tagged A');
   await expect(page.locator('[data-library-list]')).not.toContainText('Tagged B');
+  await page.goto('/databases?db=local');
+  await tags.getByRole('button', { name: /^Game titles/ }).click();
+  await expect(tags.locator('[data-tags-list="titles"] li')).toHaveCount(2);
+  await expect(tags).toContainText('1 game of 3 names no recorded title.');
+  await tags.locator('[data-tag-name="A recorded title"]').click();
+  await expect(page.getByText(/1 of 3 games read contain it/)).toBeVisible();
+  await expect(page.locator('[data-library-list]')).toContainText('Tagged A');
+  await expect(page.locator('[data-library-list]')).not.toContainText('Tagged B');
+  // Repeatedly leave and return: a title must replace the previous metadata search.
+  for (const title of [
+    'A recorded title extended',
+    'A recorded title',
+    'A recorded title extended',
+    'A recorded title',
+  ]) {
+    await page.goBack();
+    await tags.getByRole('button', { name: /^Game titles/ }).click();
+    await tags.locator(`[data-tag-name="${title}"]`).click();
+    await expect(page).not.toHaveURL(/title=/);
+    await expect(page.getByText(/1 of 3 games read contain it/)).toBeVisible();
+    await expect(page.locator('[data-library-list]')).toContainText(
+      title.endsWith('extended') ? 'Tagged B' : 'Tagged A',
+    );
+    await expect(page.locator('[data-library-list]')).not.toContainText(
+      title.endsWith('extended') ? 'Tagged A' : 'Tagged B',
+    );
+  }
 });
 
 test('a companion collection lists its annotators from its stored PGN too', async ({ page }) => {
@@ -90,4 +119,10 @@ test('a companion collection lists its annotators from its stored PGN too', asyn
   await expect(tags.locator('[data-tags-list="annotators"] li')).toHaveCount(2);
   await tags.getByRole('button', { name: /^Sources/ }).click();
   await expect(tags.locator('[data-tags-list="sources"]')).toContainText('Chess Fundamentals');
+  await tags.getByRole('button', { name: /^Game titles/ }).click();
+  await expect(tags.locator('[data-tags-list="titles"] li')).toHaveCount(2);
+  await tags.locator('[data-tag-name="A recorded title"]').click();
+  await expect(page.getByText(/1 of 3 games read contain it/)).toBeVisible();
+  await expect(page.locator('[data-library-list]')).toContainText('Tagged A');
+  await expect(page.locator('[data-library-list]')).not.toContainText('Tagged B');
 });

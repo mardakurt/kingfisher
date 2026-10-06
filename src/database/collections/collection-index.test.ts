@@ -150,13 +150,14 @@ describe('the index of annotators, sources and teams', () => {
         games: [
           {
             id: '1',
+            title: 'A recorded title',
             annotator: 'Kasparov, G',
             source: 'Mega',
             whiteTeam: 'Baku',
             blackTeam: 'Baku',
           },
           { id: '2', annotator: 'kasparov,  g', whiteTeam: 'Baku', blackTeam: 'Monaco' },
-          { id: '3', annotator: '?', source: 'Club' },
+          { id: '3', title: '?', annotator: '?', source: 'Club' },
         ],
         nextAfter: '3',
       },
@@ -164,6 +165,8 @@ describe('the index of annotators, sources and teams', () => {
     ];
     const index = await readTagIndex({ tagKeys: async () => pages.shift()! });
     expect(index.games).toBe(4);
+    expect(index.titles).toEqual([{ name: 'A recorded title', games: 1 }]);
+    expect(index.withoutTitle).toBe(3);
     expect(index.annotators).toEqual([{ name: 'Kasparov, G', games: 2 }]);
     expect(index.sources).toEqual([
       { name: 'Club', games: 1 },

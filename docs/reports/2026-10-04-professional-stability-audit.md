@@ -496,3 +496,24 @@ to run it); Intel Macs, Windows and Linux desktop builds; Edge as a separately
 tested browser; collections beyond the measured sizes; multi-day sessions;
 engines and providers other than those exercised; ChessBase feature parity;
 or that no future failure is possible. The non-blocking debt above remains.
+
+## Final-source closure continuation (2026-10-06)
+
+The new [ChessBase Mac claim/control matrix](../product/chessbase-mac-comparison-1.5.0.md)
+was written before changes against the live preview page and ten owner-supplied
+screenshots. Its comparison boundary is the unreleased development preview.
+This continuation preserves prior results and does not transfer a historical
+package's session evidence to a new build.
+
+| Required checkpoint                                                | Current continuation evidence                                                                                                                                                                                       |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bounded rating classes, all-repertoire overview, PGN Title display | Implemented; focused logic 8/8, production browser 7/7, browser implementation-removal fail/pass pairs retained                                                                                                     |
+| Real local/SQLite games and local video synchronization            | Final production browser 6/6 using two real broadcast games and Morn's CC0 Opera Game animation; screenshots inspected; responsive filter retention and stored-position return regressions failed before/pass after |
+| Dependency fixes                                                   | sharp 0.35.5, source-map-js 1.2.2; runtime audit 0; sprintf-js and separate development braces advisory remain open                                                                                                 |
+| Full final Chrome, Windows Edge, >10M games                        | Earlier Chrome interrupted for title browsing; final full Chrome, Edge and scale pending, no result claimed                                                                                                         |
+| Stable package, public-byte/update checks                          | Pending; public remains 1.4.9 build 1147                                                                                                                                                                            |
+| Continuous eight-hour published-build session                      | Pending; historical four-hour build 1141 does not satisfy it                                                                                                                                                        |
+
+Verdict for this candidate remains **PARTIALLY** until the final-source gates,
+publication and final-build session are complete. macOS 13 remains on 1.4.9;
+Intel Mac, Windows and Linux desktop packages are outside the owner's scope.

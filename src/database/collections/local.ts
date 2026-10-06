@@ -203,12 +203,14 @@ export class LocalGameCollection implements GameCollection {
           const value = headers[name]?.trim();
           return value && value !== '?' ? value : undefined;
         };
+        const title = tag('Title');
         const annotator = tag('Annotator');
         const source = tag('Source');
         const whiteTeam = tag('WhiteTeam');
         const blackTeam = tag('BlackTeam');
         games.push({
           id: summary.id,
+          ...(title ? { title } : {}),
           ...(annotator ? { annotator } : {}),
           ...(source ? { source } : {}),
           ...(whiteTeam ? { whiteTeam } : {}),

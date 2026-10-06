@@ -213,6 +213,7 @@ export function HeaderMaskFields({
 // --- moves ------------------------------------------------------------------
 
 export interface MoveMask {
+  readonly title?: string;
   readonly annotator: string;
   readonly source: string;
   readonly team: string;
@@ -228,6 +229,7 @@ export interface MoveMask {
 }
 
 export const EMPTY_MOVES: MoveMask = {
+  title: '',
   annotator: '',
   source: '',
   team: '',
@@ -291,9 +293,10 @@ export function compileMoves(mask: MoveMask): CompiledMoves {
   }
   return {
     query: {
-      ...(mask.annotator.trim() || mask.source.trim() || mask.team.trim()
+      ...(mask.annotator.trim() || mask.source.trim() || mask.team.trim() || mask.title?.trim()
         ? {
             metadata: {
+              ...(mask.title?.trim() ? { title: mask.title.trim() } : {}),
               ...(mask.annotator.trim() ? { annotator: mask.annotator.trim() } : {}),
               ...(mask.source.trim() ? { source: mask.source.trim() } : {}),
               ...(mask.team.trim() ? { team: mask.team.trim() } : {}),
@@ -425,23 +428,37 @@ export function MoveMaskFields({
           <option value="commented">Commented</option>
         </select>
       </Field>
-      {(['annotator', 'source', 'team'] as const).map((key) => (
+      {(['annotator', 'source', 'team', 'title'] as const).map((key) => (
         <Field
           key={key}
-          label={key === 'annotator' ? 'Annotator' : key === 'source' ? 'PGN source' : 'Team'}
+          label={
+            key === 'title'
+              ? 'Game title'
+              : key === 'annotator'
+                ? 'Annotator'
+                : key === 'source'
+                  ? 'PGN source'
+                  : 'Team'
+          }
           wide
         >
           <input
-            value={mask[key]}
+            value={mask[key] ?? ''}
             onChange={(event) => set(key, event.target.value)}
             className={FIELD}
             placeholder={
-              key === 'annotator' ? 'Capablanca' : key === 'source' ? 'Source tag' : 'Either team'
+              key === 'title'
+                ? 'Recorded Title tag'
+                : key === 'annotator'
+                  ? 'Capablanca'
+                  : key === 'source'
+                    ? 'Source tag'
+                    : 'Either team'
             }
             title={
               key === 'team'
                 ? 'Text in the imported WhiteTeam or BlackTeam PGN tag. No team is inferred.'
-                : `Text in the imported ${key === 'annotator' ? 'Annotator' : 'Source'} PGN tag. A missing tag does not match.`
+                : `Text in the imported ${key === 'title' ? 'Title' : key === 'annotator' ? 'Annotator' : 'Source'} PGN tag. A missing tag does not match.`
             }
           />
         </Field>

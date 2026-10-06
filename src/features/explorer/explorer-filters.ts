@@ -15,6 +15,57 @@ export interface ExplorerFilterPreferences {
   readonly explorerSinceYear: number | null;
 }
 
+export interface ExplorerRatingClass {
+  readonly min: number;
+  readonly max?: number;
+  readonly label: string;
+}
+
+/** Lichess classes are its native buckets; local sources accept exact bounds. */
+export function explorerRatingClasses(sourceId: string): readonly ExplorerRatingClass[] {
+  const bounds =
+    sourceId === 'lichess-games'
+      ? [400, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2500]
+      : [0, 1400, 1600, 1800, 2000, 2200, 2400, 2600];
+  return bounds.map((min, index) => {
+    const next = bounds[index + 1];
+    return {
+      min,
+      ...(next === undefined ? {} : { max: next - (sourceId === 'local-collection' ? 0.5 : 1) }),
+      label:
+        next === undefined
+          ? `${min}+`
+          : min === 0
+            ? `<${next}`
+            : sourceId === 'local-collection'
+              ? `${min}–<${next}`
+              : `${min}–${next - 1}`,
+    };
+  });
+}
+
+/** A class replaces Min Elo for this source, without changing a saved preference. */
+export function withRatingClass(
+  filters: ExplorerFilters,
+  ratingClass: ExplorerRatingClass | undefined,
+): ExplorerFilters {
+  if (!ratingClass) return filters;
+  const { minRating: _min, maxRating: _max, ...rest } = filters;
+  return {
+    ...rest,
+    minRating: ratingClass.min,
+    ...(ratingClass.max === undefined ? {} : { maxRating: ratingClass.max }),
+  };
+}
+
+export function ratingClassRule(sourceId: string): string {
+  if (sourceId === 'lichess-games')
+    return 'Lichess rating buckets; keep a separate speed population.';
+  if (sourceId === 'local-collection')
+    return 'Mean of the recorded player ratings; unrated games are excluded.';
+  return 'Higher recorded player rating; unrated games are excluded.';
+}
+
 export function applicableExplorerFilters(
   prefs: ExplorerFilterPreferences,
   capabilities: Pick<DatabaseCapabilities, 'ratingFilter' | 'dateFilter'> | undefined,

@@ -448,3 +448,18 @@ Capablanca book games are a separate collection.
   Kingfisher's own parser and rules, and duplicate complete scores are refused.
 - Distribution: the PGN collection is CC BY-SA 4.0 separately from the software;
   the Databases collection row links the source and licence.
+
+## Closure QA subsets (2026-10-06; not distributed)
+
+The external evidence directory contains a two-game PGN subset extracted from
+Kingfisher's existing CC BY-SA Starter Reference: Esipenko–Idani, FIDE World Cup
+2025, and Gumularz–Nisipeanu, European Team Championship. Original broadcast
+URLs and recorded ratings are retained in `real-rating-games-source.json` and
+PGN Source tags. This is a bounded test sample, not a new reference population;
+no contents are added to the shipped application.
+
+The local video synchronization check uses the unannotated Opera Game movetext
+supplied on [Morn's CC0 animation file page](https://commons.wikimedia.org/wiki/File:Opera_Game,_1858.gif),
+Morphy–Duke Karl / Count Isouard, Paris 1858. Its animation's CC0 dedication is
+recorded in THIRD_PARTY_ASSETS.md. This QA PGN is outside the repository, is not
+shipped, and does not copy a publisher database.

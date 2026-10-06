@@ -79,7 +79,7 @@ export type QueryPredicate =
   | { readonly type: 'comment'; readonly contains: string }
   | {
       readonly type: 'metadata';
-      readonly field: 'annotator' | 'source' | 'team';
+      readonly field: 'annotator' | 'source' | 'team' | 'title';
       readonly contains: string;
     }
   /** An annotation symbol ($1 = !, $2 = ?, …) on any move, variations included. */
@@ -224,10 +224,10 @@ function validateNode(value: unknown, depth: number): string | null {
         ? null
         : 'Annotations is "annotated" or "commented".';
     case 'metadata':
-      return ['annotator', 'source', 'team'].includes(value.field as string) &&
+      return ['annotator', 'source', 'team', 'title'].includes(value.field as string) &&
         nonEmpty(value.contains)
         ? null
-        : 'Metadata needs an annotator, source or team field and text.';
+        : 'Metadata needs an annotator, source, team or title field and text.';
     case 'position':
       return typeof value.key === 'string' && value.key.trim().split(/\s+/).length === 4
         ? null
@@ -340,7 +340,7 @@ export function queryFromFilters(
   if (deep.comment?.trim()) all.push({ type: 'comment', contains: deep.comment.trim() });
   if (deep.position) all.push({ type: 'position', key: deep.position });
   if (deep.annotations) all.push({ type: 'annotations', value: deep.annotations });
-  for (const field of ['annotator', 'source', 'team'] as const) {
+  for (const field of ['annotator', 'source', 'team', 'title'] as const) {
     const contains = deep.metadata?.[field]?.trim();
     if (contains) all.push({ type: 'metadata', field, contains });
   }

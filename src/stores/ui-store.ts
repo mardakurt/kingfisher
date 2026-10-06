@@ -35,6 +35,9 @@ export interface Notice {
 }
 
 interface UiState {
+  /** Per-source transient filters survive responsive tool remounts. */
+  explorerRatingClassBySource: Readonly<Record<string, number | undefined>>;
+  setExplorerRatingClass(sourceId: string, min: number | null): void;
   commandPaletteOpen: boolean;
   /*
    * One-shot prefilled query for the command palette. Set by anything
@@ -130,6 +133,14 @@ let noticeId = 0;
 export const useUi = create<UiState>((set) => ({
   boardEmphasis: null,
   setBoardEmphasis: (boardEmphasis) => set({ boardEmphasis }),
+  explorerRatingClassBySource: {},
+  setExplorerRatingClass: (sourceId, min) =>
+    set((state) => ({
+      explorerRatingClassBySource: {
+        ...state.explorerRatingClassBySource,
+        [sourceId]: min ?? undefined,
+      },
+    })),
   commandPaletteOpen: false,
   commandPalettePrefill: '',
   shortcutsOpen: false,

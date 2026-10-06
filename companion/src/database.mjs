@@ -1597,7 +1597,7 @@ export class GameDatabase {
   }
 
   /**
-   * A page of games' Annotator, Source, WhiteTeam and BlackTeam tags, for a
+   * A page of games' Title, Annotator, Source, WhiteTeam and BlackTeam tags, for a
    * collection's index. These live only in the PGN, so this reads each
    * game's header block — the text before the first blank line — and
    * nothing of the moves. Values are the file's own, unescaped.
@@ -1621,6 +1621,7 @@ export class GameDatabase {
         const tags = pgnTags(row.head);
         return {
           id: String(row.id),
+          ...(tags.Title ? { title: tags.Title } : {}),
           ...(tags.Annotator ? { annotator: tags.Annotator } : {}),
           ...(tags.Source ? { source: tags.Source } : {}),
           ...(tags.WhiteTeam ? { whiteTeam: tags.WhiteTeam } : {}),

@@ -1,8 +1,7 @@
 'use client';
 
 /**
- * A collection's annotators, PGN sources and teams — ChessBase's Annotator,
- * Sources and Teams tabs.
+ * A collection's annotators, PGN sources, teams and recorded game titles.
  *
  * These tags are only in each game's PGN, so this is a walk of its own over
  * every game's headers (`GameCollection.tagKeys`), separate from the cheap
@@ -11,7 +10,6 @@
  * Library on exactly the games that carry it.
  */
 
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -26,13 +24,15 @@ import { plural } from '@/lib/plural';
 const AUTOMATIC_LIMIT = 5_000;
 const ROWS = 100;
 
-type Tab = 'annotators' | 'sources' | 'teams';
+type Tab = 'annotators' | 'sources' | 'teams' | 'titles';
 const ONE: Readonly<Record<Tab, { readonly noun: string; readonly a: string }>> = {
+  titles: { noun: 'recorded title', a: 'a recorded title' },
   annotators: { noun: 'annotator', a: 'an annotator' },
   sources: { noun: 'source', a: 'a source' },
   teams: { noun: 'team', a: 'a team' },
 };
 const PARAM: Readonly<Record<Tab, string>> = {
+  titles: 'title',
   annotators: 'annotator',
   sources: 'source',
   teams: 'team',
@@ -67,6 +67,7 @@ export function CollectionTagsSection({ collection }: { readonly collection: Col
   );
   const without = index
     ? {
+        titles: index.withoutTitle,
         annotators: index.withoutAnnotator,
         sources: index.withoutSource,
         teams: index.withoutTeam,
@@ -78,7 +79,9 @@ export function CollectionTagsSection({ collection }: { readonly collection: Col
   return (
     <section className="border-b border-line-subtle py-5" data-collection-tags>
       <div className="flex items-center gap-2">
-        <h3 className="text-xs font-semibold text-tertiary">Annotators, sources and teams</h3>
+        <h3 className="text-xs font-semibold text-tertiary">
+          Annotators, sources, teams and game titles
+        </h3>
         {query.fetchStatus === 'fetching' ? (
           <>
             <span className="text-2xs text-tertiary">
@@ -130,6 +133,7 @@ export function CollectionTagsSection({ collection }: { readonly collection: Col
                 { id: 'annotators', label: `Annotators (${index.annotators.length})` },
                 { id: 'sources', label: `Sources (${index.sources.length})` },
                 { id: 'teams', label: `Teams (${index.teams.length})` },
+                { id: 'titles', label: `Game titles (${index.titles.length})` },
               ]}
               value={tab}
               onChange={(next) => setTab(next as Tab)}
@@ -149,13 +153,15 @@ export function CollectionTagsSection({ collection }: { readonly collection: Col
             >
               {rows.slice(0, ROWS).map((entry) => (
                 <li key={entry.name} className="flex items-baseline gap-2 px-2 py-1.5">
-                  <Link
+                  {/* One-time metadata searches need a fresh Library mount. A soft
+                      navigation may restore its previous cached workspace state. */}
+                  <a
                     href={library(entry)}
                     className="min-w-0 flex-1 truncate text-primary hover:text-accent-ink"
                     data-tag-name={entry.name}
                   >
                     {entry.name}
-                  </Link>
+                  </a>
                   <span className="shrink-0 tabular text-secondary">
                     {plural(entry.games, 'game')}
                   </span>

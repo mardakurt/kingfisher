@@ -329,14 +329,15 @@ export interface IndexName {
 }
 
 /**
- * Annotators, PGN sources and teams — ChessBase's Annotator, Sources and
- * Teams tabs. They exist only in each game's PGN headers, so this is its own
+ * Annotators, PGN sources, teams and recorded game titles. They exist only in each game's PGN headers, so this is its own
  * walk (`GameCollection.tagKeys`), asked for separately from the cheap one.
  * Names are folded as players' are; a game whose two teams are one team
  * counts for it once.
  */
 export interface TagIndex {
   readonly games: number;
+  readonly titles: readonly IndexName[];
+  readonly withoutTitle: number;
   readonly annotators: readonly IndexName[];
   readonly sources: readonly IndexName[];
   readonly teams: readonly IndexName[];
@@ -347,6 +348,8 @@ export interface TagIndex {
 
 export class TagIndexBuilder {
   private games = 0;
+  private withoutTitle = 0;
+  private readonly titles = new Map<string, { name: string; games: number }>();
   private withoutAnnotator = 0;
   private withoutSource = 0;
   private withoutTeam = 0;
@@ -366,6 +369,9 @@ export class TagIndexBuilder {
       this.games += 1;
       const recorded = (value: string | undefined) =>
         value && !UNKNOWN.has(fold(value)) ? value : null;
+      const title = recorded(game.title);
+      if (title) TagIndexBuilder.count(this.titles, title);
+      else this.withoutTitle += 1;
       const annotator = recorded(game.annotator);
       const source = recorded(game.source);
       if (annotator) TagIndexBuilder.count(this.annotators, annotator);
@@ -387,6 +393,8 @@ export class TagIndexBuilder {
       [...map.values()].sort((a, b) => b.games - a.games || a.name.localeCompare(b.name));
     return {
       games: this.games,
+      titles: list(this.titles),
+      withoutTitle: this.withoutTitle,
       annotators: list(this.annotators),
       sources: list(this.sources),
       teams: list(this.teams),

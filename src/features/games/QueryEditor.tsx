@@ -411,12 +411,16 @@ function PredicateFields({
             value={node.field}
             className={FIELD}
             onChange={(event) =>
-              onChange({ ...node, field: event.target.value as 'annotator' | 'source' | 'team' })
+              onChange({
+                ...node,
+                field: event.target.value as 'annotator' | 'source' | 'team' | 'title',
+              })
             }
           >
             <option value="annotator">Annotator</option>
             <option value="source">Source</option>
             <option value="team">Either team</option>
+            <option value="title">Game title</option>
           </select>
           {text('PGN metadata contains', node.contains, (contains) =>
             onChange({ ...node, contains }),

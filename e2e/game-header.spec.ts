@@ -72,3 +72,27 @@ test('an opened game names its players above the moves; a blank board does not',
   await expect(header.locator('[data-game-result]')).toHaveText('0-1');
   await expect(header).toContainText('Tata Steel · Wijk aan Zee · 2025.01.20');
 });
+
+test('an imported real game displays its preserved PGN Title', async ({ page }) => {
+  const { readFile } = await import('node:fs/promises');
+  const corpus = await readFile(
+    'public/data/annotated/famous-games-and-championship-classics.pgn',
+    'utf8',
+  );
+  const pgn = corpus
+    .split(/(?=\[Title ")/)
+    .find((game) => game.startsWith('[Title "Botvinnik versus Capablanca, AVRO 1938"]'))!;
+  await page.goto('/analysis');
+  await page.locator('html[data-kingfisher-ready="true"]').waitFor();
+  await page
+    .getByRole('button', { name: /^Import( PGN or FEN)?$/ })
+    .first()
+    .click();
+  const dialog = page.getByRole('dialog', { name: 'Import a game or position' });
+  await dialog.getByRole('textbox').fill(pgn);
+  await dialog.getByRole('button', { name: 'Import games' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.locator('[data-game-title]').first()).toHaveText(
+    'Botvinnik versus Capablanca, AVRO 1938',
+  );
+});

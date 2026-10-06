@@ -76,3 +76,14 @@ describe('PGN annotator, source and team filters', () => {
     expect(result.matches[0]?.hit?.ply).toBe(0);
   });
 });
+
+it('recorded titles support exact matching and round-trip through saved queries', () => {
+  const pgn = '[Title "Actual title"]\n[Event "Title only in event"]\n1. e4 *';
+  const tree = treeOf(pgn);
+  expect(scanGame(tree, { metadata: { title: '"Actual title"' } })?.ply).toBe(0);
+  expect(scanGame(tree, { metadata: { title: '"Actual"' } })).toBeNull();
+  expect(scanGame(tree, { metadata: { title: 'Title only in event' } })).toBeNull();
+  const saved = queryFromFilters({}, { metadata: { title: '"Actual title"' } });
+  expect(parseQuery(saved).ok).toBe(true);
+  expect(filtersFromQuery(saved)?.moves.metadata).toEqual({ title: '"Actual title"' });
+});

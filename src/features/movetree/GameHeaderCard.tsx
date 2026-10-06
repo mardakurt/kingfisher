@@ -46,7 +46,8 @@ export function siteLabel(site: string | undefined): string | null {
 export function GameHeaderCard({ headers }: { readonly headers: GameTree['headers'] }) {
   const white = recorded(headers.White);
   const black = recorded(headers.Black);
-  if (!white && !black) return null;
+  const title = recorded(headers.Title);
+  if (!white && !black && !title) return null;
 
   const result = recorded(headers.Result);
   const where = [
@@ -58,6 +59,11 @@ export function GameHeaderCard({ headers }: { readonly headers: GameTree['header
 
   return (
     <div className="shrink-0 border-b border-line-subtle px-2.5 py-2" data-game-header>
+      {title ? (
+        <p className="mb-1 text-xs font-medium text-primary break-words" data-game-title>
+          {title}
+        </p>
+      ) : null}
       <div className="flex items-center gap-2 text-xs">
         <Side name={white} rating={recorded(headers.WhiteElo)} />
         <span className="shrink-0 px-1 font-semibold text-primary tabular" data-game-result>

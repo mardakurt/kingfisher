@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { positionKey, START_FEN } from '@/chess/fen';
@@ -48,6 +49,8 @@ const ROLE_LABEL: Record<RepertoireRole, string> = {
   avoid: 'Avoid',
 };
 
+const RepertoireOverviewDialog = dynamic(() => import('./RepertoireOverviewDialog'));
+
 export function RepertoireWorkspace() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -73,6 +76,7 @@ export function RepertoireWorkspace() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   const [inboxOpen, setInboxOpen] = useState(false);
+  const [overviewOpen, setOverviewOpen] = useState(false);
 
   const list = repertoires.data ?? [];
   const effectiveId = selectedId ?? list[0]?.id ?? null;
@@ -293,6 +297,12 @@ export function RepertoireWorkspace() {
                 dataAttribute: 'data-add-to-repertoire',
               },
               {
+                id: 'overview',
+                label: 'Your openings',
+                shortLabel: 'Openings',
+                onClick: () => setOverviewOpen(true),
+              },
+              {
                 id: 'review',
                 label: 'Review repertoire',
                 shortLabel: 'Review',
@@ -432,6 +442,27 @@ export function RepertoireWorkspace() {
         </div>
       }
     >
+      {overviewOpen ? (
+        <RepertoireOverviewDialog
+          onClose={() => setOverviewOpen(false)}
+          onSelect={(selectedRepertoire, position) => {
+            setSelectedId(selectedRepertoire.id);
+            setSelectedPositionId(position?.id ?? null);
+            if (position) {
+              syncedPosition.current = `${selectedRepertoire.id}:${position.id}`;
+              openDocument({
+                tree: createTree(position.fen, { Event: selectedRepertoire.title, Result: '*' }),
+                document: {
+                  kind: 'untitled',
+                  title: `${selectedRepertoire.title} · repertoire position`,
+                },
+                orientation: selectedRepertoire.color,
+              });
+            }
+            setOverviewOpen(false);
+          }}
+        />
+      ) : null}
       {scanOpen && repertoire.data ? (
         <RepertoireScanDialog repertoire={repertoire.data} onClose={() => setScanOpen(false)} />
       ) : null}

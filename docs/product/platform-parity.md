@@ -1,5 +1,10 @@
 # Platform parity — the web application and the macOS application
 
+**Closure candidate (2026-10-06).** Bounded rating classes, the Your openings
+repertoire overview and recorded PGN Title browsing/display are being tested for 1.5.0. They are
+not in public Mac 1.4.9. Final browser, scale, Windows Edge and package acceptance
+remain pending; see the [comparison](chessbase-mac-comparison-1.5.0.md).
+
 **Unreleased source changes (2026-10-06, after 1.4.9).** `469df0a` is
 Mac-facing and not in any published build: the bundle declares macOS 14 as
 its minimum (13 was never tested), the first Date or Opening sort of a

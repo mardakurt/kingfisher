@@ -283,6 +283,12 @@ have main/alternative/candidate/avoid roles; opponent moves carry
 coverage gaps, and own-versus-opponent deviations share one definition. ADR
 0010 records the alternatives.
 
+The lazy Your openings dialog reads the same repertoire repository and
+`repertoire/overview.ts` groups own main/alternative decisions by canonical
+position and the licensed opening index. Candidate/avoid moves and expected
+replies are excluded. Unknown classifications remain explicitly unclassified;
+there is no reference-game population or estimated coverage in these counts.
+
 ### Training items
 
 Training content and scheduling are separate concerns. The content stores a
@@ -2489,3 +2495,5 @@ companion (`ImportJobs`). The authenticated discovery endpoint lets a renderer
 recover a job after remount or reload. Only one file job runs in each companion;
 mutating or closing that collection during import is refused. Process restart
 still requires reimporting the archive, with committed records deduplicated.
+
+The collection tag index includes recorded PGN Title values alongside annotators, sources and teams. Each title link uses the existing metadata query path with exact matching; local and SQLite readers extract the file's Title tag, without inferring one from players or comments.
