@@ -66,9 +66,12 @@ import { DepartureSection } from './DepartureSection';
 import { RatingClassesSection } from './RatingClassesSection';
 import {
   applicableExplorerFilters,
+  explorerPlayerField,
+  explorerPlayerQuery,
   explorerRatingClasses,
   ratingClassRule,
   withRatingClass,
+  type ExplorerPlayerColor,
 } from './explorer-filters';
 import { SourceFallback, SourcePicker } from './SourcePicker';
 import { SourceComparison } from './SourceComparison';
@@ -133,7 +136,7 @@ export function ExplorerPanel() {
   const [comparing, setComparing] = useState(false);
   const [comparedSources, setComparedSources] = useState<readonly string[]>([]);
   const [player, setPlayer] = useState('');
-  const [playerColor, setPlayerColor] = useState<'w' | 'b'>('w');
+  const [playerColor, setPlayerColor] = useState<ExplorerPlayerColor>('either');
   const ratingClassBySource = useUi((state) => state.explorerRatingClassBySource);
   const setRatingClass = useUi((state) => state.setExplorerRatingClass);
 
@@ -156,6 +159,7 @@ export function ExplorerPanel() {
     (source) => source.offline && source.installed && source.id !== provider?.id,
   );
   const playerFilter = provider?.capabilities.playerFilter ?? false;
+  const playerField = explorerPlayerField(provider?.id);
   const speedFilter = provider?.capabilities.speedFilter ?? false;
   const speedFacetEntry = SPEED_FACETS.find((entry) => entry.id === speedFacet) ?? SPEED_FACETS[0];
 
@@ -180,7 +184,7 @@ export function ExplorerPanel() {
   const filters = {
     ...withRatingClass(applicable.filters, ratingClass),
     ...(speedFilter && speedFacetEntry.speeds ? { speeds: speedFacetEntry.speeds } : {}),
-    ...(playerFilter && player.trim() ? { player: player.trim(), playerColor } : {}),
+    ...(playerFilter ? (explorerPlayerQuery(provider?.id, player, playerColor) ?? {}) : {}),
   };
 
   const window = RECENT_WINDOWS.find((entry) => entry.id === recentWindow) ?? RECENT_WINDOWS[0];
@@ -500,7 +504,7 @@ export function ExplorerPanel() {
           title={provider?.description}
           data-explorer-source-line
         >
-          {query.data ? `${total.toLocaleString()} games here · ` : ''}
+          {query.data ? `${plural(total, 'game')} here · ` : ''}
           {provider?.description}
         </p>
         {ratingFilter ? (
@@ -539,23 +543,27 @@ export function ExplorerPanel() {
           </p>
         ) : null}
         {provider?.capabilities.playerFilter ? (
-          <div className="mt-2 flex gap-1.5">
-            <input
-              value={player}
-              onChange={(event) => setPlayer(event.target.value)}
-              placeholder="Exact Lichess username"
-              aria-label="Lichess player"
-              className="h-8 min-w-0 flex-1 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
-            />
-            <select
-              value={playerColor}
-              onChange={(event) => setPlayerColor(event.target.value as 'w' | 'b')}
-              aria-label="Player colour"
-              className="h-8 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary"
-            >
-              <option value="w">as White</option>
-              <option value="b">as Black</option>
-            </select>
+          <div className="mt-2" data-explorer-player-filter>
+            <div className="flex gap-1.5">
+              <input
+                value={player}
+                onChange={(event) => setPlayer(event.target.value)}
+                placeholder={playerField.placeholder}
+                aria-label={playerField.label}
+                className="h-8 min-w-0 flex-1 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary outline-none focus:border-accent/60"
+              />
+              <select
+                value={playerField.either ? playerColor : playerColor === 'b' ? 'b' : 'w'}
+                onChange={(event) => setPlayerColor(event.target.value as ExplorerPlayerColor)}
+                aria-label="Player colour"
+                className="h-8 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-xs text-primary"
+              >
+                {playerField.either ? <option value="either">Either</option> : null}
+                <option value="w">as White</option>
+                <option value="b">as Black</option>
+              </select>
+            </div>
+            <p className="mt-0.5 text-[9.5px] text-tertiary">{playerField.hint}</p>
           </div>
         ) : null}
       </div>

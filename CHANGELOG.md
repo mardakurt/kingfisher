@@ -6,6 +6,11 @@ real users notice.
 
 ## Unreleased
 
+- The Explorer’s player box no longer asks for a Lichess username when the
+  source is your own games or a companion collection. A collection matches
+  the name as the games spell it, ignoring case, and the side can be either.
+  One game is no longer called “1 games”.
+
 - The Explorer’s Played column shows the first and last year a dated collection
   records a move. A source that only stores the latest year still shows that year.
 

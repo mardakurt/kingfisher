@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   applicableExplorerFilters,
+  explorerPlayerField,
+  explorerPlayerQuery,
   explorerRatingClasses,
   withRatingClass,
 } from './explorer-filters';
@@ -24,6 +26,30 @@ describe('applicableExplorerFilters', () => {
 
   it('treats a source not yet known as able to apply nothing', () => {
     expect(applicableExplorerFilters(prefs, undefined).filters).toEqual({});
+  });
+});
+
+describe('explorer player filter', () => {
+  it('asks Lichess for the account and a side, never for both colours at once', () => {
+    expect(explorerPlayerQuery('lichess-player', ' DrNykterstein ', 'either')).toEqual({
+      player: 'DrNykterstein',
+      playerColor: 'w',
+    });
+    expect(explorerPlayerQuery('lichess-player', 'DrNykterstein', 'b').playerColor).toBe('b');
+    expect(explorerPlayerField('lichess-player').placeholder).toBe('Exact Lichess username');
+  });
+
+  it('folds a collection name to the stored key and can leave the side unset', () => {
+    expect(explorerPlayerQuery('sqlite:games', '  Kasparov,  Garry ', 'either')).toEqual({
+      player: 'kasparov, garry',
+    });
+    expect(explorerPlayerQuery('local-collection', 'Carlsen', 'b')).toEqual({
+      player: 'carlsen',
+      playerColor: 'b',
+    });
+    expect(explorerPlayerQuery('sqlite:games', '   ', 'w')).toBeNull();
+    expect(explorerPlayerField('local-collection').label).toBe('Player');
+    expect(explorerPlayerField('sqlite:games').placeholder).not.toMatch(/Lichess/);
   });
 });
 

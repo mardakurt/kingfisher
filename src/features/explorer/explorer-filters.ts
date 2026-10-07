@@ -9,6 +9,63 @@
  */
 
 import type { DatabaseCapabilities, ExplorerFilters } from '@/database/types';
+import { playerKey } from '@/persistence/schema/migrations';
+
+export type ExplorerPlayerColor = 'w' | 'b' | 'either';
+
+/**
+ * The player box, as the source can apply it.
+ *
+ * Lichess by player wants the account name and a side; its explorer has no
+ * "either". A collection matches the name the games spell, folded to the
+ * same key the companion stores, and a side is optional. My games then
+ * accepts that key as part of a name; a companion collection needs the
+ * whole name.
+ */
+export function explorerPlayerQuery(
+  sourceId: string | undefined,
+  name: string,
+  color: ExplorerPlayerColor,
+): Pick<ExplorerFilters, 'player' | 'playerColor'> | null {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  if (sourceId === 'lichess-player') {
+    return { player: trimmed, playerColor: color === 'b' ? 'b' : 'w' };
+  }
+  const key = playerKey(trimmed);
+  if (!key) return null;
+  return color === 'either' ? { player: key } : { player: key, playerColor: color };
+}
+
+export function explorerPlayerField(sourceId: string | undefined): {
+  readonly label: string;
+  readonly placeholder: string;
+  readonly hint: string;
+  readonly either: boolean;
+} {
+  if (sourceId === 'lichess-player') {
+    return {
+      label: 'Lichess player',
+      placeholder: 'Exact Lichess username',
+      hint: 'That account’s games, on the side chosen. Lichess has no combined colour.',
+      either: false,
+    };
+  }
+  if (sourceId === 'local-collection') {
+    return {
+      label: 'Player',
+      placeholder: 'Part of a name',
+      hint: 'Games whose name on the chosen side contains this. Case is ignored.',
+      either: true,
+    };
+  }
+  return {
+    label: 'Player',
+    placeholder: 'Full name, as in the games',
+    hint: 'The name as the games spell it. Case is ignored; a surname alone does not match.',
+    either: true,
+  };
+}
 
 export interface ExplorerFilterPreferences {
   readonly explorerMinRating: number | null;

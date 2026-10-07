@@ -86,7 +86,7 @@ for (const sqlite of [false, true])
     await picker.selectOption(sourceId);
     await dock.getByRole('combobox', { name: 'Rating class', exact: true }).selectOption('1600');
     await expect(dock.locator('[data-explorer-source-line]')).toContainText(
-      sqlite ? '1 games here' : '2 games here',
+      sqlite ? '1 game here' : '2 games here',
     );
     await expect(dock.locator('[data-explorer-row="e4"]')).toBeVisible();
     await expect(dock.locator('[data-explorer-row="d4"]')).toHaveCount(0);
@@ -102,7 +102,7 @@ for (const sqlite of [false, true])
         '1600',
       );
       await expect(dock.locator('[data-explorer-source-line]')).toContainText(
-        sqlite ? '1 games here' : '2 games here',
+        sqlite ? '1 game here' : '2 games here',
       );
     }
     await picker.selectOption('kingfisher-starter');
