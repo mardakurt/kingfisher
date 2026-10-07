@@ -38,6 +38,7 @@ interface RawMove {
   averageRating?: number;
   lastPlayedYear?: number;
   frequentPlayers?: { name: string; games: number }[];
+  years?: { year: number; games: number }[];
 }
 
 interface RawResult {
@@ -48,6 +49,9 @@ interface RawResult {
   black: number;
   /** Present when the position held more games than the companion reads movers for. */
   frequentPlayersOmitted?: { games: number; limit: number };
+  yearTotals?: { year: number; games: number }[];
+  undatedGames?: number;
+  yearSharesOmitted?: { games: number; limit: number };
 }
 
 export class CompanionSqliteProvider implements ChessDatabaseProvider {
@@ -204,6 +208,7 @@ export class CompanionSqliteProvider implements ChessDatabaseProvider {
         ...(move.lastPlayedYear ? { lastPlayedYear: move.lastPlayedYear } : {}),
         // An older companion sends none, and none is "this source does not say".
         ...(move.frequentPlayers ? { frequentPlayers: move.frequentPlayers } : {}),
+        ...(move.years ? { years: move.years } : {}),
       };
       const performance = move.averageRating
         ? performanceRating(moveScore(base, parsedTurn), move.averageRating)
@@ -220,6 +225,9 @@ export class CompanionSqliteProvider implements ChessDatabaseProvider {
       black: raw.black,
       moves,
       ...(raw.frequentPlayersOmitted ? { frequentPlayersOmitted: raw.frequentPlayersOmitted } : {}),
+      ...(raw.yearTotals ? { yearTotals: raw.yearTotals } : {}),
+      ...(raw.undatedGames !== undefined ? { undatedGames: raw.undatedGames } : {}),
+      ...(raw.yearSharesOmitted ? { yearSharesOmitted: raw.yearSharesOmitted } : {}),
     };
   }
 }

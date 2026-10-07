@@ -1643,32 +1643,18 @@ export class GameDatabase {
    */
   explore(positionKey, limit = 24, filters = {}) {
     const result = this.#exploreMoves(positionKey, limit, filters);
-    return this.#withFrequentPlayers(positionKey, filters, result);
+    return this.#withYearShares(
+      positionKey,
+      filters,
+      this.#withFrequentPlayers(positionKey, filters, result),
+    );
   }
 
   /**
-   * The frequent movers of each move: the three players with the most
-   * distinct games in which they played it from this position, under the
-   * same filters as the counts beside them. ChessBase's Frequent Players
-   * column, for a collection the companion holds.
-   *
-   * The aggregates carry no player, so this reads the per-game index, and a
-   * read proportional to the games at a position is bounded: above
-   * FREQUENT_PLAYERS_MAX_GAMES the result says so (`frequentPlayersOmitted`)
-   * rather than leaving the column to read as "nobody". A count is never
-   * estimated from a sample.
+   * The same header filters the explorer's counts use, as SQL against `games`.
+   * Shared so a second read of the same position cannot apply a different rule.
    */
-  #withFrequentPlayers(positionKey, filters, result) {
-    if (!result.moves?.length || !result.totalGames) return result;
-    if (result.totalGames > this.#frequentPlayersMaxGames) {
-      return {
-        ...result,
-        frequentPlayersOmitted: { games: result.totalGames, limit: this.#frequentPlayersMaxGames },
-      };
-    }
-    const mover = positionKey.split(' ')[1] === 'b' ? 'b' : 'w';
-    const keyColumn = mover === 'w' ? 'g.white_key' : 'g.black_key';
-    const nameColumn = mover === 'w' ? 'g.white' : 'g.black';
+  #explorerFilter(filters) {
     const where = [];
     const params = [];
     if (filters.minRating) {
@@ -1694,7 +1680,33 @@ export class GameDatabase {
       params.push(filters.player);
       if (!filters.playerColor) params.push(filters.player);
     }
-    const extra = where.length ? ` AND ${where.join(' AND ')}` : '';
+    return { extra: where.length ? ` AND ${where.join(' AND ')}` : '', params };
+  }
+
+  /**
+   * The frequent movers of each move: the three players with the most
+   * distinct games in which they played it from this position, under the
+   * same filters as the counts beside them. ChessBase's Frequent Players
+   * column, for a collection the companion holds.
+   *
+   * The aggregates carry no player, so this reads the per-game index, and a
+   * read proportional to the games at a position is bounded: above
+   * FREQUENT_PLAYERS_MAX_GAMES the result says so (`frequentPlayersOmitted`)
+   * rather than leaving the column to read as "nobody". A count is never
+   * estimated from a sample.
+   */
+  #withFrequentPlayers(positionKey, filters, result) {
+    if (!result.moves?.length || !result.totalGames) return result;
+    if (result.totalGames > this.#frequentPlayersMaxGames) {
+      return {
+        ...result,
+        frequentPlayersOmitted: { games: result.totalGames, limit: this.#frequentPlayersMaxGames },
+      };
+    }
+    const mover = positionKey.split(' ')[1] === 'b' ? 'b' : 'w';
+    const keyColumn = mover === 'w' ? 'g.white_key' : 'g.black_key';
+    const nameColumn = mover === 'w' ? 'g.white' : 'g.black';
+    const { extra, params } = this.#explorerFilter(filters);
     // One row per (move, player). Both layouts store a game's (position, move)
     // once however often the game returns to it, so COUNT(*) is distinct games
     // — the invariant the explorer's own counts beside these rely on.
@@ -1733,6 +1745,78 @@ export class GameDatabase {
         frequentPlayers: (byMove.get(move.uci) ?? [])
           .sort((a, b) => b.games - a.games || a.name.localeCompare(b.name))
           .slice(0, 3),
+      })),
+    };
+  }
+
+  /**
+   * Each move's dated games, and the year's total, so a share is of every
+   * dated game at the position and not of the moves the explorer happened to
+   * list. Past the same bound as frequent players the column is omitted: a
+   * sample would be a different population, and it is not estimated.
+   */
+  #withYearShares(positionKey, filters, result) {
+    if (!result.moves?.length || !result.totalGames) return result;
+    if (result.totalGames > FREQUENT_PLAYERS_MAX_GAMES) {
+      return {
+        ...result,
+        yearSharesOmitted: { games: result.totalGames, limit: FREQUENT_PLAYERS_MAX_GAMES },
+      };
+    }
+    const { extra, params } = this.#explorerFilter(filters);
+    const dated = 'g.year IS NOT NULL AND g.year > 0';
+    const rows = this.#postings
+      ? this.#db
+          .prepare(
+            `SELECT p.move AS move, g.year AS year, COUNT(*) AS games
+               FROM postings p JOIN games g ON g.id = p.game
+              WHERE p.pos = ? AND ${dated}${extra}
+              GROUP BY p.move, g.year`,
+          )
+          .all(positionHash(positionKey), ...params)
+          .map((row) => ({ ...row, uci: decodeMove(row.move) }))
+      : this.#db
+          .prepare(
+            `SELECT p.move_uci AS uci, g.year AS year, COUNT(*) AS games
+               FROM positions p JOIN games g ON g.id = p.game_id
+              WHERE p.position_key = ? AND ${dated}${extra}
+              GROUP BY p.move_uci, g.year`,
+          )
+          .all(positionKey, ...params);
+    const undated = this.#postings
+      ? this.#db
+          .prepare(
+            `SELECT COUNT(DISTINCT p.game) AS games
+               FROM postings p JOIN games g ON g.id = p.game
+              WHERE p.pos = ? AND (g.year IS NULL OR g.year = 0)${extra}`,
+          )
+          .get(positionHash(positionKey), ...params)
+      : this.#db
+          .prepare(
+            `SELECT COUNT(DISTINCT p.game_id) AS games
+               FROM positions p JOIN games g ON g.id = p.game_id
+              WHERE p.position_key = ? AND (g.year IS NULL OR g.year = 0)${extra}`,
+          )
+          .get(positionKey, ...params);
+    const byMove = new Map();
+    const totals = new Map();
+    for (const row of rows) {
+      if (!row.uci || !Number.isInteger(row.year) || row.year <= 0) continue;
+      const list = byMove.get(row.uci) ?? [];
+      list.push({ year: row.year, games: row.games });
+      byMove.set(row.uci, list);
+      totals.set(row.year, (totals.get(row.year) ?? 0) + row.games);
+    }
+    for (const list of byMove.values()) list.sort((a, b) => a.year - b.year);
+    return {
+      ...result,
+      undatedGames: undated?.games ?? 0,
+      yearTotals: [...totals]
+        .map(([year, games]) => ({ year, games }))
+        .sort((a, b) => a.year - b.year),
+      moves: result.moves.map((move) => ({
+        ...move,
+        years: byMove.get(move.uci) ?? [],
       })),
     };
   }

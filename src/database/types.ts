@@ -60,6 +60,12 @@ export interface DatabaseMove {
   /** Most recent year the move appears, for spotting revivals. */
   readonly lastPlayedYear?: number;
   /**
+   * Dated games in which this move was played from this position, one row per
+   * year. Present when the source counted years. An empty list means it
+   * counted and none of this move's games carry a year.
+   */
+  readonly years?: readonly YearGames[];
+  /**
    * The same counts over a recent window the *source* defines.
    *
    * Present only when a source can state a recent split as a fact rather than
@@ -97,6 +103,24 @@ export interface ExplorerResult {
    * Said, so an empty column is not read as "nobody played it".
    */
   readonly frequentPlayersOmitted?: { readonly games: number; readonly limit: number };
+  /**
+   * Dated games at this position, every move, one row per year. The
+   * denominator of a move's share. Present when the source counted years.
+   */
+  readonly yearTotals?: readonly YearGames[];
+  /** Games at the position with no year. Left out of the shares. */
+  readonly undatedGames?: number;
+  /**
+   * The position has more games than year shares are counted for. The column
+   * is absent rather than estimated from a sample.
+   */
+  readonly yearSharesOmitted?: { readonly games: number; readonly limit: number };
+}
+
+/** Games in one calendar year. */
+export interface YearGames {
+  readonly year: number;
+  readonly games: number;
 }
 
 /** A bounded read of one collection's games at a position, never an imported copy. */

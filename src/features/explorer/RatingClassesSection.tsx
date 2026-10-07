@@ -320,7 +320,7 @@ function FashionChart({ fashion }: { readonly fashion: Fashion }) {
     )
     .join('; ');
   return (
-    <div data-rating-class-fashion>
+    <div data-rating-class-fashion data-explorer-year-trend>
       <h4 className="mb-1 text-[10px] font-semibold text-tertiary">
         How the choice has shifted, year by year
       </h4>

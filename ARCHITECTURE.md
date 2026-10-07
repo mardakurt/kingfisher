@@ -443,8 +443,14 @@ paused fetch as its own state rather than as loading.
 
 Every provider answers the same query — _what happens from this position?_ — and
 return the same `ExplorerResult`: totals, per-move counts, White/draw/Black
-splits, average rating, performance rating, notable players, top games. The
-panel does not know which provider it is talking to.
+splits, average rating, performance rating, notable players, top games, and —
+when the source records a year on each game — that move’s games by year. The
+panel draws each move’s share of the dated games at the position. A year with
+fewer than 20 games is named, not drawn as a line. A position of more than
+100,000 games leaves the column out rather than estimating it. A reference
+pack answers the same question from the history it was built with, in the
+year chart under the table. The panel does not know which provider it is
+talking to.
 
 The opening explorer lives at `explorer.lichess.org` and requires
 authentication. Settings → Accounts connects an account through OAuth with

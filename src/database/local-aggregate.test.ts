@@ -50,12 +50,23 @@ describe('local Explorer player frequency and rating bands', () => {
         { name: 'Alpha', games: 2 },
         { name: 'Beta', games: 1 },
       ],
+      years: [
+        { year: 2024, games: 1 },
+        { year: 2025, games: 2 },
+      ],
     });
+    expect(all.yearTotals).toEqual([
+      { year: 2024, games: 1 },
+      { year: 2025, games: 2 },
+    ]);
+    expect(all.undatedGames).toBe(0);
     const recent = await repositories.games.explore(START_FEN, { sinceYear: 2025 });
     expect(recent.moves[0]?.frequentPlayers).toEqual([
       { name: 'Alpha', games: 1 },
       { name: 'Beta', games: 1 },
     ]);
+    expect(recent.yearTotals).toEqual([{ year: 2025, games: 2 }]);
+    expect(recent.moves[0]?.years).toEqual([{ year: 2025, games: 2 }]);
     const band = await repositories.games.explore(START_FEN, { minRating: 2200, maxRating: 2400 });
     expect(band.totalGames).toBe(2);
     expect(band.moves[0]?.frequentPlayers).toEqual([{ name: 'Alpha', games: 2 }]);

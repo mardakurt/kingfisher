@@ -425,9 +425,32 @@ describe('GameDatabase', () => {
     const explorer = database.explore(POSITION);
     expect(explorer).toMatchObject({ totalGames: 3, white: 1, draws: 1, black: 1 });
     expect(explorer.moves).toEqual([
-      expect.objectContaining({ uci: 'e2e4', games: 2, white: 1, draws: 1, black: 0 }),
-      expect.objectContaining({ uci: 'd2d4', games: 1, white: 0, draws: 0, black: 1 }),
+      expect.objectContaining({
+        uci: 'e2e4',
+        games: 2,
+        white: 1,
+        draws: 1,
+        black: 0,
+        years: [
+          { year: 2025, games: 1 },
+          { year: 2026, games: 1 },
+        ],
+      }),
+      expect.objectContaining({
+        uci: 'd2d4',
+        games: 1,
+        white: 0,
+        draws: 0,
+        black: 1,
+        years: [{ year: 2024, games: 1 }],
+      }),
     ]);
+    expect(explorer.yearTotals).toEqual([
+      { year: 2024, games: 1 },
+      { year: 2025, games: 1 },
+      { year: 2026, games: 1 },
+    ]);
+    expect(explorer.undatedGames).toBe(0);
     expect(database.gamesAtPosition(POSITION, 2).map((game) => game.fingerprint)).toEqual([
       'game-1',
       'game-2',

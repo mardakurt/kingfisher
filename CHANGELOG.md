@@ -4,6 +4,15 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## Unreleased
+
+- The Explorer’s Years column shows each move’s share of a dated collection’s
+  games at the position, year by year, for My games and a companion SQLite
+  database. A year with fewer than 20 games is named rather than drawn as a
+  line. A position of more than 100,000 games leaves the column out instead of
+  estimating it. A reference pack keeps the same shares in the year chart it
+  already draws from its history.
+
 ## 1.5.0 — 2026-10-06
 
 - Browse recorded game titles in a collection and open exactly the games carrying a selected Title tag, in local and companion SQLite databases.

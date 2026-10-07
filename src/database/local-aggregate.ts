@@ -45,6 +45,7 @@ export function aggregateLocalExplorer(
         ratingCount: 0,
         players: new Set(),
         frequencies: new Map(),
+        yearCounts: new Map(),
       };
       byMove.set(record.moveUci, move);
     }
@@ -67,6 +68,9 @@ export function aggregateLocalExplorer(
       });
     }
     if (game.year && (!move.lastYear || game.year > move.lastYear)) move.lastYear = game.year;
+    if (game.year && game.year > 0) {
+      move.yearCounts.set(game.year, (move.yearCounts.get(game.year) ?? 0) + 1);
+    }
   }
 
   const moves: DatabaseMove[] = [...byMove.values()]
@@ -83,6 +87,9 @@ export function aggregateLocalExplorer(
         black: move.black,
         ...(averageRating ? { averageRating } : {}),
         ...(move.lastYear ? { lastPlayedYear: move.lastYear } : {}),
+        years: [...move.yearCounts]
+          .map(([year, games]) => ({ year, games }))
+          .sort((a, b) => a.year - b.year),
         ...(move.players.size ? { notablePlayers: [...move.players].slice(0, 8) } : {}),
         frequentPlayers: [...move.frequencies.values()]
           .sort((a, b) => b.games - a.games || a.name.localeCompare(b.name))
@@ -96,11 +103,21 @@ export function aggregateLocalExplorer(
     .sort((a, b) => b.games - a.games || a.san.localeCompare(b.san));
 
   const included = games.filter((game) => includedGames.has(game.id));
+  const yearTotals = new Map<number, number>();
+  let undatedGames = 0;
+  for (const game of included) {
+    if (game.year && game.year > 0) yearTotals.set(game.year, (yearTotals.get(game.year) ?? 0) + 1);
+    else undatedGames += 1;
+  }
   return {
     fen,
     source: { id: 'local-collection', name: 'My games' },
     totalGames: included.length,
     ...tallyGames(included),
+    yearTotals: [...yearTotals]
+      .map(([year, games]) => ({ year, games }))
+      .sort((a, b) => a.year - b.year),
+    undatedGames,
     moves: moves.slice(0, limit),
     topGames: included
       .sort((a, b) => b.importedAt - a.importedAt)
@@ -147,6 +164,7 @@ interface MutableMove {
   ratingCount: number;
   readonly players: Set<string>;
   readonly frequencies: Map<string, { name: string; games: number }>;
+  readonly yearCounts: Map<number, number>;
   lastYear?: number;
 }
 

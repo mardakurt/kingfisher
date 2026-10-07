@@ -40,6 +40,8 @@ import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 import { useReferenceArrows } from '@/stores/reference-arrows-store';
 
+import { YEAR_SHARE_MIN_GAMES, yearPoints, type YearPoint } from '@/database/move-years';
+import type { YearGames } from '@/database/types';
 import { buildMoveEvidence, summariseEvidence, trendOf, type MoveEvidence } from './evidence';
 import { BUNDLED_PACK_ID } from '@/reference/catalog';
 import { describeCoverage, plyOfFen } from '@/reference/coverage';
@@ -343,6 +345,7 @@ export function ExplorerPanel() {
   const tableShown =
     query.fetchStatus !== 'paused' && !query.isPending && !query.isError && evidence.length > 0;
   const showRecent = window.years > 0 || carriedSince !== undefined;
+  const showYears = query.data?.yearTotals !== undefined || query.data?.yearSharesOmitted != null;
 
   return (
     /*
@@ -755,6 +758,14 @@ export function ExplorerPanel() {
                           : 'Recent'}
                       </th>
                     ) : null}
+                    {showYears ? (
+                      <th
+                        className="@max-[559px]:hidden px-1.5 py-1.5 text-right font-medium"
+                        title={`This move’s share of the dated games in ${provider?.name ?? 'this source'} at this position, each year. A year with fewer than ${YEAR_SHARE_MIN_GAMES} games is not drawn as a line.`}
+                      >
+                        Years
+                      </th>
+                    ) : null}
                     <th className="px-1.5 py-1.5 text-right font-medium">Score</th>
                     <th className="@max-[559px]:hidden px-1.5 py-1.5 text-right font-medium">W</th>
                     <th className="@max-[559px]:hidden px-1.5 py-1.5 text-right font-medium">D</th>
@@ -800,6 +811,8 @@ export function ExplorerPanel() {
                       key={entry.uci}
                       entry={entry}
                       showRecent={showRecent}
+                      showYears={showYears}
+                      yearTotals={query.data?.yearTotals}
                       showFrequentPlayers={showFrequentPlayers}
                       selected={selected.includes(entry.uci)}
                       onToggle={() => toggleSelected(entry.uci)}
@@ -823,6 +836,25 @@ export function ExplorerPanel() {
                 {query.data.frequentPlayersOmitted.limit.toLocaleString('en')} games; this one has{' '}
                 {query.data.frequentPlayersOmitted.games.toLocaleString('en')}. Make a move or
                 filter by rating or year to see them.
+              </p>
+            ) : null}
+
+            {query.data?.yearSharesOmitted ? (
+              <p className="px-2.5 pt-1.5 text-[10px] text-tertiary" data-explorer-year-note>
+                Year-by-year shares are counted for positions with up to{' '}
+                {query.data.yearSharesOmitted.limit.toLocaleString('en')} games; this one has{' '}
+                {query.data.yearSharesOmitted.games.toLocaleString('en')}. The column is left out
+                rather than estimated from a sample. Filter by year to compare two windows.
+              </p>
+            ) : query.data?.yearTotals ? (
+              <p className="px-2.5 pt-1.5 text-[10px] text-tertiary" data-explorer-year-note>
+                Years: each move’s share of the dated games in {provider?.name ?? 'this source'} at
+                this position.
+                {query.data.undatedGames
+                  ? ` ${plural(query.data.undatedGames, 'game')} ${query.data.undatedGames === 1 ? 'has' : 'have'} no year and ${query.data.undatedGames === 1 ? 'is' : 'are'} left out.`
+                  : ''}{' '}
+                A line is drawn when a year has at least {YEAR_SHARE_MIN_GAMES} games; a thinner
+                year is named in the cell, not drawn as a line.
               </p>
             ) : null}
 
@@ -1065,6 +1097,8 @@ export function ExplorerPanel() {
 function Row({
   entry,
   showRecent,
+  showYears,
+  yearTotals,
   selected,
   onToggle,
   onPlay,
@@ -1073,6 +1107,8 @@ function Row({
 }: {
   readonly entry: MoveEvidence;
   readonly showRecent: boolean;
+  readonly showYears: boolean;
+  readonly yearTotals?: readonly YearGames[];
   readonly selected: boolean;
   readonly onToggle: () => void;
   readonly onPlay: () => void;
@@ -1140,6 +1176,11 @@ function Row({
         {entry.engineRank !== undefined ? (
           <span className="ml-1 text-[9px] text-tertiary">#{entry.engineRank}</span>
         ) : null}
+        {showYears && yearTotals ? (
+          <span className="@min-[560px]:hidden mt-0.5 block">
+            <YearShare years={entry.database.years} totals={yearTotals} />
+          </span>
+        ) : null}
       </td>
       <td className="px-1.5 py-1.5 text-right text-secondary tabular">
         {entry.database.games.toLocaleString()}
@@ -1167,6 +1208,11 @@ function Row({
               </span>
             ) : null}
           </div>
+        </td>
+      ) : null}
+      {showYears ? (
+        <td className="@max-[559px]:hidden px-1.5 py-1.5 text-right" data-explorer-years>
+          <YearShare years={entry.database.years} totals={yearTotals ?? []} />
         </td>
       ) : null}
       <td className="px-1.5 py-1.5 text-right text-secondary tabular">
@@ -1369,5 +1415,78 @@ function PositionContext({
         </div>
       ) : null}
     </section>
+  );
+}
+
+function YearShare({
+  years,
+  totals,
+}: {
+  readonly years: readonly YearGames[] | undefined;
+  readonly totals: readonly YearGames[];
+}) {
+  const recorded = [...(years ?? [])].sort((a, b) => a.year - b.year);
+  const { points } = yearPoints(recorded, totals);
+  const counted = recorded.map((row) => `${row.year}: ${row.games.toLocaleString()}`).join(', ');
+  if (points.length >= 2) {
+    const label = points
+      .map(
+        (point) =>
+          `${point.year} ${point.share}% (${point.games.toLocaleString()} ${point.games === 1 ? 'game' : 'games'})`,
+      )
+      .join(', ');
+    return <YearSpark points={points} label={label} />;
+  }
+  if (recorded.length === 0) {
+    return (
+      <span className="text-tertiary" title="No year recorded for this move">
+        —
+      </span>
+    );
+  }
+  const text =
+    recorded.length === 1
+      ? `${recorded[0]?.year} · ${recorded[0]?.games.toLocaleString()}`
+      : `${recorded[0]?.year}–${recorded.at(-1)?.year}`;
+  return (
+    <span
+      className="text-secondary tabular"
+      title={`${counted}. A line is drawn when a year has at least ${YEAR_SHARE_MIN_GAMES} games at this position.`}
+    >
+      {text}
+    </span>
+  );
+}
+
+function YearSpark({
+  points,
+  label,
+}: {
+  readonly points: readonly YearPoint[];
+  readonly label: string;
+}) {
+  const width = 64;
+  const height = 18;
+  const pad = 1.5;
+  const first = points[0]?.year ?? 0;
+  const last = points.at(-1)?.year ?? first;
+  const x = (year: number) =>
+    pad + ((year - first) / Math.max(1, last - first)) * (width - pad * 2);
+  const y = (share: number) => pad + (1 - share / 100) * (height - pad * 2);
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className="inline-block h-4 w-16 align-middle"
+      role="img"
+      aria-label={label}
+    >
+      <title>{label}</title>
+      <polyline
+        fill="none"
+        stroke="var(--text-secondary)"
+        strokeWidth="1.25"
+        points={points.map((point) => `${x(point.year)},${y(point.share)}`).join(' ')}
+      />
+    </svg>
   );
 }
