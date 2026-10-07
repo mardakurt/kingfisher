@@ -4,21 +4,7 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
-## Unreleased
-
-- The Explorer keeps the move table in view: the player-name rule appears only
-  once a name is typed, and the year explanation appears only when some games
-  have no year or the position is too large to count.
-- In the Library, the control that deletes every stored game is labelled
-  “Delete all games”, including while a search is showing a shorter list.
-
-- The Explorer’s player box no longer asks for a Lichess username when the
-  source is your own games or a companion collection. A collection matches
-  the name as the games spell it, ignoring case, and the side can be either.
-  One game is no longer called “1 games”.
-
-- The Explorer’s Played column shows the first and last year a dated collection
-  records a move. A source that only stores the latest year still shows that year.
+## 1.5.0 — 2026-10-06
 
 - The Explorer’s Years column shows each move’s share of a dated collection’s
   games at the position, year by year, for My games and a companion SQLite
@@ -26,8 +12,16 @@ real users notice.
   line. A position of more than 100,000 games leaves the column out instead of
   estimating it. A reference pack keeps the same shares in the year chart it
   already draws from its history.
-
-## 1.5.0 — 2026-10-06
+- The Explorer’s Played column shows the first and last year a dated collection
+  records a move. A source that only stores the latest year still shows that year.
+- The Explorer’s player box follows the source: a Lichess account on Lichess by
+  player, and the name as the games spell it on My games and a companion
+  collection. The side can be either. One game is called one game.
+- The Explorer keeps the move table in view: the player-name rule appears only
+  once a name is typed, and the year explanation appears only when some games
+  have no year or the position is too large to count.
+- In the Library, the control that deletes every stored game is labelled
+  “Delete all games”, including while a search is showing a shorter list.
 
 - Browse recorded game titles in a collection and open exactly the games carrying a selected Title tag, in local and companion SQLite databases.
 
