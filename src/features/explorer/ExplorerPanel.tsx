@@ -40,7 +40,12 @@ import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 import { useReferenceArrows } from '@/stores/reference-arrows-store';
 
-import { YEAR_SHARE_MIN_GAMES, yearPoints, type YearPoint } from '@/database/move-years';
+import {
+  YEAR_SHARE_MIN_GAMES,
+  playedSpan,
+  yearPoints,
+  type YearPoint,
+} from '@/database/move-years';
 import type { YearGames } from '@/database/types';
 import { buildMoveEvidence, summariseEvidence, trendOf, type MoveEvidence } from './evidence';
 import { BUNDLED_PACK_ID } from '@/reference/catalog';
@@ -773,12 +778,16 @@ export function ExplorerPanel() {
                     <th className="@max-[559px]:hidden px-1.5 py-1.5 text-right font-medium">
                       Elo
                     </th>
-                    {/* ChessBase's "Played": the latest year the source has the move. */}
+                    {/*
+                      ChessBase's "Played": the years the source has the move.
+                      A counted series shows the first and last year; a source
+                      that only stores the latest year shows that.
+                    */}
                     <th
                       className="@max-[559px]:hidden px-1.5 py-1.5 text-right font-medium"
-                      title="The most recent year this source has a game with the move"
+                      title="The first and last year this source records the move, when those years were counted. Otherwise the most recent year."
                     >
-                      Last
+                      Played
                     </th>
                     {movers.data ? (
                       /*
@@ -1177,8 +1186,11 @@ function Row({
           <span className="ml-1 text-[9px] text-tertiary">#{entry.engineRank}</span>
         ) : null}
         {showYears && yearTotals ? (
-          <span className="@min-[560px]:hidden mt-0.5 block">
+          <span className="@min-[560px]:hidden mt-0.5 flex items-center gap-1.5">
             <YearShare years={entry.database.years} totals={yearTotals} />
+            <span className="text-[10px] text-tertiary tabular">
+              {playedSpan(entry.database.years, entry.database.lastPlayedYear)}
+            </span>
           </span>
         ) : null}
       </td>
@@ -1240,8 +1252,16 @@ function Row({
       <td
         className="@max-[559px]:hidden px-1.5 py-1.5 text-right text-tertiary tabular"
         data-explorer-last-played
+        title={
+          entry.database.years?.some((row) => row.games > 0)
+            ? entry.database.years
+                .filter((row) => row.games > 0)
+                .map((row) => `${row.year}: ${row.games.toLocaleString()}`)
+                .join(', ')
+            : 'The most recent year this source has a game with the move'
+        }
       >
-        {entry.database.lastPlayedYear ?? '—'}
+        {playedSpan(entry.database.years, entry.database.lastPlayedYear) ?? '—'}
       </td>
       {players ? (
         <td

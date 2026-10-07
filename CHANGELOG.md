@@ -6,6 +6,9 @@ real users notice.
 
 ## Unreleased
 
+- The Explorer’s Played column shows the first and last year a dated collection
+  records a move. A source that only stores the latest year still shows that year.
+
 - The Explorer’s Years column shows each move’s share of a dated collection’s
   games at the position, year by year, for My games and a companion SQLite
   database. A year with fewer than 20 games is named rather than drawn as a

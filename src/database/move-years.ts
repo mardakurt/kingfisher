@@ -19,6 +19,25 @@ export interface YearPoint {
   readonly share: number;
 }
 
+/**
+ * The years a source records for one move: `1972–1978` when more than one
+ * year has games, that year alone when only one does, and the latest year
+ * when the source counted no series. Null when it recorded neither.
+ */
+export function playedSpan(
+  years: readonly YearGames[] | undefined,
+  lastPlayedYear?: number,
+): string | null {
+  const dated = (years ?? [])
+    .filter((row) => row.year > 0 && row.games > 0)
+    .sort((a, b) => a.year - b.year);
+  const first = dated[0];
+  const last = dated.at(-1);
+  if (first && last && first.year !== last.year) return `${first.year}–${last.year}`;
+  if (first) return String(first.year);
+  return lastPlayedYear && lastPlayedYear > 0 ? String(lastPlayedYear) : null;
+}
+
 export function yearPoints(
   moveYears: readonly YearGames[] | undefined,
   totals: readonly YearGames[],

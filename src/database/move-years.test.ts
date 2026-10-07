@@ -1,6 +1,24 @@
 import { describe, expect, it } from 'vitest';
 
-import { YEAR_SHARE_MIN_GAMES, yearPoints } from './move-years';
+import { YEAR_SHARE_MIN_GAMES, playedSpan, yearPoints } from './move-years';
+
+describe('playedSpan', () => {
+  it('names the first and last year that actually has games', () => {
+    expect(
+      playedSpan([
+        { year: 1978, games: 13 },
+        { year: 1972, games: 12 },
+        { year: 1975, games: 0 },
+      ]),
+    ).toBe('1972–1978');
+  });
+
+  it('keeps a single recorded year, and falls back to the latest year a source stored without a series', () => {
+    expect(playedSpan([{ year: 2013, games: 4 }])).toBe('2013');
+    expect(playedSpan(undefined, 2026)).toBe('2026');
+    expect(playedSpan([], undefined)).toBeNull();
+  });
+});
 
 describe('yearPoints', () => {
   const totals = [
