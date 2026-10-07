@@ -6,6 +6,12 @@ real users notice.
 
 ## Unreleased
 
+- The Explorer keeps the move table in view: the player-name rule appears only
+  once a name is typed, and the year explanation appears only when some games
+  have no year or the position is too large to count.
+- In the Library, the control that deletes every stored game is labelled
+  “Delete all games”, including while a search is showing a shorter list.
+
 - The Explorer’s player box no longer asks for a Lichess username when the
   source is your own games or a companion collection. A collection matches
   the name as the games spell it, ignoring case, and the side can be either.

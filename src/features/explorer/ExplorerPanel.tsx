@@ -563,7 +563,9 @@ export function ExplorerPanel() {
                 <option value="b">as Black</option>
               </select>
             </div>
-            <p className="mt-0.5 text-[9.5px] text-tertiary">{playerField.hint}</p>
+            {player.trim() ? (
+              <p className="mt-0.5 text-[9.5px] text-tertiary">{playerField.hint}</p>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -863,15 +865,11 @@ export function ExplorerPanel() {
                 {query.data.yearSharesOmitted.games.toLocaleString('en')}. The column is left out
                 rather than estimated from a sample. Filter by year to compare two windows.
               </p>
-            ) : query.data?.yearTotals ? (
+            ) : query.data?.undatedGames ? (
               <p className="px-2.5 pt-1.5 text-[10px] text-tertiary" data-explorer-year-note>
-                Years: each move’s share of the dated games in {provider?.name ?? 'this source'} at
-                this position.
-                {query.data.undatedGames
-                  ? ` ${plural(query.data.undatedGames, 'game')} ${query.data.undatedGames === 1 ? 'has' : 'have'} no year and ${query.data.undatedGames === 1 ? 'is' : 'are'} left out.`
-                  : ''}{' '}
-                A line is drawn when a year has at least {YEAR_SHARE_MIN_GAMES} games; a thinner
-                year is named in the cell, not drawn as a line.
+                {plural(query.data.undatedGames, 'game')}{' '}
+                {query.data.undatedGames === 1 ? 'has' : 'have'} no year, so{' '}
+                {query.data.undatedGames === 1 ? 'it is' : 'they are'} left out of the year shares.
               </p>
             ) : null}
 

@@ -1488,7 +1488,7 @@ export function GamesWorkspace() {
             className={paged ? undefined : 'ml-auto'}
             onClick={() => setConfirmation('all')}
           >
-            Clear database
+            Delete all games
           </Button>
         )}
       </footer>
