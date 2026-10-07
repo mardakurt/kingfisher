@@ -35,7 +35,7 @@ describe('explorer player filter', () => {
       player: 'DrNykterstein',
       playerColor: 'w',
     });
-    expect(explorerPlayerQuery('lichess-player', 'DrNykterstein', 'b').playerColor).toBe('b');
+    expect(explorerPlayerQuery('lichess-player', 'DrNykterstein', 'b')?.playerColor).toBe('b');
     expect(explorerPlayerField('lichess-player').placeholder).toBe('Exact Lichess username');
   });
 
