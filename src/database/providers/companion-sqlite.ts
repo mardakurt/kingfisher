@@ -59,7 +59,9 @@ export class CompanionSqliteProvider implements ChessDatabaseProvider {
     ratingFilter: true,
     dateFilter: true,
     playerFilter: true,
-    speedFilter: true,
+    // No time-control column, and the explorer query does not classify one.
+    // Offering classical / rapid / blitz would show games the facet cannot exclude.
+    speedFilter: false,
     topGames: true,
     offline: true,
   };

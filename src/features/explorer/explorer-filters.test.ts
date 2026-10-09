@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   applicableExplorerFilters,
+  explorerFiltersForSource,
   explorerPlayerField,
   explorerPlayerQuery,
   explorerRatingClasses,
@@ -26,6 +27,35 @@ describe('applicableExplorerFilters', () => {
 
   it('treats a source not yet known as able to apply nothing', () => {
     expect(applicableExplorerFilters(prefs, undefined).filters).toEqual({});
+  });
+});
+
+describe('explorerFiltersForSource', () => {
+  const capabilities = {
+    ratingFilter: false,
+    dateFilter: false,
+    playerFilter: false,
+    speedFilter: false,
+  };
+
+  it('keeps a rating filter on a source that declares it and names it on one that does not', () => {
+    const filters = { minRating: 2200, sinceYear: 2024 };
+    expect(
+      explorerFiltersForSource(filters, { ...capabilities, ratingFilter: true, dateFilter: true }),
+    ).toEqual({ filters: { minRating: 2200, sinceYear: 2024 }, ignored: [] });
+    expect(explorerFiltersForSource(filters, capabilities)).toEqual({
+      filters: {},
+      ignored: ['Min Elo 2200', 'since 2024'],
+    });
+  });
+
+  it('does not merge two sources into one filter set', () => {
+    const filters = { minRating: 2200 };
+    const lichess = explorerFiltersForSource(filters, { ...capabilities, ratingFilter: true });
+    const pack = explorerFiltersForSource(filters, capabilities);
+    expect(lichess.filters).toEqual({ minRating: 2200 });
+    expect(pack.filters).toEqual({});
+    expect(pack.ignored).toEqual(['Min Elo 2200']);
   });
 });
 

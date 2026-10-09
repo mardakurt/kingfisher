@@ -517,7 +517,7 @@ number (`git rev-list --count HEAD`), commit, dirty flag and channel, in
 them. `KINGFISHER_DESKTOP_CHANNEL` is `dev` (default), `preview` or
 `stable`; a publishable channel refuses a dirty tree.
 
-- **The source version is 1.5.0.** The public Mac descriptor names the
+- **The source version is 1.5.1.** The public Mac descriptor names the
   build that has been published and byte-verified; it changes only after that.
   Bump the marketing version only for a real release.
   Never create a version to freshen a filename.

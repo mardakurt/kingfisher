@@ -345,14 +345,15 @@ export async function restoreWorkspaceBackup(
 }
 
 /**
- * Two stores carry unique indexes, and a merge is exactly the situation that
- * can violate them: the same repertoire position or the same game written on
- * another device has a different primary key but the same unique key. Writing
- * both would abort the whole restore with a constraint error, which the user
- * would read as "my backup is corrupt".
+ * Unique indexes a merge can violate: the same repertoire position, game, or
+ * journal entry written on another device has a different primary key but
+ * the same unique key. Writing both aborts the whole restore — IndexedDB
+ * rolls the transaction back — which the user would read as "my backup is
+ * corrupt".
  *
  * The record already in the database loses, because the backup is what the
- * user just asked to apply.
+ * user just asked to apply. A collision the list does not name still aborts
+ * the transaction; nothing is left half-applied.
  */
 const UNIQUE_KEY: Partial<Record<StoreName, (record: Record<string, unknown>) => string | null>> = {
   [STORE_NAMES.repertoirePositions]: (record) =>
@@ -360,6 +361,8 @@ const UNIQUE_KEY: Partial<Record<StoreName, (record: Record<string, unknown>) =>
       ? `${record.repertoireId}\u001f${record.positionKey}`
       : null,
   [STORE_NAMES.games]: (record) =>
+    typeof record.fingerprint === 'string' ? record.fingerprint : null,
+  [STORE_NAMES.journal]: (record) =>
     typeof record.fingerprint === 'string' ? record.fingerprint : null,
   [STORE_NAMES.reviewItems]: (record) =>
     typeof record.identityKey === 'string' ? record.identityKey : null,
@@ -492,6 +495,13 @@ function validateRecord(store: StoreName, value: unknown, index: number): void {
 export async function downloadWorkspaceBackup(
   options: {
     readonly includeGames?: boolean;
+    /**
+     * The portable preference record Settings → Export passes:
+     * `portablePreferences(usePreferences.getState())`. Omitted keys are
+     * left alone on restore, so an empty object restores an empty machine
+     * to the defaults.
+     */
+    readonly preferences?: Readonly<Record<string, unknown>>;
   } = {},
 ): Promise<
   { readonly ok: true; readonly bytes: number } | { readonly ok: false; readonly message: string }
@@ -504,13 +514,9 @@ export async function downloadWorkspaceBackup(
     */
     const { getRepositories } = await import('./repositories');
     const database = (await getRepositories()).raw;
-    const backup = await createWorkspaceBackup(
-      database,
-      {},
-      {
-        includeGames: options.includeGames,
-      },
-    );
+    const backup = await createWorkspaceBackup(database, options.preferences ?? {}, {
+      includeGames: options.includeGames,
+    });
     const json = JSON.stringify(backup, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);

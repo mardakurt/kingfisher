@@ -23,7 +23,9 @@ export class LocalCollectionProvider implements ChessDatabaseProvider {
     ratingFilter: true,
     dateFilter: true,
     playerFilter: true,
-    speedFilter: true,
+    // This index does not record a TimeControl tag, so it cannot apply the facet.
+    // The registered My games provider does, from the stored tag.
+    speedFilter: false,
     topGames: true,
     offline: true,
   };

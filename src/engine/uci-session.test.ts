@@ -19,6 +19,10 @@ import type { EngineCapabilities } from './types';
 
 const START = asFen('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
 
+const flush = async () => {
+  for (let i = 0; i < 12; i++) await Promise.resolve();
+};
+
 const CAPABILITIES: EngineCapabilities = {
   multiPv: true,
   searchMoves: true,
@@ -111,6 +115,129 @@ describe('capabilities of a native engine', () => {
     };
     expect(capabilitiesFrom([], measured).searchMoves).toBe(true);
     expect(capabilitiesFrom([], { ...measured, searchmoves: false }).searchMoves).toBe(false);
+  });
+});
+
+const AFTER_E4 = asFen('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1');
+
+/** A transport whose `waitFor` really waits, so a test can choose what arrives when. */
+function controllable() {
+  const listeners = new Set<(line: string) => void>();
+  const sent: string[] = [];
+  const transport: UciTransport = {
+    onLine(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    send(command) {
+      sent.push(command);
+    },
+    waitFor(match, timeoutMs = 1000) {
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('timed out')), timeoutMs);
+        const stop = transport.onLine((line) => {
+          if (!match(line)) return;
+          clearTimeout(timer);
+          stop();
+          resolve(line);
+        });
+      });
+    },
+    dispose() {
+      listeners.clear();
+    },
+  };
+  const emit = (line: string) => {
+    for (const listener of [...listeners]) listener(line);
+  };
+  return { transport, sent, emit };
+}
+
+describe('a score that is only a bound', () => {
+  it('does not replace an exact line with a bound at the same rank', async () => {
+    const { transport, emit } = controllable();
+    const session = new UciSession(transport, { name: 'Test' }, [], CAPABILITIES);
+    const handle = session.analyse({ fen: START, limit: { kind: 'depth', depth: 12 } }, () => {});
+    await flush();
+    emit('info depth 10 score cp 20 pv e2e4');
+    emit('info depth 18 score cp 800 lowerbound pv e2e4');
+    emit('bestmove e2e4');
+    const analysis = await handle.finished;
+    expect(analysis.lines[0]?.moves).toEqual(['e2e4']);
+    expect(analysis.lines[0]?.score).toEqual({ kind: 'cp', cp: 20 });
+    expect(analysis.lines[0]?.bound).toBeUndefined();
+    expect(analysis.bestMove).toBe('e2e4');
+  });
+
+  it('keeps the bound flag when that rank has no exact score yet', async () => {
+    const { transport, emit } = controllable();
+    const session = new UciSession(transport, { name: 'Test' }, [], CAPABILITIES);
+    const handle = session.analyse({ fen: START, limit: { kind: 'depth', depth: 12 } }, () => {});
+    await flush();
+    emit('info depth 8 score cp 800 lowerbound pv e2e4');
+    emit('bestmove e2e4');
+    const analysis = await handle.finished;
+    expect(analysis.lines[0]?.bound).toBe('lower');
+    expect(analysis.lines[0]?.score).toEqual({ kind: 'cp', cp: 800 });
+    expect(analysis.bestMove).toBe('e2e4');
+  });
+
+  it('does not let a bound line become the move when bestmove disagrees', async () => {
+    const { transport, emit } = controllable();
+    const session = new UciSession(transport, { name: 'Test' }, [], CAPABILITIES);
+    const handle = session.analyse({ fen: START, limit: { kind: 'depth', depth: 12 } }, () => {});
+    await flush();
+    emit('info depth 12 score cp 900 lowerbound pv d2d4');
+    emit('bestmove e2e4');
+    const analysis = await handle.finished;
+    expect(analysis.bestMove).toBe('e2e4');
+    expect(analysis.lines.some((line) => line.moves[0] === 'd2d4')).toBe(false);
+  });
+});
+
+describe('the gap after stop', () => {
+  it('ignores lines until readyok, then searches the new position', async () => {
+    const { transport, sent, emit } = controllable();
+    const session = new UciSession(transport, { name: 'Test' }, [], CAPABILITIES);
+    const first = session.analyse({ fen: START, limit: { kind: 'infinite' } }, () => {});
+    void first.finished.catch(() => {});
+    await flush();
+    const updates: string[] = [];
+    const second = session.analyse({ fen: AFTER_E4, limit: { kind: 'infinite' } }, (snapshot) => {
+      updates.push(snapshot.bestMove ?? snapshot.lines[0]?.moves[0] ?? '');
+    });
+    await flush();
+    emit('bestmove e2e4');
+    await flush();
+    expect(sent).toContain('isready');
+    expect(sent.filter((line) => line.startsWith('go'))).toEqual(['go infinite']);
+
+    emit('info depth 20 score cp 400 pv e7e5');
+    emit('bestmove e7e5');
+    await flush();
+    let settled = false;
+    void second.finished.then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
+    );
+    await flush();
+    expect(settled).toBe(false);
+    expect(updates).toEqual([]);
+
+    emit('readyok');
+    await flush();
+    expect(sent.filter((line) => line.startsWith('go'))).toHaveLength(2);
+    expect(sent.indexOf('isready')).toBeLessThan(sent.findIndex((line) => line.includes(AFTER_E4)));
+    emit('info depth 8 score cp 10 pv d7d5');
+    emit('bestmove d7d5');
+    const analysis = await second.finished;
+    expect(analysis.fen).toBe(AFTER_E4);
+    expect(analysis.bestMove).toBe('d7d5');
+    expect(analysis.lines.some((line) => line.moves[0] === 'e7e5')).toBe(false);
   });
 });
 

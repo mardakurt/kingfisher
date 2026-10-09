@@ -45,7 +45,12 @@ import { positionKey } from '@/chess/fen';
 import { Position } from '@/chess/position';
 
 import { briefForLineage, type ResolvedBrief } from './variation-briefs';
-import { loadOpeningCatalog, OPENING_ALIASES, type OpeningEntry } from './opening-catalog';
+import {
+  aliasesForLabel,
+  loadOpeningCatalog,
+  openingFamilies,
+  type OpeningEntry,
+} from './opening-catalog';
 
 /** Where every fact in this book comes from. */
 export const THEORY_BOOK_PROVENANCE = {
@@ -170,31 +175,6 @@ export interface TheoryBook {
 }
 
 /**
- * Informal names, indexed by the dataset term they resolve to.
- *
- * `OPENING_ALIASES` maps what a player types onto a term the dataset contains.
- * A node wants the reverse — "which of these nicknames apply to me" — so the
- * mapping is inverted once and matched against the node's own label.
- */
-const ALIASES_BY_TERM = (() => {
-  const byTerm = new Map<string, string[]>();
-  for (const [alias, term] of Object.entries(OPENING_ALIASES)) {
-    const list = byTerm.get(term) ?? [];
-    list.push(alias);
-    byTerm.set(term, list);
-  }
-  return byTerm;
-})();
-
-function aliasesFor(entry: OpeningEntry): readonly string[] {
-  const found: string[] = [];
-  for (const [term, aliases] of ALIASES_BY_TERM) {
-    if (entry.label.includes(term)) found.push(...aliases);
-  }
-  return [...new Set(found)].sort();
-}
-
-/**
  * The dataset's `Family: Variation, Sub` label, as a lineage.
  *
  * Shared with the classifier's own reading of the same field, so a brief
@@ -212,6 +192,7 @@ function lineageOf(entry: OpeningEntry): readonly string[] {
 }
 
 function build(entries: readonly OpeningEntry[]): TheoryBook {
+  const families = openingFamilies(entries);
   /*
     Longest-proper-prefix lookup, done once. Keying on the joined line rather
     than walking positions keeps this string work: 3,810 entries at up to
@@ -250,7 +231,7 @@ function build(entries: readonly OpeningEntry[]): TheoryBook {
       plies: entry.plies,
       parent: parent?.key ?? null,
       children: [],
-      aliases: aliasesFor(entry),
+      aliases: aliasesForLabel(entry.label, families),
       namedBelow: 0,
     });
 

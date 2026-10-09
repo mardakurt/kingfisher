@@ -4,6 +4,18 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## 1.5.1 — 2026-10-09
+
+- Puzzles show correct and incorrect move feedback. Wrong moves return to the
+  same decision so you can try again without revealing the answer. A revealed
+  solution can be retried in practice, and each puzzle records one rated attempt.
+- Backups from the storage status include portable preferences. Journal backups
+  merge without duplicate-entry failures, and profile edits retain favourites.
+- Explorer source comparisons and filters respect each source's capabilities.
+  Repertoire coverage and tablebase defence report missing evidence explicitly.
+- Chess validation, game imports, engine result attribution and collection
+  operations reject invalid or incomplete results instead of publishing them.
+
 ## 1.5.0 — 2026-10-06
 
 - The Explorer’s Years column shows each move’s share of a dated collection’s

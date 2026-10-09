@@ -113,6 +113,45 @@ describe('merging games into one tree', () => {
     expect(JSON.stringify(a)).toBe(before);
   });
 
+  it('fills arrows, a clock, a question and a pre-comment the first game left empty', () => {
+    const bare = game('1. e4 e5 *');
+    const annotated = game(
+      '1. e4 {[%cal Ge2e4][%csl Gd4][%clk 0:05:00][%emt 0:00:03][%kfquestion Find it][%kfqpoints 2][%kfqtime 30]} c5 ({The idea} 1... e5) *',
+    );
+    const tree = mergeGames([
+      { tree: bare, label: 'A' },
+      { tree: annotated, label: 'B' },
+    ]).tree;
+    const e4 = mustGetNode(tree, mainlinePath(tree)[1]!);
+    expect(e4.shapes).toEqual([
+      { kind: 'arrow', from: 'e2', to: 'e4', brush: 'green' },
+      { kind: 'square', square: 'd4', brush: 'green' },
+    ]);
+    expect(e4.meta.clockSeconds).toBe(300);
+    expect(e4.meta.elapsedSeconds).toBe(3);
+    expect(e4.meta.question).toBe('Find it');
+    expect(e4.meta.questionPoints).toBe(2);
+    expect(e4.meta.questionSeconds).toBe(30);
+    const e5 = mustGetNode(tree, mainlinePath(tree)[2]!);
+    expect(e5.preComment).toBe('The idea');
+  });
+
+  it('does not replace a shape, clock or question that is already stored', () => {
+    const first = game('1. e4 {[%cal Re2e4][%clk 0:01:00][%kfquestion First]} e5 *');
+    const second = game(
+      '1. e4 {[%cal Ge2e4][%clk 0:09:00][%kfquestion Second][%kfqpoints 5]} e5 *',
+    );
+    const tree = mergeGames([
+      { tree: first, label: 'A' },
+      { tree: second, label: 'B' },
+    ]).tree;
+    const e4 = mustGetNode(tree, mainlinePath(tree)[1]!);
+    expect(e4.shapes).toEqual([{ kind: 'arrow', from: 'e2', to: 'e4', brush: 'red' }]);
+    expect(e4.meta.clockSeconds).toBe(60);
+    expect(e4.meta.question).toBe('First');
+    expect(e4.meta.questionPoints).toBeUndefined();
+  });
+
   it('never writes a brace into a comment, which would end it early', () => {
     const result = mergeGames([{ tree: game('1. e4 *'), label: 'Odd {name}' }]);
     const e4 = mustGetNode(result.tree, mainlinePath(result.tree)[1]!);

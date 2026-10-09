@@ -17,18 +17,23 @@ import { expect, type Locator, type Page } from '@playwright/test';
 export async function selectTool(page: Page, dock: Locator, name: string): Promise<void> {
   const tab = dock.getByRole('tab', { name, exact: true });
 
-  const inStrip = await tab
-    .waitFor({ state: 'visible', timeout: 3_000 })
-    .then(() => true)
-    .catch(() => false);
+  const more = dock.getByRole('button', { name: /More/ });
+  await tab.or(more).first().waitFor({ state: 'visible' });
 
-  if (inStrip) {
+  if (await tab.isVisible()) {
     await tab.click();
     return;
   }
 
-  await dock.getByRole('button', { name: /More/ }).click();
-  await page.getByRole('menuitem', { name, exact: true }).click();
+  await more.click();
+  const menuItem = page.getByRole('menuitem', { name, exact: true });
+  // The route can finish loading after the strip probe and promote this tool
+  // into a tab. Wait for either real control instead of assuming it stayed hidden.
+  await tab.or(menuItem).first().waitFor({ state: 'visible' });
+  if (await tab.isVisible()) await page.keyboard.press('Escape');
+  // Keep both alternatives in the click locator: promotion can also happen
+  // during Playwright's actionability checks, after the visibility probe.
+  await tab.or(menuItem).first().click();
   await expect(tab).toBeVisible();
 }
 

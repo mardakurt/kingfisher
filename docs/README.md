@@ -1,5 +1,7 @@
 # Kingfisher documentation
 
+- [1.5.1 release notes](release/1.5.1.md) — puzzle retries and correctness fixes.
+
 - [ChessBase Mac closure candidate for 1.5.0](product/chessbase-mac-comparison-1.5.0.md) — claim/control matrix and explicitly pending acceptance.
 
 - [1.5.0 release notes](release/1.5.0.md)

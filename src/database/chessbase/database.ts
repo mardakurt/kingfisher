@@ -191,6 +191,9 @@ export class ChessBaseDatabase {
   game(id: number): ChessBaseGameResult {
     const header = this.header(id);
     if (!header) return { id, header: null, reason: 'no such game' };
+    // Before any movetext is read. A deleted header is not a game and not a
+    // decode failure; the import counts it with the inspection, then skips it.
+    if (header.deleted) return { id, header, reason: 'a deleted game, which is not imported' };
     if (header.text) return { id, header, reason: 'a guiding text, not a game' };
     if (header.chess960)
       return { id, header, reason: 'a Chess960 game, which Kingfisher does not play' };

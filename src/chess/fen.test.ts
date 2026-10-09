@@ -23,7 +23,7 @@ describe('parseFen', () => {
   });
 
   it('accepts a four-field FEN and defaults the counters', () => {
-    const parts = unwrap(parseFen('8/8/8/8/8/8/4K3/4k3 w - -'));
+    const parts = unwrap(parseFen('4k3/8/8/8/8/8/8/4K3 w - -'));
     expect(parts.halfmoveClock).toBe(0);
     expect(parts.fullmoveNumber).toBe(1);
   });

@@ -579,6 +579,36 @@ describe('Phase 3 library repositories', () => {
     expect((await repositories.profile.get()).aliases).toEqual(profile.aliases);
   });
 
+  it('keeps favourites, themes and the display name when aliases are saved, and aliases when the name is', async () => {
+    // Settings writes aliases and then the display name. IndexedDB put
+    // replaces the whole profile, so a writer that rebuilds the record from
+    // the fields it knows about deletes the rest — and the second write
+    // cannot put them back.
+    await repositories.profile.addFavoritePlayer('Carlsen, Magnus', 'Round 6');
+    await repositories.profile.setDisplayName('Magnus');
+    await repositories.profile.addCustomTheme('Trade Decision');
+
+    const afterAliases = await repositories.profile.setAliases(['Carlsen, Magnus']);
+    expect(afterAliases.displayName).toBe('Magnus');
+    expect(afterAliases.customThemes).toEqual(['trade-decision']);
+    expect(afterAliases.favoritePlayers).toEqual([
+      expect.objectContaining({
+        key: 'carlsen, magnus',
+        name: 'Carlsen, Magnus',
+        note: 'Round 6',
+      }),
+    ]);
+    expect((await repositories.profile.get()).favoritePlayers).toEqual(
+      afterAliases.favoritePlayers,
+    );
+
+    const afterName = await repositories.profile.setDisplayName('Hikaru');
+    expect(afterName.aliases).toEqual(['Carlsen, Magnus']);
+    expect(afterName.customThemes).toEqual(['trade-decision']);
+    expect(afterName.favoritePlayers).toEqual(afterAliases.favoritePlayers);
+    expect((await repositories.profile.get()).displayName).toBe('Hikaru');
+  });
+
   /*
     Phase 55: a display name is what the welcome banner reads. The setter
     is the contract — the Settings panel and the first-launch prompt both

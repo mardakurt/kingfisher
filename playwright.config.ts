@@ -153,20 +153,32 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: 'npm run dev',
+      // Turbopack's development manifest writes intermittently produced empty
+      // manifests during long suites. Exercise the same app with Next's supported
+      // Webpack dev server; production builds retain their normal bundler.
+      command: 'npm run dev -- --webpack',
+      env: {
+        KINGFISHER_E2E: '1',
+        // Keep the long route suite below Next's 80% development restart threshold.
+        NODE_OPTIONS: [process.env.NODE_OPTIONS, '--max-old-space-size=6144']
+          .filter(Boolean)
+          .join(' '),
+      },
       url: 'http://localhost:3210/analysis',
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
     {
-      command: 'npm run companion',
+      command: 'node scripts/build-companion-kit.mjs && npm run companion',
       url: 'http://127.0.0.1:4338/health',
       reuseExistingServer: false,
-      timeout: 30_000,
+      // Includes building the source import bundle before the HTTP server starts.
+      timeout: 120_000,
       env: {
         KINGFISHER_COMPANION_PORT: '4338',
         KINGFISHER_COMPANION_TOKEN: 'phase8-e2e-token',
         KINGFISHER_COMPANION_DATA_DIR: companionData,
+        KINGFISHER_COMPANION_KIT: path.join(companionData, 'import-kit.mjs'),
       },
     },
   ],

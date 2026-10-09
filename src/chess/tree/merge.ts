@@ -15,8 +15,9 @@
  * - The annotations of a move the first time it is seen. When a later game
  *   plays a move already in the tree, the move is not added again; its
  *   comment is kept only if the move had none, its NAGs are joined, and its
- *   stored evaluation is kept only if the move had none. Nothing is averaged
- *   and nothing is overwritten.
+ *   stored evaluation, arrows, pre-comment, clock, question and elapsed time
+ *   are kept only if the move had none. Nothing is averaged and nothing is
+ *   overwritten.
  * - Which game each branch came from: the last move of every merged game's
  *   main line carries the game's label as a comment, so a branch in the
  *   merged tree can always be traced to the game that played it.
@@ -185,17 +186,56 @@ function keepFirst(tree: GameTree, id: NodeId, incoming: MoveNode): GameTree {
   const nags = joinNags(existing.nags, incoming.nags);
   const comment = existing.comment?.trim() ? existing.comment : incoming.comment;
   const evaluation: Evaluation | undefined = existing.evaluation ?? incoming.evaluation;
+  const shapes =
+    existing.shapes.length > 0 || incoming.shapes.length === 0 ? existing.shapes : incoming.shapes;
+  const preComment = existing.preComment?.trim() ? existing.preComment : incoming.preComment;
+  const meta = fillMeta(existing.meta, incoming.meta);
   const unchanged =
     nags.length === existing.nags.length &&
     comment === existing.comment &&
-    evaluation === existing.evaluation;
+    evaluation === existing.evaluation &&
+    shapes === existing.shapes &&
+    preComment === existing.preComment &&
+    meta === existing.meta;
   if (unchanged) return tree;
   return replace(tree, {
     ...existing,
     nags,
+    shapes,
+    meta,
     ...(comment !== undefined ? { comment } : {}),
+    ...(preComment !== undefined ? { preComment } : {}),
     ...(evaluation !== undefined ? { evaluation } : {}),
   });
+}
+
+/** Clock, question and elapsed time fill only when the node does not already have them. */
+function fillMeta(existing: MoveNode['meta'], incoming: MoveNode['meta']): MoveNode['meta'] {
+  const clockSeconds =
+    existing.clockSeconds !== undefined ? existing.clockSeconds : incoming.clockSeconds;
+  const elapsedSeconds =
+    existing.elapsedSeconds !== undefined ? existing.elapsedSeconds : incoming.elapsedSeconds;
+  const question = existing.question !== undefined ? existing.question : incoming.question;
+  const fillingQuestion = existing.question === undefined && incoming.question !== undefined;
+  const questionPoints = fillingQuestion ? incoming.questionPoints : existing.questionPoints;
+  const questionSeconds = fillingQuestion ? incoming.questionSeconds : existing.questionSeconds;
+  if (
+    clockSeconds === existing.clockSeconds &&
+    elapsedSeconds === existing.elapsedSeconds &&
+    question === existing.question &&
+    questionPoints === existing.questionPoints &&
+    questionSeconds === existing.questionSeconds
+  ) {
+    return existing;
+  }
+  return {
+    ...existing,
+    ...(clockSeconds !== undefined ? { clockSeconds } : {}),
+    ...(elapsedSeconds !== undefined ? { elapsedSeconds } : {}),
+    ...(question !== undefined ? { question } : {}),
+    ...(questionPoints !== undefined ? { questionPoints } : {}),
+    ...(questionSeconds !== undefined ? { questionSeconds } : {}),
+  };
 }
 
 function replace(tree: GameTree, node: MoveNode): GameTree {

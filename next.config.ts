@@ -45,6 +45,9 @@ const desktop = process.env.KINGFISHER_DESKTOP_BUILD === '1';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   typedRoutes: true,
+  // E2E owns its disposable output instead of inheriting an ordinary dev
+  // server's cache or sharing the production build's generated manifests.
+  ...(process.env.KINGFISHER_E2E === '1' ? { distDir: '.next/e2e.nosync' } : {}),
   /*
     No image optimiser in the standalone build.
 

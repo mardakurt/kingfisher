@@ -11,7 +11,7 @@
 import { parsePgn } from '@/chess/pgn';
 import type { PersistenceDatabase } from '@/persistence/indexeddb/database';
 import type { KeyRange } from '@/persistence/indexeddb/key-range';
-import { matchesPlayers } from '@/persistence/game-match';
+import { matchesGameSearch } from '@/persistence/game-match';
 import { normalizeGame } from '@/persistence/prepare-game';
 import { STORE_NAMES } from '@/persistence/schema/migrations';
 import type {
@@ -56,25 +56,34 @@ export class LocalGameCollection implements GameCollection {
   /**
    * A page of complete games in primary-key order.
    *
-   * The filter is applied per record rather than through the query planner
-   * because the walk is already in key order for the cursor's sake, and a copy
-   * has to visit every candidate anyway. `matchesTransferQuery` is the same
-   * predicate the game list uses, so "copy these results" copies these results.
+   * The filter is the game list's matcher, applied by the cursor, so the page
+   * is a page of matches rather than a slice of the store that is filtered
+   * afterwards. The walk stops one match past the page. That extra row is not
+   * returned; it is how the cursor says more matches may exist without
+   * reading the rest of the collection. A query that only names a player, a
+   * year and a minimum rating — what a copy sends — does not start requiring
+   * the fields it leaves out.
    */
   async read(
     query: GameSearchQuery | null,
     after: string | null,
     limit: number,
   ): Promise<TransferPage> {
+    const pageSize = Math.max(0, limit);
+    if (pageSize === 0) return { games: [], nextAfter: null };
     const scan = await this.database.scan<GameSummary>(STORE_NAMES.games, {
       ...(after === null ? {} : { range: afterKey(after) }),
-      limit,
+      // One past the page. Seeing that row is the truncated signal; holding
+      // every later game is not.
+      limit: pageSize + 1,
+      ...(query
+        ? { match: (game: GameSummary) => matchesGameSearch(game, query), stopEarly: true }
+        : {}),
     });
-    const cursor = scan.items.at(-1)?.id ?? null;
-    const wanted = query
-      ? scan.items.filter((game) => matchesTransferQuery(game, query))
-      : scan.items;
-    if (wanted.length === 0) return { games: [], nextAfter: scan.complete ? null : cursor };
+    const more = scan.items.length > pageSize;
+    const wanted = more ? scan.items.slice(0, pageSize) : scan.items;
+    const nextAfter = more ? (wanted.at(-1)?.id ?? null) : null;
+    if (wanted.length === 0) return { games: [], nextAfter };
 
     const games: TransferGame[] = [];
     await this.database.transaction(
@@ -104,7 +113,7 @@ export class LocalGameCollection implements GameCollection {
         }
       },
     );
-    return { games, nextAfter: scan.complete ? null : cursor };
+    return { games, nextAfter };
   }
 
   async have(fingerprints: readonly string[]): Promise<ReadonlySet<string>> {
@@ -246,58 +255,6 @@ export class LocalGameCollection implements GameCollection {
       nextAfter: scan.complete ? null : (scan.items.at(-1)?.id ?? null),
     };
   }
-}
-
-/**
- * The filter a copy applies, matching the game list's own semantics.
- *
- * Kept here rather than reusing the repository's private matcher because a copy
- * needs it over records it has already read; the fields and the rules are the
- * same ones, including consulting both the declared and the computed opening.
- */
-export function matchesTransferQuery(game: GameSummary, query: GameSearchQuery): boolean {
-  const text = query.text?.trim().toLowerCase();
-  if (text) {
-    const haystack = [
-      game.white,
-      game.black,
-      game.event,
-      game.site,
-      game.opening,
-      game.variation,
-      game.eco,
-      game.classification?.name,
-      game.classification?.variation,
-      game.classification?.eco,
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
-    if (!haystack.includes(text)) return false;
-  }
-  if (!matchesPlayers(game.whiteKey, game.blackKey, query)) return false;
-  if (query.result && game.result !== query.result) return false;
-  if (query.fromYear && (!game.year || game.year < query.fromYear)) return false;
-  if (query.toYear && (!game.year || game.year > query.toYear)) return false;
-  if (query.minRating) {
-    const ratings = [game.whiteRating, game.blackRating].filter(
-      (rating): rating is number => rating !== undefined,
-    );
-    if (!ratings.length || Math.max(...ratings) < query.minRating) return false;
-  }
-  if (query.eco) {
-    const needle = query.eco.toLowerCase();
-    const codes = [game.eco, game.classification?.eco].filter(Boolean) as string[];
-    if (!codes.some((code) => code.toLowerCase().startsWith(needle))) return false;
-  }
-  if (query.opening) {
-    const needle = query.opening.toLowerCase();
-    const names = [game.opening, game.classification?.name, game.classification?.variation].filter(
-      Boolean,
-    ) as string[];
-    if (!names.some((name) => name.toLowerCase().includes(needle))) return false;
-  }
-  return true;
 }
 
 /** Rebuild a summary for a game that arrived without one this store can use. */

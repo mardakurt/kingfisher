@@ -124,9 +124,11 @@ export function RatingClassesSection({
               onChange={(id) => setBand(Number(id))}
             />
             <p className="text-[10px] leading-snug text-tertiary">
-              Games in {sourceName} where the lower of the two ratings was{' '}
-              {bandLabel(bands, chosen)}, that reached the position after each move — by any move
-              order, so a transposition counts here and not in the table above.
+              Games in {sourceName} filed by the lower rating the game states,{' '}
+              {bandLabel(bands, chosen)}. A game that states one rating is filed by that rating; the
+              class is not a claim that both players were in it. These games reached the position
+              after each move, by any move order, so a transposition counts here and not in the
+              table above.
               {empty.length > 0
                 ? ` No games here rated ${empty.map((lower) => bandLabel(bands, lower)).join(', ')}.`
                 : ''}

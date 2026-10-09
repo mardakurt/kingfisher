@@ -15,8 +15,27 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { CompanionClient } from '@/companion/client';
 
+import { START_FEN } from '@/chess/fen';
+
 import { CompanionTransport } from './companion/transport';
 import { UciWorkerClient } from './stockfish/worker-client';
+import type { EngineCapabilities } from './types';
+import { UciSession } from './uci-session';
+
+const capabilities: EngineCapabilities = {
+  multiPv: false,
+  searchMoves: false,
+  threads: false,
+  hash: false,
+  syzygy: false,
+  nnue: false,
+  maxThreads: 1,
+  maxHashMb: 16,
+};
+
+const flush = async () => {
+  for (let i = 0; i < 12; i++) await Promise.resolve();
+};
 
 /** Resolves to `'pending'` if the promise has not settled by the next tick. */
 async function settlement(promise: Promise<unknown>): Promise<string> {
@@ -146,5 +165,79 @@ describe('a transport releases its waiters when the engine dies', () => {
     const waiting = transport.waitFor((line) => line === 'readyok', 20_000, 'readyok');
     (source.onmessage as (event: { data: string }) => void)({ data: JSON.stringify('readyok') });
     await expect(waiting).resolves.toBe('readyok');
+  });
+
+  it('fails an infinite search when the worker errors, and terminates it', async () => {
+    const { client, worker } = await startWorkerClient();
+    const session = new UciSession(client, { name: 'Worker' }, [], capabilities);
+    const handle = session.analyse({ fen: START_FEN, limit: { kind: 'infinite' } }, () => {});
+    await flush();
+    worker.emit('error', { message: 'wasm memory exhausted' });
+    expect(await settlement(handle.finished)).toBe('rejected');
+    expect(worker.terminated).toBe(true);
+  });
+
+  it('fails an infinite search when a companion command is refused', async () => {
+    const { transport, client } = await startCompanionTransport();
+    (
+      client.send as unknown as { mockImplementation: (fn: () => Promise<void>) => void }
+    ).mockImplementation(async () => {
+      throw new Error('socket hang up');
+    });
+    const session = new UciSession(transport, { name: 'Native' }, [], capabilities);
+    const handle = session.analyse({ fen: START_FEN, limit: { kind: 'infinite' } }, () => {});
+    await flush();
+    expect(await settlement(handle.finished)).toBe('rejected');
+  });
+
+  it('fails an infinite search when the stream closes after connect', async () => {
+    const { transport, source } = await startCompanionTransport();
+    const session = new UciSession(transport, { name: 'Native' }, [], capabilities);
+    const handle = session.analyse({ fen: START_FEN, limit: { kind: 'infinite' } }, () => {});
+    await flush();
+    source.readyState = 2;
+    (source.onerror as () => void)();
+    expect(await settlement(handle.finished)).toBe('rejected');
+  });
+
+  it('does not fail a search while the stream is still reconnecting', async () => {
+    const { transport, source } = await startCompanionTransport();
+    const session = new UciSession(transport, { name: 'Native' }, [], capabilities);
+    const handle = session.analyse({ fen: START_FEN, limit: { kind: 'infinite' } }, () => {});
+    await flush();
+    source.readyState = 0;
+    (source.onerror as () => void)();
+    expect(await settlement(handle.finished)).toBe('pending');
+    session.dispose();
+  });
+
+  it('sends the next command only after the previous write has been accepted', async () => {
+    const { transport, client } = await startCompanionTransport();
+    let releaseFirst: (() => void) | undefined;
+    const firstHeld = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const order: string[] = [];
+    (
+      client.send as unknown as {
+        mockImplementation: (fn: (session: string, command: string) => Promise<void>) => void;
+      }
+    ).mockImplementation(async (_session: string, command: string) => {
+      order.push(`start ${command}`);
+      if (command.startsWith('position')) await firstHeld;
+      order.push(`end ${command}`);
+    });
+    transport.send('position startpos');
+    transport.send('go infinite');
+    await flush();
+    expect(order).toEqual(['start position startpos']);
+    releaseFirst?.();
+    await flush();
+    expect(order).toEqual([
+      'start position startpos',
+      'end position startpos',
+      'start go infinite',
+      'end go infinite',
+    ]);
   });
 });

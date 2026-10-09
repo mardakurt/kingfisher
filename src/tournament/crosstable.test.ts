@@ -122,6 +122,29 @@ describe('a round robin', () => {
 });
 
 describe('what the table refuses to claim', () => {
+  it('does not count an unfinished White game as a game with White', () => {
+    // Ann and Bea each won two games with Black. Bea also has an unfinished
+    // game with White. Points, Sonneborn-Berger and wins are equal; the
+    // unfinished game scored for nobody, so it must not place Bea lower.
+    const table = buildCrosstable([
+      g('Cal', 'Ann', '0-1', '1'),
+      g('Dan', 'Ann', '0-1', '2'),
+      g('Cal', 'Bea', '0-1', '1'),
+      g('Dan', 'Bea', '0-1', '2'),
+      g('Bea', 'Cal', '*', '3'),
+    ]);
+    const ann = table.players.find((player) => player.name === 'Ann')!;
+    const bea = table.players.find((player) => player.name === 'Bea')!;
+    expect(table.format).toBe('round-robin');
+    expect(table.complete).toBe(false);
+    expect(ann).toMatchObject({ score: 2, played: 2, wins: 2, whiteGames: 0, sonnebornBerger: 0 });
+    expect(bea).toMatchObject({ score: 2, played: 2, wins: 2, whiteGames: 0, sonnebornBerger: 0 });
+    expect(ann.played - ann.whiteGames).toBe(2);
+    expect(bea.played - bea.whiteGames).toBe(2);
+    expect(ann.rank).toBe(bea.rank);
+    expect(table.unfinished).toBe(1);
+  });
+
   it('scores an unfinished game for nobody and says the round robin is provisional', () => {
     const table = buildCrosstable([...roundRobin.slice(0, 5), g('B', 'C', '*', '3')]);
     const b = table.players.find((p) => p.name === 'B')!;

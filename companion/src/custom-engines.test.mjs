@@ -5,7 +5,7 @@ import process from 'node:process';
 
 import { describe, expect, it } from 'vitest';
 
-import { handshakeUci, validateExecutable } from './custom-engines.mjs';
+import { customEngineSearchGate, handshakeUci, validateExecutable } from './custom-engines.mjs';
 
 const dir = mkdtempSync(path.join(tmpdir(), 'kingfisher-custom-engine-'));
 
@@ -25,6 +25,8 @@ rl.on('line', (line) => {
     console.log('uciok');
   } else if (line.trim() === 'isready') {
     console.log('readyok');
+  } else if (line.trim().startsWith('go')) {
+    console.log('bestmove e2e4');
   } else if (line.trim() === 'quit') {
     process.exit(0);
   }
@@ -38,6 +40,33 @@ console.log('this is not a UCI response');
 console.log('neither is this');
 setInterval(() => {}, 1000);
 `;
+
+describe('customEngineSearchGate', () => {
+  it('refuses a handshake that never searched', () => {
+    expect(() =>
+      customEngineSearchGate({
+        name: 'Lc0',
+        checks: {
+          handshake: { ok: true, error: null },
+          search: { ok: false, error: null },
+        },
+      }),
+    ).toThrow(/did not prove it can search/);
+  });
+
+  it('accepts a recorded legal search', () => {
+    expect(
+      customEngineSearchGate({
+        name: 'Stockfish',
+        author: 'The Stockfish developers',
+        checks: {
+          handshake: { ok: true, error: null },
+          search: { ok: true, error: null },
+        },
+      }),
+    ).toEqual({ name: 'Stockfish', author: 'The Stockfish developers' });
+  });
+});
 
 describe('validateExecutable', () => {
   it('accepts a real, executable file', () => {

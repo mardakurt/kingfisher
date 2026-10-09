@@ -30,6 +30,28 @@ export const isDatabasePath = (file) =>
   DATABASE_EXTENSIONS.includes(path.extname(String(file)).slice(1).toLowerCase());
 
 /**
+ * Paths the renderer may ask the shell to open.
+ *
+ * A path is openable only when the main process already recorded it — from a
+ * dialog, a drop, launch arguments, or the recent list — and it is a PGN or a
+ * database. An invented path, including another PGN, is refused.
+ */
+export function authoriseOpenPaths(requested, recorded) {
+  const allowed = new Set();
+  for (const file of recorded ?? []) {
+    if (typeof file === 'string' && file.length > 0) allowed.add(path.resolve(file));
+  }
+  const openable = [];
+  for (const file of Array.isArray(requested) ? requested : []) {
+    if (typeof file !== 'string' || file.length === 0) continue;
+    if (!isPgnPath(file) && !isDatabasePath(file)) continue;
+    if (!allowed.has(path.resolve(file))) continue;
+    openable.push(file);
+  }
+  return openable;
+}
+
+/**
  * Read a PGN the user chose.
  *
  * The size limit is not a guess about what people import: the companion

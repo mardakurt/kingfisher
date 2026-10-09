@@ -22,7 +22,9 @@ import type { Fen } from '@/chess/types';
 import { cn } from '@/lib/cn';
 import type { ReferenceSource } from '@/reference/types';
 
+import { databaseProviderById } from '@/database/registry';
 import { compareSources, type SourceColumn } from './source-comparison';
+import { explorerFiltersForSource } from './explorer-filters';
 import { useExplorerSources } from './useExplorer';
 import { MyGamesOverlay } from './MyGamesOverlay';
 import type { ExplorerFilters } from '@/database/types';
@@ -72,7 +74,20 @@ export function SourceComparison({
   */
   const available = sources.filter((source) => source.installed);
   const ids = selected.filter((id) => available.some((source) => source.id === id));
-  const queries = useExplorerSources(ids, fen, filters);
+  /*
+    Each column keeps only the filters its own source declares. The active
+    explorer source's 2200+ cut is not a cut of the pack beside it, and the
+    column says which filters it did not apply. The columns are never added.
+  */
+  const perSource = ids.map((id) =>
+    explorerFiltersForSource(filters, databaseProviderById(id)?.capabilities),
+  );
+  const ignoredById = new Map(ids.map((id, index) => [id, perSource[index]?.ignored ?? []]));
+  const queries = useExplorerSources(
+    ids,
+    fen,
+    perSource.map((entry) => entry.filters),
+  );
 
   /*
     Not memoised, deliberately. At most four columns of at most fifteen moves
@@ -157,6 +172,11 @@ export function SourceComparison({
                             ? 'unavailable'
                             : plural(column.result.totalGames, 'game')}
                       </span>
+                      {(ignoredById.get(column.id)?.length ?? 0) > 0 ? (
+                        <span className="block font-normal normal-case text-caution">
+                          {ignoredById.get(column.id)?.join(', ')} not applied
+                        </span>
+                      ) : null}
                     </th>
                   ))}
                 </tr>

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { positionKey } from './fen';
 import { Position } from './position';
 import { expect as unwrap } from './result';
+import { asFen } from './types';
 
 describe('Position', () => {
   it('generates the 20 legal opening moves', () => {
@@ -10,13 +11,44 @@ describe('Position', () => {
   });
 
   it('rejects a structurally valid but illegal position', () => {
-    // Black is in check with White to move: unreachable.
+    // The rook on a1 does not attack the king on e8, and it is Black to move,
+    // so this position is legal. It must keep loading.
     const result = Position.fromFen('4k3/8/8/8/8/8/8/R3K2R b KQ - 0 1');
     expect(result.ok).toBe(true);
+    // Rejected because the en passant square is on the wrong rank.
     const impossible = Position.fromFen(
       'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq e3 0 1',
     );
     expect(impossible.ok).toBe(false);
+  });
+
+  it('refuses a position where the side not to move is already in check', () => {
+    // A rook on e2 checks the black king, with White to move. Loading this and
+    // playing Rxe8 used to capture the king; the position after that has one
+    // king and the next read throws.
+    for (const fen of [
+      '4k3/8/8/8/8/8/4R3/K7 w - - 0 1',
+      '8/8/8/8/8/8/4k3/4K3 w - - 0 1',
+      '8/8/4k3/3P4/8/8/8/4K3 w - - 0 1',
+    ]) {
+      const result = Position.fromFen(fen);
+      expect(result.ok, fen).toBe(false);
+      if (!result.ok) expect(result.error.message).toMatch(/side not to move is in check/);
+    }
+
+    // The side to move may be in check. That position is playable, and no
+    // legal move captures a king.
+    const checked = unwrap(Position.fromFen('4k3/8/8/8/8/8/4r3/4K3 w - - 0 1'));
+    expect(checked.isCheck()).toBe(true);
+    expect(checked.legalMoves().some((move) => move.captured === 'k')).toBe(false);
+  });
+
+  it('does not play a move that captures the king', () => {
+    const position = Position.fromTrustedFen(asFen('4k3/8/8/8/8/8/4R3/K7 w - - 0 1'));
+    expect(position.playSan('Rxe8').ok).toBe(false);
+    expect(position.advanceSan('Rxe8').ok).toBe(false);
+    expect(position.legalMoves().some((move) => move.captured === 'k')).toBe(false);
+    expect(position.play({ from: 'e2', to: 'e8' }).ok).toBe(false);
   });
 
   it('castles kingside and queenside', () => {

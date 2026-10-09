@@ -39,6 +39,11 @@ export interface CatalogPlayer {
   readonly lastRating: number;
   /** Which reference sources contributed, so a count can be traced. */
   readonly sources: readonly string[];
+  /**
+   * Games each source recorded. `games` is the larger of these counts, never
+   * their sum: elite and online packs are different populations and may overlap.
+   */
+  readonly sourceGames?: readonly SourceGameCount[];
   /** Set when the player is in the curated historical roster. */
   readonly legend?: Legend;
   /** Set when the player is in the Wikidata titled-player roster. */
@@ -208,6 +213,48 @@ export async function collect(
   return [...merged.values()];
 }
 
+export interface SourceGameCount {
+  readonly source: string;
+  readonly games: number;
+}
+
+/** Keep each source's own count. The same source twice keeps the larger, not the sum. */
+function withSourceCount(
+  counts: readonly SourceGameCount[] | undefined,
+  source: string,
+  games: number,
+): readonly SourceGameCount[] {
+  const list = counts ?? [];
+  const index = list.findIndex((entry) => entry.source === source);
+  if (index === -1) return [...list, { source, games }];
+  return list.map((entry, at) =>
+    at === index ? { source, games: Math.max(entry.games, games) } : entry,
+  );
+}
+
+function unionSourceCounts(
+  current: readonly SourceGameCount[] | undefined,
+  other: readonly SourceGameCount[] | undefined,
+): readonly SourceGameCount[] {
+  let merged = current ?? [];
+  for (const entry of other ?? []) merged = withSourceCount(merged, entry.source, entry.games);
+  return merged;
+}
+
+/**
+ * The caption under a catalog game count.
+ *
+ * One source: the count is that source. Two sources: the count is the larger
+ * of them. It is never a combined total.
+ */
+export function catalogGamesCaption(player: {
+  readonly games: number;
+  readonly sources: readonly string[];
+}): string {
+  if (player.sources.length > 1) return 'larger count';
+  return player.games === 1 ? 'game here' : 'games here';
+}
+
 const first = (player: PackPlayer, source: string): CatalogPlayer => ({
   key: player.id,
   name: player.name,
@@ -219,6 +266,7 @@ const first = (player: PackPlayer, source: string): CatalogPlayer => ({
   peakRating: player.peakRating,
   lastRating: player.lastRating,
   sources: [source],
+  sourceGames: [{ source, games: player.games }],
 });
 
 /** Two catalog rows that turned out to be one person, under two spellings. */
@@ -236,6 +284,7 @@ const combineCatalog = (current: CatalogPlayer, other: CatalogPlayer): CatalogPl
   peakRating: Math.max(current.peakRating, other.peakRating),
   lastRating: other.lastYear > current.lastYear ? other.lastRating : current.lastRating,
   sources: [...new Set([...current.sources, ...other.sources])],
+  sourceGames: unionSourceCounts(current.sourceGames, other.sourceGames),
   ...((current.legend ?? other.legend) ? { legend: (current.legend ?? other.legend)! } : {}),
   ...((current.titled ?? other.titled) ? { titled: (current.titled ?? other.titled)! } : {}),
 });
@@ -243,13 +292,15 @@ const combineCatalog = (current: CatalogPlayer, other: CatalogPlayer): CatalogPl
 /**
  * Two packs' rows for one player.
  *
- * Games are added because packs built from the same archive at different
- * cut-offs would double-count — so they are *not*: the larger count wins,
- * which is the truthful answer for overlapping populations and the one that
- * cannot overstate. Ratings and years take the extremes, which is safe in
- * either case.
+ * The larger count wins. Packs built from different archives overlap, and
+ * adding them would count the same game twice; each source's own count is
+ * kept beside the larger one. Ratings and years take the extremes.
  */
-const combine = (current: CatalogPlayer, player: PackPlayer, source: string): CatalogPlayer => ({
+export const combine = (
+  current: CatalogPlayer,
+  player: PackPlayer,
+  source: string,
+): CatalogPlayer => ({
   ...current,
   name: player.games > current.games ? player.name : current.name,
   title: current.title || player.title,
@@ -263,6 +314,7 @@ const combine = (current: CatalogPlayer, player: PackPlayer, source: string): Ca
   peakRating: Math.max(current.peakRating, player.peakRating),
   lastRating: player.lastYear >= current.lastYear ? player.lastRating : current.lastRating,
   sources: [...current.sources, source],
+  sourceGames: withSourceCount(current.sourceGames, source, player.games),
 });
 
 /**

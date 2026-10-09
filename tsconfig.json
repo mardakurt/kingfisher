@@ -35,7 +35,9 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    ".next/dev/types/**/*.ts",
+    ".next/e2e.nosync/types/**/*.ts",
+    ".next/e2e.nosync/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules", ".next", "out"]
 }

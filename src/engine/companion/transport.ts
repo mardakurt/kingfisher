@@ -21,6 +21,11 @@ export class CompanionTransport implements UciTransport {
   private source: EventSource | null = null;
   private failure: Error | null = null;
   private closed = false;
+  private opened = false;
+  /** One `#error` line, however many times the stream or a write fails. */
+  private announced = false;
+  /** Commands leave in the order they were submitted. A later POST waits. */
+  private writes: Promise<void> = Promise.resolve();
 
   private constructor(
     private readonly client: CompanionClient,
@@ -45,6 +50,7 @@ export class CompanionTransport implements UciTransport {
 
       source.onopen = () => {
         clearTimeout(timer);
+        this.opened = true;
         resolve();
       };
       source.onmessage = (event) => {
@@ -62,6 +68,7 @@ export class CompanionTransport implements UciTransport {
         */
         if (line.startsWith('#error') || line.startsWith('#exit')) {
           this.failure = new Error(line.replace(/^#\w+\s*/, '') || 'The engine stopped.');
+          this.announced = true;
           // Listeners still see the line; waiters are released now rather than
           // waiting out a timeout for output that can no longer arrive.
           for (const listener of [...this.listeners]) listener(line);
@@ -74,10 +81,18 @@ export class CompanionTransport implements UciTransport {
       source.onerror = () => {
         clearTimeout(timer);
         if (this.closed) return;
-        // EventSource retries by itself; only a never-opened stream is fatal.
+        /*
+          EventSource retries while it is still CONNECTING. That reconnect is
+          the grace period on the companion: failing the search here would kill
+          an engine that is about to be resumed. CLOSED means the browser has
+          given up. After `connect` has resolved, rejecting this promise does
+          nothing — the search has to hear an `#error` line.
+        */
         if (source.readyState === EventSource.CLOSED) {
-          this.failure = new Error('The companion engine stream closed.');
-          reject(new EngineError('The companion engine stream closed.'));
+          const message = 'The companion engine stream closed.';
+          this.failure = new Error(message);
+          if (this.opened) this.announce(message);
+          reject(new EngineError(message));
         }
       };
     });
@@ -91,11 +106,36 @@ export class CompanionTransport implements UciTransport {
   send(command: string): void {
     if (this.failure) throw new EngineError(this.failure.message);
     if (this.closed) throw new EngineError('This engine session has been closed.');
-    // Fire and forget: UCI has no per-command acknowledgement, and `isready`
-    // is the protocol's own way of finding out whether the engine kept up.
-    void this.client.send(this.session, command).catch((error: unknown) => {
-      this.failure = error instanceof Error ? error : new Error('The companion refused a command.');
-    });
+    /*
+      UCI has no per-command acknowledgement, so nothing here waits for the
+      engine. The companion, though, applies whichever POST finishes reading
+      first. `go` ahead of `position` searches the previous position and the
+      session labels that result with the new one. Each command waits until
+      the previous write has been accepted.
+    */
+    this.writes = this.writes
+      .then(async () => {
+        if (this.failure || this.closed) return;
+        try {
+          await this.client.send(this.session, command);
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'The companion refused a command.';
+          this.failure = error instanceof Error ? error : new Error(message);
+          this.announce(message);
+        }
+      })
+      .catch(() => undefined);
+  }
+
+  /** One failure line for a search that has no `waitFor` of its own. */
+  private announce(message: string): void {
+    if (this.announced) return;
+    this.announced = true;
+    this.failure = this.failure ?? new Error(message);
+    const line = `#error ${message}`;
+    for (const listener of [...this.listeners]) listener(line);
+    this.abortWaiters(new EngineError(message));
   }
 
   waitFor(match: (line: string) => boolean, timeoutMs = 30_000, label = 'a response') {

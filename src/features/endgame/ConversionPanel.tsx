@@ -4,13 +4,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { Position } from '@/chess/position';
-import type { Color, MoveIntent, Square, Uci } from '@/chess/types';
+import type { Color, Fen, MoveIntent, San, Square, Uci } from '@/chess/types';
 import { Button } from '@/components/ui/Button';
 import { Chessboard } from '@/features/board/Chessboard';
 import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { cn } from '@/lib/cn';
 import { defaultTablebaseProvider } from '@/tablebase/registry';
-import { describeCategory, eligibleForTablebase, type TablebaseResult } from '@/tablebase/types';
+import {
+  describeCategory,
+  eligibleForTablebase,
+  type TablebaseCategory,
+  type TablebaseResult,
+} from '@/tablebase/types';
 import { useEngine } from '@/stores/engine-store';
 import { resolveAnimationMs, usePreferences } from '@/stores/preferences-store';
 
@@ -21,6 +26,7 @@ import {
   type OpponentStrength,
 } from './conversion';
 import { useConversion } from './conversion-store';
+import { whenTablebaseGivesNoMove } from './tablebase-reply';
 
 const provider = () => defaultTablebaseProvider();
 
@@ -60,6 +66,7 @@ export function ConversionPanel({
   const [strength, setStrength] = useState<OpponentStrength>('strong');
   const [error, setError] = useState<string | null>(null);
   const [verdict, setVerdict] = useState<TablebaseResult | null>(null);
+  const [refereeNote, setRefereeNote] = useState<string | null>(null);
 
   const position = useMemo(
     () => (session.fen ? Position.fromTrustedFen(session.fen) : null),
@@ -79,6 +86,7 @@ export function ConversionPanel({
   const begin = async () => {
     if (!fen) return;
     setError(null);
+    setRefereeNote(null);
     const start = Position.fromFen(fen);
     if (!start.ok) {
       setError(start.error.message);
@@ -123,7 +131,16 @@ export function ConversionPanel({
         preferences,
         probe,
       });
-      if (cancelled || !reply) {
+      if (cancelled) {
+        session.setThinking(false);
+        return;
+      }
+      if (reply === 'tablebase-silent') {
+        session.setThinking(false);
+        setRefereeNote('The tablebase did not answer, so no defence was played.');
+        return;
+      }
+      if (!reply) {
         session.setThinking(false);
         return;
       }
@@ -135,16 +152,8 @@ export function ConversionPanel({
       const after = Position.fromTrustedFen(played.value.after);
       const result = await probe(after.fen);
       session.setThinking(false);
-      if (cancelled || !result) return;
-      setVerdict(result);
-      session.record({
-        fen: after.fen,
-        san: played.value.san,
-        by: position.turn,
-        category: result.category,
-        sideToMove: after.turn,
-        halfmoveClock: after.halfmoveClock,
-      });
+      if (cancelled) return;
+      recordPlayed(session, played.value, position.turn, result, setVerdict, setRefereeNote);
     };
     void move();
     return () => {
@@ -167,16 +176,7 @@ export function ConversionPanel({
     if (!played.ok) return;
     const after = Position.fromTrustedFen(played.value.after);
     const result = await probe(after.fen);
-    if (!result) return;
-    setVerdict(result);
-    session.record({
-      fen: after.fen,
-      san: played.value.san,
-      by: position.turn,
-      category: result.category,
-      sideToMove: after.turn,
-      halfmoveClock: after.halfmoveClock,
-    });
+    recordPlayed(session, played.value, position.turn, result, setVerdict, setRefereeNote);
   };
 
   const destinations = useMemo(() => {
@@ -297,7 +297,7 @@ export function ConversionPanel({
             <p className="text-2xs text-tertiary">Tablebase result</p>
             <p className="mt-0.5 text-sm text-primary">
               {session.currentOutcome ? OUTCOME_LABEL[session.currentOutcome] : '—'}
-              {verdict ? (
+              {verdict && !refereeNote ? (
                 <span className="ml-2 text-2xs text-tertiary">
                   {describeCategory(verdict.category)}
                   {verdict.dtz !== null ? ` · DTZ ${Math.abs(verdict.dtz)}` : ''}
@@ -320,6 +320,16 @@ export function ConversionPanel({
           whether the move was a slip, an experiment, or a line the player
           understands better than the machine does.
         */}
+        {refereeNote ? (
+          <p
+            role="status"
+            data-tablebase-miss
+            className="mt-3 text-xs leading-relaxed text-secondary"
+          >
+            {refereeNote}
+          </p>
+        ) : null}
+
         {change ? (
           <p
             role="status"
@@ -385,11 +395,52 @@ function describeEnding(
  * The opponent's reply.
  *
  * A tablebase-perfect opponent asks the tablebase and plays its best defence,
- * which is the only way to practise against a defence that never errs. The
- * engine strengths deliberately do not consult the tablebase: an opponent
- * that plays perfectly *and* is called "club strength" is a lie about the
- * exercise.
+ * which is the only way to practise against a defence that never errs. If the
+ * tablebase does not answer, that opponent plays nothing: a search or a
+ * random move would contradict the label. The engine strengths deliberately
+ * do not consult the tablebase, and a miss there may still search.
  */
+const TABLEBASE_SILENT = 'The tablebase did not answer for the position after this move.';
+
+/**
+ * Record a legal move even if probing fails. An unanswered position has no
+ * tablebase verdict; the previous position cannot supply one.
+ */
+function recordPlayed(
+  session: ReturnType<typeof useConversion.getState>,
+  played: { readonly san: San; readonly after: Fen },
+  by: Color,
+  result: TablebaseResult | null,
+  setVerdict: (verdict: TablebaseResult | null) => void,
+  setRefereeNote: (note: string | null) => void,
+) {
+  const after = Position.fromTrustedFen(played.after);
+  const category = result ? result.category : categoryAfterSilentProbe(after);
+  if (result) {
+    setVerdict(result);
+    setRefereeNote(null);
+  } else {
+    setVerdict(null);
+    setRefereeNote(after.outcome() ? null : TABLEBASE_SILENT);
+  }
+  session.record({
+    fen: after.fen,
+    san: played.san,
+    by,
+    category,
+    sideToMove: after.turn,
+    halfmoveClock: after.halfmoveClock,
+  });
+}
+
+function categoryAfterSilentProbe(after: Position): TablebaseCategory | null {
+  const terminal = after.outcome();
+  if (terminal?.kind === 'checkmate') return 'checkmate';
+  if (terminal?.kind === 'stalemate') return 'stalemate';
+  if (terminal) return 'draw';
+  return null;
+}
+
 async function chooseReply(
   position: Position,
   strength: OpponentStrength,
@@ -399,7 +450,7 @@ async function chooseReply(
     preferences: ReturnType<typeof usePreferences.getState>;
     probe: (fen: string) => Promise<TablebaseResult | null>;
   },
-): Promise<Uci | null> {
+): Promise<Uci | 'tablebase-silent' | null> {
   const legal = position.legalMoves();
   if (legal.length === 0) return null;
 
@@ -408,6 +459,7 @@ async function chooseReply(
     const best = result?.moves[0];
     if (best) return best.uci;
   }
+  if (whenTablebaseGivesNoMove(strength) === 'decline') return 'tablebase-silent';
 
   try {
     await deps.analyse(

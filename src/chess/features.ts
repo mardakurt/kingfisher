@@ -18,7 +18,7 @@
  * feature nobody can reproduce is worse than no feature at all.
  */
 
-import { fileOf, rankOf } from './board';
+import { fileOf, rankOf, squareColor } from './board';
 import type { FenParts } from './fen';
 import type { Color, FileLetter, Piece, Square } from './types';
 import { FILES } from './types';
@@ -61,6 +61,10 @@ export interface FileState {
 export interface ColorFeatures {
   readonly pawns: PawnStructure;
   readonly files: FileState;
+  /**
+   * Exactly two bishops on squares of opposite colours. Two on the same colour
+   * are not a pair, and neither are three.
+   */
   readonly bishopPair: boolean;
   /** Rooks (and queens are excluded) standing on a file with no pawns at all. */
   readonly rooksOnOpenFiles: readonly Square[];
@@ -218,6 +222,15 @@ function fileState(own: Located[], enemy: Located[]): FileState {
   return { open, semiOpen };
 }
 
+/** Exactly two bishops, standing on squares of different colours. */
+function bishopPairOf(own: readonly Located[]): boolean {
+  const bishops = own.filter((entry) => entry.piece.type === 'b');
+  const first = bishops[0];
+  const second = bishops[1];
+  if (!first || !second || bishops.length !== 2) return false;
+  return squareColor(first.square) !== squareColor(second.square);
+}
+
 function colorFeatures(
   color: Color,
   all: Located[],
@@ -269,7 +282,7 @@ function colorFeatures(
   return {
     pawns,
     files,
-    bishopPair: own.filter((entry) => entry.piece.type === 'b').length >= 2,
+    bishopPair: bishopPairOf(own),
     rooksOnOpenFiles: rooks.filter((rook) => openFiles.has(rook.file)).map((rook) => rook.square),
     rooksOnSemiOpenFiles: rooks
       .filter((rook) => semiOpenFiles.has(rook.file))

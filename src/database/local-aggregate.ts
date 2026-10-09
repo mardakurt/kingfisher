@@ -3,6 +3,7 @@
 import { parseFen } from '@/chess/fen';
 import type { Fen, San, Uci } from '@/chess/types';
 import type { GameSummary, PositionRecord } from '@/persistence/types';
+import { classifyTimeControl } from '@/search/time-control';
 
 import {
   moveScore,
@@ -140,15 +141,24 @@ function matchesExplorer(game: GameSummary, filters: ExplorerFilters): boolean {
   if (filters.sinceYear && (!game.year || game.year < filters.sinceYear)) return false;
   if (filters.untilYear && (!game.year || game.year > filters.untilYear)) return false;
   if (filters.minRating !== undefined || filters.maxRating !== undefined) {
-    if (
-      ![game.whiteRating, game.blackRating].some(
-        (rating) =>
-          rating !== undefined &&
-          (filters.minRating === undefined || rating >= filters.minRating) &&
-          (filters.maxRating === undefined || rating <= filters.maxRating),
-      )
-    )
+    // The panel states the mean of the ratings the game records. One recorded
+    // rating is that mean; a game that records none is outside every band.
+    const ratings = [game.whiteRating, game.blackRating].filter(
+      (rating): rating is number => rating !== undefined,
+    );
+    const mean =
+      ratings.length > 0
+        ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
+        : undefined;
+    if (filters.minRating !== undefined && (mean === undefined || mean < filters.minRating)) {
       return false;
+    }
+    if (filters.maxRating !== undefined && (mean === undefined || mean > filters.maxRating)) {
+      return false;
+    }
+  }
+  if (filters.speeds && filters.speeds.length > 0) {
+    if (!filters.speeds.includes(classifyTimeControl(game.timeControl))) return false;
   }
   return true;
 }

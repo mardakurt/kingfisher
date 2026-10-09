@@ -14,8 +14,11 @@ import { parsePgn } from '@/chess/pgn';
 import { mainlinePath } from '@/chess/tree/tree';
 import { Position } from '@/chess/position';
 
-import { isGame } from './database';
-import { fixtureDatabase } from './fixtures';
+import { prepareChessBaseRange } from '@/companion-kit/import-kit';
+
+import { ChessBaseDatabase, isGame } from './database';
+import { fixtureDatabase, fixtureFiles } from './fixtures';
+import { HEADER_RECORD_BYTES } from './headers';
 
 const mainline = (pgn: string): string[] => {
   const tree = parsePgn(pgn).games[0]!.tree;
@@ -148,5 +151,29 @@ describe('Mate2 (ChessBase 6, set-up positions)', () => {
     );
     expect(game.pgn).toContain('[White "Vukic, M"]');
     expect(mainline(game.pgn)).toEqual(['Qxf8+', 'Rxf8', 'Rxh7#']);
+  });
+});
+
+describe('a header marked deleted', () => {
+  it('is not returned as a game and is not a decode failure', () => {
+    const files = fixtureFiles('world-ch', 'World-ch');
+    const original = files.get('cbh');
+    if (!original) throw new Error('fixture has no header file');
+    const cbh = new Uint8Array(original);
+    const flags = cbh[HEADER_RECORD_BYTES];
+    if (flags === undefined) throw new Error('header record is shorter than expected');
+    cbh[HEADER_RECORD_BYTES] = flags | 0x80;
+    files.set('cbh', cbh);
+    const db = new ChessBaseDatabase('World-ch', files);
+
+    const deleted = db.game(1);
+    if (isGame(deleted)) throw new Error('deleted header was returned as a game');
+    expect(deleted.header?.deleted).toBe(true);
+    expect(deleted.reason).toBe('a deleted game, which is not imported');
+    expect(isGame(db.game(2))).toBe(true);
+
+    const prepared = prepareChessBaseRange(db, 1, 1, null);
+    expect(prepared.payloads).toEqual([]);
+    expect(prepared.failures).toEqual([]);
   });
 });

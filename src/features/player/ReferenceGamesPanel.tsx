@@ -10,13 +10,17 @@
  * which one a claim rests on matters.
  */
 
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/Panel';
 import { openReferenceGame } from '@/features/games/open-reference-game';
 import { useReferencePlayerGames, type ReferenceGame } from '@/reference/player-games';
+import { matchKey, usePlayerCatalog, type CatalogPlayer } from '@/reference/players';
 import { useUi } from '@/stores/ui-store';
+
+import { referenceGamesHeading, referenceHeadingSources } from './reference-games-heading';
 
 export function ReferenceGamesPanel({
   playerKey,
@@ -26,8 +30,13 @@ export function ReferenceGamesPanel({
   readonly name: string;
 }) {
   const games = useReferencePlayerGames(playerKey);
+  const catalog = usePlayerCatalog();
   const notify = useUi((state) => state.notify);
   const router = useRouter();
+  const catalogPlayer = useMemo(
+    () => catalogRow(catalog.data, playerKey, name),
+    [catalog.data, playerKey, name],
+  );
 
   const open = async (game: ReferenceGame) => {
     try {
@@ -63,8 +72,7 @@ export function ReferenceGamesPanel({
   return (
     <section>
       <h2 className="text-sm font-semibold text-primary">
-        {list.length.toLocaleString()} {list.length === 1 ? 'game' : 'games'} in your reference
-        sources
+        {referenceGamesHeading(list.length, referenceHeadingSources(list, catalogPlayer))}
       </h2>
       <p className="mt-0.5 text-xs text-tertiary">
         From {[...new Set(list.map((game) => game.sourceName))].join(', ')}. Opening one puts it on
@@ -98,5 +106,27 @@ export function ReferenceGamesPanel({
         ))}
       </ul>
     </section>
+  );
+}
+
+function catalogRow(
+  rows: readonly CatalogPlayer[] | undefined,
+  playerKey: string,
+  name: string,
+): CatalogPlayer | null {
+  if (!rows) return null;
+  const wanted = new Set(
+    [playerKey, name, matchKey(playerKey), matchKey(name)]
+      .map((value) => value.trim())
+      .filter(Boolean),
+  );
+  return (
+    rows.find(
+      (row) =>
+        wanted.has(row.key) ||
+        wanted.has(row.name) ||
+        wanted.has(matchKey(row.key)) ||
+        wanted.has(matchKey(row.name)),
+    ) ?? null
   );
 }

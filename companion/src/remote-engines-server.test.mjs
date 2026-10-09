@@ -5,7 +5,9 @@
  * the way Settings pairs it. The browser's side of the contract is what is
  * asserted: the remote engine is in `/status`, named with its host, and is
  * started, fed and streamed through the ordinary `/engine/*` routes; when the
- * host goes away mid-search, the stream ends with the loss named.
+ * host goes away mid-search, the stream ends with the loss named. A reconnect
+ * that carries Last-Event-ID resumes after that id, and a stream opened with
+ * no cursor still receives the backlog.
  */
 
 import { spawn } from 'node:child_process';
@@ -78,14 +80,20 @@ const until = async (predicate, ms = 20_000) => {
   }
 };
 
-/** Read an event stream until `stop` says enough; returns the data lines and whether it ended. */
-async function readStream(port, session, stop) {
+/**
+ * Read an event stream until `stop` says enough.
+ * `lastEventId` is the Last-Event-ID a reconnecting EventSource would send.
+ */
+async function readStream(port, session, stop, { lastEventId } = {}) {
   const response = await fetch(
     `http://127.0.0.1:${port}/engine/stream?session=${session}&token=${TOKEN}`,
+    lastEventId == null ? undefined : { headers: { 'last-event-id': String(lastEventId) } },
   );
+  if (!response.ok) throw new Error(`stream ${response.status}: ${await response.text()}`);
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   const lines = [];
+  const ids = [];
   let ended = false;
   let buffer = '';
   const pump = (async () => {
@@ -97,13 +105,15 @@ async function readStream(port, session, stop) {
       buffer = events.pop() ?? '';
       for (const event of events) {
         if (event.startsWith('event: end')) ended = true;
+        const eventId = /^id: (\d+)$/m.exec(event)?.[1];
+        if (eventId) ids.push(Number(eventId));
         const data = /^data: (.*)$/m.exec(event)?.[1];
         if (data && !event.startsWith('event: end')) lines.push(JSON.parse(data));
       }
-      if (stop({ lines, ended })) return;
+      if (stop({ lines, ids, ended })) return;
     }
   })();
-  return { lines, ended: () => ended, pump, cancel: () => reader.cancel() };
+  return { lines, ids, ended: () => ended, pump, cancel: () => reader.cancel() };
 }
 
 describe('a companion using another companion’s engines', () => {
@@ -162,8 +172,36 @@ describe('a companion using another companion’s engines', () => {
     expect(stream.lines.find((line) => line.startsWith('id name'))).toMatch(
       /^id name Scripted 1 · on /,
     );
+    expect(stream.ids.length).toBeGreaterThan(0);
+    const cursor = Math.max(...stream.ids);
+    // A reconnect carries the last id it applied. The backlog behind that
+    // id — including uciok — must not be delivered again. The next command's
+    // answer still arrives.
+    const resumed = await readStream(
+      CLIENT_HTTP,
+      session,
+      ({ lines }) => lines.includes('bestmove e2e4'),
+      { lastEventId: cursor },
+    );
+    await api(CLIENT_HTTP, '/engine/send', { session, line: 'stop' });
+    await Promise.race([
+      resumed.pump,
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`resume said only: ${resumed.lines.join(' | ')}`)),
+          20_000,
+        ),
+      ),
+    ]);
+    expect(resumed.lines).toContain('bestmove e2e4');
+    expect(resumed.lines).not.toContain('uciok');
+    expect(resumed.lines.some((line) => line.startsWith('id name'))).toBe(false);
+    expect(resumed.ids.length).toBeGreaterThan(0);
+    expect(resumed.ids.every((id) => id > cursor)).toBe(true);
+    for (const line of stream.lines) expect(resumed.lines, line).not.toContain(line);
 
-    // The host machine goes away in the middle of the search.
+    // The host machine goes away in the middle of the search. A stream opened
+    // with no cursor still receives the backlog, then the loss.
     const after = await readStream(CLIENT_HTTP, session, ({ ended }) => ended);
     host.child.kill('SIGKILL');
     await Promise.race([
@@ -171,6 +209,7 @@ describe('a companion using another companion’s engines', () => {
       new Promise((_, reject) => setTimeout(() => reject(new Error('no end')), 60_000)),
     ]);
     expect(after.ended()).toBe(true);
+    expect(after.lines).toContain('uciok');
     expect(after.lines.at(-1)).toMatch(/^#error The connection to .* was lost/);
     const listed = await api(CLIENT_HTTP, '/engine/remote');
     expect(listed.body.hosts[0].connected).toBe(false);

@@ -165,7 +165,8 @@ function classifyWord(word: string, line: number, push: (token: Token) => void):
       continue;
     }
 
-    const normalized = rest.replace(/^0-0-0/, 'O-O-O').replace(/^0-0/, 'O-O');
+    // `0-0` and `o-o` are castling. Longer form first, so `o-o-o` is not read as `O-O`.
+    const normalized = rest.replace(/^[0Oo]-[0Oo]-[0Oo]/, 'O-O-O').replace(/^[0Oo]-[0Oo]/, 'O-O');
     const sanMatch = SAN_PATTERN.exec(normalized);
     if (sanMatch) {
       const consumed = sanMatch[0].length;

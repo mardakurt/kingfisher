@@ -100,6 +100,14 @@ export function parseFen(input: string): Result<FenParts> {
   const rights = validateCastling(board.value, castling.value);
   if (!rights.ok) return rights;
 
+  // A side not to move that is already attacked is not a position that can be
+  // played: the rules engine offers the king as a capture, and the board after
+  // that capture has one king. Adjacent kings are the same case — each king
+  // attacks the other.
+  if (sideNotToMoveInCheck(board.value, turn)) {
+    return fail('invalid-fen', 'The side not to move is in check.');
+  }
+
   return ok({
     board: board.value,
     turn,
@@ -298,6 +306,90 @@ function validateCastling(
     if (claimed && !satisfied) return fail('invalid-fen', `Castling right ${message}.`);
   }
   return ok(true);
+}
+
+const KNIGHT_DELTAS: readonly (readonly [number, number])[] = [
+  [1, 2],
+  [2, 1],
+  [2, -1],
+  [1, -2],
+  [-1, -2],
+  [-2, -1],
+  [-2, 1],
+  [-1, 2],
+];
+
+/** True when the side to move already attacks the other king. */
+function sideNotToMoveInCheck(board: readonly (Piece | null)[], turn: Color): boolean {
+  const defender: Color = turn === 'w' ? 'b' : 'w';
+  let king = -1;
+  for (let index = 0; index < 64; index += 1) {
+    const piece = board[index];
+    if (piece?.type === 'k' && piece.color === defender) {
+      king = index;
+      break;
+    }
+  }
+  return king >= 0 && squareAttackedBy(board, king, turn);
+}
+
+function squareAttackedBy(board: readonly (Piece | null)[], target: number, by: Color): boolean {
+  const file = target % 8;
+  const rank = target >> 3;
+
+  const pawnRank = rank - (by === 'w' ? 1 : -1);
+  if (pawnRank >= 0 && pawnRank <= 7) {
+    for (const delta of [-1, 1]) {
+      const pawnFile = file + delta;
+      if (pawnFile < 0 || pawnFile > 7) continue;
+      const piece = board[pawnRank * 8 + pawnFile];
+      if (piece?.type === 'p' && piece.color === by) return true;
+    }
+  }
+
+  for (const [deltaFile, deltaRank] of KNIGHT_DELTAS) {
+    const knightFile = file + deltaFile;
+    const knightRank = rank + deltaRank;
+    if (knightFile < 0 || knightFile > 7 || knightRank < 0 || knightRank > 7) continue;
+    const piece = board[knightRank * 8 + knightFile];
+    if (piece?.type === 'n' && piece.color === by) return true;
+  }
+
+  for (let deltaFile = -1; deltaFile <= 1; deltaFile += 1) {
+    for (let deltaRank = -1; deltaRank <= 1; deltaRank += 1) {
+      if (deltaFile === 0 && deltaRank === 0) continue;
+      const kingFile = file + deltaFile;
+      const kingRank = rank + deltaRank;
+      if (kingFile < 0 || kingFile > 7 || kingRank < 0 || kingRank > 7) continue;
+      const piece = board[kingRank * 8 + kingFile];
+      if (piece?.type === 'k' && piece.color === by) return true;
+    }
+  }
+
+  const rays: readonly (readonly [number, number, 'b' | 'r'])[] = [
+    [1, 1, 'b'],
+    [1, -1, 'b'],
+    [-1, 1, 'b'],
+    [-1, -1, 'b'],
+    [1, 0, 'r'],
+    [-1, 0, 'r'],
+    [0, 1, 'r'],
+    [0, -1, 'r'],
+  ];
+  for (const [deltaFile, deltaRank, kind] of rays) {
+    let rayFile = file + deltaFile;
+    let rayRank = rank + deltaRank;
+    while (rayFile >= 0 && rayFile <= 7 && rayRank >= 0 && rayRank <= 7) {
+      const piece = board[rayRank * 8 + rayFile];
+      if (piece) {
+        if (piece.color === by && (piece.type === 'q' || piece.type === kind)) return true;
+        break;
+      }
+      rayFile += deltaFile;
+      rayRank += deltaRank;
+    }
+  }
+  return false;
 }
 
 export function formatFen(parts: FenParts): Fen {

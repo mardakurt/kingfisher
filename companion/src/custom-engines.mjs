@@ -12,6 +12,37 @@
 import { spawn } from 'node:child_process';
 import { accessSync, constants, existsSync, statSync } from 'node:fs';
 
+import { verifyEngine } from './engine-verify.mjs';
+
+/**
+ * A registry key means this binary searched, not merely that it answered
+ * `uciok`. Catalogue install applies the same rule to `verifyEngine`'s report.
+ * Lc0 handshakes with no weights and then cannot find a move; that report is
+ * refused here, before a key exists.
+ */
+export function customEngineSearchGate(report) {
+  const searchOk = report?.checks?.search?.ok === true;
+  const handshakeOk = report?.checks?.handshake?.ok === true;
+  if (!searchOk) {
+    throw new Error(
+      `The engine did not prove it can search: ${
+        report?.checks?.search?.error ?? 'it did not return a legal move'
+      }`,
+    );
+  }
+  if (!handshakeOk) {
+    throw new Error(
+      `The engine did not complete the UCI handshake: ${
+        report?.checks?.handshake?.error ?? 'uciok was not received'
+      }`,
+    );
+  }
+  return {
+    name: report.name ?? null,
+    author: report.author ?? null,
+  };
+}
+
 /**
  * Rejects anything that is not a real, executable file, truthfully and
  * before a process is ever spawned.
@@ -38,12 +69,26 @@ export function validateExecutable(candidatePath) {
  * `uciok`, `isready`, wait for `readyok`, `quit` — run once up front so a
  * binary that merely happens to be executable (a shell script, `/bin/ls`, a
  * build of the wrong protocol) is rejected here with a specific reason,
- * rather than the first time someone tries to analyse with it. Full option
- * parsing is deliberately left to the browser's existing `parseUciOptions`,
- * which runs anyway the first time the engine is actually started — this
- * only needs to prove the handshake completes and recover a display name.
+ * rather than the first time someone tries to analyse with it. The handshake
+ * is not enough: `verifyEngine` then has to see a legal `bestmove`, the same
+ * search check catalogue install requires, before this resolves. Full option
+ * parsing is deliberately left to the browser's existing `parseUciOptions`.
  */
 export function handshakeUci(binaryPath, args = [], { timeoutMs = 8000 } = {}) {
+  return handshakeProcess(binaryPath, args, { timeoutMs }).then(async (identity) => {
+    const report = await verifyEngine(binaryPath, {
+      args,
+      timeoutMs: Math.max(timeoutMs, 20_000),
+    });
+    const proved = customEngineSearchGate(report);
+    return {
+      name: identity.name ?? proved.name,
+      author: identity.author ?? proved.author,
+    };
+  });
+}
+
+function handshakeProcess(binaryPath, args, { timeoutMs }) {
   return new Promise((resolve, reject) => {
     let settled = false;
     let child;

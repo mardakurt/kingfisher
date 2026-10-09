@@ -97,9 +97,11 @@ export async function federatedSearch(
     collections.map(async (collection) => {
       try {
         /*
-          Read one page more than the limit is not possible through this port,
-          so "was there more" is inferred from the cursor: a page that came back
-          full *and* left a cursor behind means the source had more to say.
+          A full page that left a cursor has not reached the end of the matches.
+          IndexedDB leaves the cursor null once the scan is finished, and sets
+          it when one more match sits past the page. SQLite already filters
+          before the limit and still names the last row on a final page, so
+          only a page that filled the limit can mean more matches may exist.
         */
         const page = await collection.read(query, null, perSource);
         return { collection, page, error: null as string | null };

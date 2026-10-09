@@ -61,31 +61,7 @@ import { useReferenceSources } from '@/reference/use-references';
 import type { BranchPopulation } from '@/theory/critical-branches';
 import { loadTheoryBook, type TheoryBook } from '@/theory/theory-book';
 
-import { buildOpeningReport, type PopulationHistory } from './opening-report';
-
-/**
- * How each source is used in the report.
- *
- * One reference to count frequencies against, one recent population to find
- * what is growing, and one contrasting population to find where practice
- * disagrees. The roles are assigned by what a source *is* rather than by the
- * order it happens to be installed in, because "recent" and "contrast" are
- * claims about the population and getting them the wrong way round would
- * reverse every growth figure in the report.
- *
- * A selected collection is `own` and nothing else, and that is stated rather
- * than left to the fallback. Falling through to `index === 0` would make the
- * reader's own archive the reference population whenever no pack was
- * installed — quietly redefining the opening's branches as their own games —
- * and `contrast` whenever one was, which asserts that their games disagree
- * with theory. Both are decided by an unrelated setting, and neither is true.
- */
-function roleOf(id: string, index: number, own = false): BranchPopulation['role'] {
-  if (own) return 'own';
-  if (id.includes('recent')) return 'recent';
-  if (id.includes('online') || id.includes('lichess')) return 'contrast';
-  return index === 0 ? 'reference' : 'contrast';
-}
+import { buildOpeningReport, reportPopulationRole, type PopulationHistory } from './opening-report';
 
 export function OpeningReportPanel() {
   const [surveyOpen, setSurveyOpen] = useState(false);
@@ -95,15 +71,18 @@ export function OpeningReportPanel() {
   const references = useReferenceSources();
   const explorerSourceId = usePreferences((state) => state.explorerSourceId);
   const [book, setBook] = useState<TheoryBook | null>(null);
+  const [bookState, setBookState] = useState<'pending' | 'failed' | 'ready'>('pending');
 
   useEffect(() => {
     let live = true;
     void loadTheoryBook().then(
       (loaded) => {
-        if (live) setBook(loaded);
+        if (!live) return;
+        setBook(loaded);
+        setBookState('ready');
       },
       () => {
-        /* A failed chunk load leaves the report without its naming section. */
+        if (live) setBookState('failed');
       },
     );
     return () => {
@@ -140,10 +119,12 @@ export function OpeningReportPanel() {
     not a column that failed — it is a column that was never asked for, and the
     report's own rule is that those are different facts.
   */
-  const sources = useMemo(
-    () => references.sources.filter((source) => source.installed && source.enabled).slice(0, 3),
+  const installedSources = useMemo(
+    () => references.sources.filter((source) => source.installed && source.enabled),
     [references.sources],
   );
+  const sources = useMemo(() => installedSources.slice(0, 3), [installedSources]);
+  const omittedSources = installedSources.length - sources.length;
   /*
     The populations, and the selected collection with them.
 
@@ -168,7 +149,7 @@ export function OpeningReportPanel() {
     return {
       id: source.id,
       name: source.name,
-      role: roleOf(source.id, index, source.own),
+      role: reportPopulationRole(source.id, index, source.own),
       // Undefined while loading, null when the source could not answer. The
       // report distinguishes them and so must this.
       result: query?.isPending ? undefined : (query?.data ?? null),
@@ -231,7 +212,7 @@ export function OpeningReportPanel() {
     if (move) line.push(move);
   }
 
-  const placement = book?.deepest(line) ?? null;
+  const placement = bookState === 'ready' ? (book?.deepest(line) ?? null) : null;
 
   const repertoirePosition = repertoire.data?.positions.find(
     (position) => position.positionKey === (fen ? positionKey(fen) : ''),
@@ -347,7 +328,9 @@ export function OpeningReportPanel() {
     () =>
       buildOpeningReport({
         fen,
+        theoryBook: bookState,
         placement,
+        omittedSources,
         ...(placement ? { crumbs: placement.crumbs } : {}),
         ...(placement ? { children: book?.variations(placement.node.key) ?? [] } : {}),
         ...(placement ? { brief: book?.brief(placement.node.key) ?? null } : {}),
@@ -370,7 +353,9 @@ export function OpeningReportPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       fen,
+      bookState,
       placement,
+      omittedSources,
       book,
       answered,
       continuations.data,

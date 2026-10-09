@@ -102,25 +102,28 @@ export function useExplorerPrefetch(
 export function useExplorerSources(
   sourceIds: readonly string[],
   fen: Fen,
-  filters: ExplorerFilters,
+  filters: ExplorerFilters | readonly ExplorerFilters[],
 ) {
   return useQueries({
-    queries: sourceIds.map((sourceId) => ({
-      queryKey: [
-        'explorer',
-        sourceId,
-        databaseProviderById(sourceId)?.cacheVersion ?? 'live',
-        fen,
-        filters,
-      ],
-      queryFn: async ({ signal }: { signal?: AbortSignal }) => {
-        const provider = databaseProviderById(sourceId);
-        if (!provider) throw new Error(`Unknown database: ${sourceId}`);
-        return provider.explore({ fen, filters, limit: 15 }, signal);
-      },
-      retry: providerRetry,
-      retryDelay: (attempt: number, error: unknown) => retryDelayMs(error, attempt),
-      gcTime: 10 * 60_000,
-    })),
+    queries: sourceIds.map((sourceId, index) => {
+      const sourceFilters = Array.isArray(filters) ? (filters[index] ?? {}) : filters;
+      return {
+        queryKey: [
+          'explorer',
+          sourceId,
+          databaseProviderById(sourceId)?.cacheVersion ?? 'live',
+          fen,
+          sourceFilters,
+        ],
+        queryFn: async ({ signal }: { signal?: AbortSignal }) => {
+          const provider = databaseProviderById(sourceId);
+          if (!provider) throw new Error(`Unknown database: ${sourceId}`);
+          return provider.explore({ fen, filters: sourceFilters, limit: 15 }, signal);
+        },
+        retry: providerRetry,
+        retryDelay: (attempt: number, error: unknown) => retryDelayMs(error, attempt),
+        gcTime: 10 * 60_000,
+      };
+    }),
   });
 }

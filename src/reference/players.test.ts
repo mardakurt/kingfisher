@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { LEGENDS, LEGEND_GROUPS, legendYears } from './legends';
+import type { PackPlayer } from './pack';
 import {
+  catalogGamesCaption,
   catalogReady,
+  combine,
   foldName,
   matchKey,
   PLAYER_NICKNAMES,
@@ -365,5 +368,44 @@ describe('when the catalog may count games', () => {
         { id: 'kingfisher-elite-otb', state: 'installing', installed: false },
       ]),
     ).toBe(true);
+  });
+});
+
+describe('combine', () => {
+  it('keeps the larger of two packs and says so, rather than adding them', () => {
+    const current: CatalogPlayer = {
+      key: 'ann',
+      name: 'Ann',
+      title: '',
+      fideId: '',
+      games: 10,
+      firstYear: 2020,
+      lastYear: 2024,
+      peakRating: 2500,
+      lastRating: 2400,
+      sources: ['Elite'],
+      sourceGames: [{ source: 'Elite', games: 10 }],
+    };
+    const online: PackPlayer = {
+      key: 'ann',
+      id: 'ann',
+      name: 'Ann',
+      fideId: '',
+      title: '',
+      games: 4,
+      firstYear: 2021,
+      lastYear: 2025,
+      peakRating: 2600,
+      lastRating: 2550,
+    };
+    const merged = combine(current, online, 'Online');
+    expect(merged.games).toBe(10);
+    expect(merged.sources).toEqual(['Elite', 'Online']);
+    expect(merged.sourceGames).toEqual([
+      { source: 'Elite', games: 10 },
+      { source: 'Online', games: 4 },
+    ]);
+    expect(catalogGamesCaption(merged)).toBe('larger count');
+    expect(catalogGamesCaption({ games: 10, sources: ['Elite'] })).toBe('games here');
   });
 });

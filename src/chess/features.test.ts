@@ -184,9 +184,13 @@ describe('open and semi-open files', () => {
 });
 
 describe('the bishop pair', () => {
-  it('needs two bishops, not one', () => {
+  it('needs two bishops on opposite colours, not one and not three', () => {
     expect(at('4k3/8/8/8/8/8/8/2B1KB2 w - - 0 1').white.bishopPair).toBe(true);
     expect(at('4k3/8/8/8/8/8/8/2B1K3 w - - 0 1').white.bishopPair).toBe(false);
+    // a1 and c1 are both dark.
+    expect(at('4k3/8/8/8/8/8/8/B1B1K3 w - - 0 1').white.bishopPair).toBe(false);
+    // a1 and c1 dark, f1 light: three bishops are not a pair.
+    expect(at('4k3/8/8/8/8/8/8/B1B1KB2 w - - 0 1').white.bishopPair).toBe(false);
   });
 
   it('is asymmetric when one side has traded one off', () => {

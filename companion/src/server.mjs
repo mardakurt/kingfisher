@@ -25,7 +25,7 @@ import {
   inspect as inspectEnCroissant,
   readGames as readEnCroissantGames,
 } from './en-croissant.mjs';
-import { EngineHost } from './engines.mjs';
+import { EngineHost, SUBSCRIBER_GRACE_MS } from './engines.mjs';
 import {
   RemoteEngineHost,
   newPairingKey,
@@ -696,7 +696,7 @@ async function route(url, request, response) {
     const body = await readBody(request);
     const remote = remoteFor(body.session);
     if (remote) remote.remote.stop(remote.rest);
-    else engines.stop(String(body.session));
+    else await engines.stop(String(body.session));
     return json(response, 200, { ok: true });
   }
 
@@ -714,31 +714,47 @@ async function route(url, request, response) {
     */
     let unsubscribe;
     /*
-      Subscribing replays the session's backlog at once, before the headers
-      below are written. Written straight through, that replay sent implicit
-      headers and the explicit `writeHead` then failed, ending the response:
-      any stream opened on a session that already had output — an EventSource
-      reconnecting, a second viewer — closed at once (Phase 85, found by the
-      remote-engine test). The replay is held until the headers are out.
+      Subscribing replays whatever the cursor has not already applied, before
+      the headers below are written. Written straight through, that replay sent
+      implicit headers and the explicit `writeHead` then failed, ending the
+      response: any stream opened on a session that already had output closed
+      at once (Phase 85). The replay is held until the headers are out.
+
+      `Last-Event-ID` is how an EventSource reconnect resumes. Replaying the
+      whole backlog into that reconnect delivers an old `bestmove` as live
+      output for whatever search is now active. A remote session keeps its
+      own copy of the host's lines and honours the same cursor; the TLS
+      connection itself is not resumed.
     */
     const held = [];
     let open = false;
     let ended = false;
     const write = (chunk) => (open ? response.write(chunk) : held.push(chunk));
+    const lastEvent = request.headers['last-event-id'];
+    const after =
+      typeof lastEvent === 'string' && /^\d+$/.test(lastEvent) ? Number(lastEvent) : null;
     try {
       const remote = remoteFor(id);
       const source = remote
-        ? { subscribe: (_id, listener) => remote.remote.subscribe(remote.rest, listener) }
+        ? {
+            subscribe: (_id, listener, cursor) =>
+              remote.remote.subscribe(remote.rest, listener, cursor),
+          }
         : engines;
-      unsubscribe = source.subscribe(id, (line) => {
-        if (line === null) {
-          write('event: end\ndata: {}\n\n');
-          ended = true;
-          if (open) response.end();
-          return;
-        }
-        write(`data: ${JSON.stringify(line)}\n\n`);
-      });
+      unsubscribe = source.subscribe(
+        id,
+        (line, eventId) => {
+          if (line === null) {
+            write('event: end\ndata: {}\n\n');
+            ended = true;
+            if (open) response.end();
+            return;
+          }
+          const prefix = typeof eventId === 'number' ? `id: ${eventId}\n` : '';
+          write(`${prefix}data: ${JSON.stringify(line)}\n\n`);
+        },
+        after,
+      );
     } catch (error) {
       return json(response, 404, {
         error: error instanceof Error ? error.message : 'No such engine session.',
@@ -749,7 +765,13 @@ async function route(url, request, response) {
       'cache-control': 'no-cache, no-transform',
       connection: 'keep-alive',
     });
-    response.write(': connected\n\n');
+    /*
+      Shorter than the subscriber grace, so a dropped stream reconnects while
+      the engine is still the same process. The browser's own default retry
+      is three seconds, which would lose that race.
+    */
+    const retryMs = Math.min(500, Math.floor(SUBSCRIBER_GRACE_MS / 4));
+    response.write(`retry: ${retryMs}\n: connected\n\n`);
     open = true;
     for (const chunk of held.splice(0)) response.write(chunk);
     if (ended) {
@@ -1588,15 +1610,36 @@ if (process.argv.includes('--serve-engines')) {
   });
 }
 
+let shuttingDown = false;
 const shutdown = () => {
-  void maintenance.close();
-  void engineService?.close();
-  for (const entry of remoteHosts.values()) entry.host.close();
-  engines.stopAll();
-  void tablebase.stop();
-  for (const db of open.values()) db.close();
-  server.close(() => process.exit(0));
-  setTimeout(() => process.exit(0), 1500).unref?.();
+  if (shuttingDown) return;
+  shuttingDown = true;
+  void (async () => {
+    try {
+      void maintenance.close();
+      void engineService?.close();
+      for (const entry of remoteHosts.values()) entry.host.close();
+      /*
+        Quit, then the process-group kill if the engine is still in `go`.
+        `process.exit` before that reap runs is a clean companion exit that
+        leaves the detached engine behind: the shell sees success and does
+        not escalate to SIGKILL. The same wait is what lets `tablebase.stop`
+        finish; an exit on the next turn used to abandon it.
+      */
+      await engines.stopAll();
+      await tablebase.stop();
+      for (const db of open.values()) db.close();
+    } finally {
+      let exited = false;
+      const exit = () => {
+        if (exited) return;
+        exited = true;
+        process.exit(0);
+      };
+      server.close(() => exit());
+      setTimeout(exit, 1500);
+    }
+  })();
 };
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);

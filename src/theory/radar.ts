@@ -108,6 +108,13 @@ export function buildRadar(
   const currentYear = options.currentYear ?? new Date().getFullYear();
   const minimumShift = options.minimumShift ?? DEFAULT_MINIMUM_SHIFT;
   const minimumSample = options.minimumSample ?? DEFAULT_MINIMUM_SAMPLE;
+  /*
+    Three copies of one aggregate are not three date windows. A source that
+    cannot filter by date returns the same games for every `sinceYear`, and
+    reading that equality as "all of these games are recent" labels the whole
+    pack as new. A real window changes the totals or the move counts.
+  */
+  const identical = sameAggregate(allTime, threeYear) && sameAggregate(allTime, twelveMonth);
 
   const byUci = (result: ExplorerResult) =>
     new Map(result.moves.map((move) => [String(move.uci), move]));
@@ -140,6 +147,7 @@ export function buildRadar(
         shift,
         minimumShift,
         currentYear,
+        identical,
       }),
       ...yearsOf(all.get(uci)),
     });
@@ -171,27 +179,31 @@ function labelsFor(context: {
   shift: number;
   minimumShift: number;
   currentYear: number;
+  /** The three results are one aggregate repeated. They are not date windows. */
+  identical: boolean;
 }): readonly RadarLabel[] {
   const labels: RadarLabel[] = [];
-  const { allFigure, threeFigure, twelveFigure, shift, minimumShift, currentYear } = context;
+  const { allFigure, threeFigure, twelveFigure, shift, minimumShift, currentYear, identical } =
+    context;
 
   /*
     "New in this database" means exactly what it says: every game in the
     collection that reached this position and played this move is inside the
     recent window. It is not a novelty claim and the sentence never omits the
-    words that make that clear.
+    words that make that clear. It is also not claimed when the three results
+    are the same aggregate — that equality is a source that did not filter.
   */
-  if (twelveFigure.games > 0 && twelveFigure.games === allFigure.games) {
+  if (!identical && twelveFigure.games > 0 && twelveFigure.games === allFigure.games) {
     labels.push({
       kind: 'new-in-database',
       text: 'Every game with this move in the selected database is from the last twelve months.',
     });
-  } else if (threeFigure.games > 0 && threeFigure.games === allFigure.games) {
+  } else if (!identical && threeFigure.games > 0 && threeFigure.games === allFigure.games) {
     labels.push({
       kind: 'first-seen-since',
       text: `No game with this move in the selected database is older than ${currentYear - 2}.`,
     });
-  } else if (allFigure.games > 0 && threeFigure.games / allFigure.games > 0.8) {
+  } else if (!identical && allFigure.games > 0 && threeFigure.games / allFigure.games > 0.8) {
     labels.push({
       kind: 'rare-before',
       text: `Rare in the selected database before ${currentYear - 2}: ${
@@ -200,12 +212,12 @@ function labelsFor(context: {
     });
   }
 
-  if (shift >= minimumShift) {
+  if (!identical && shift >= minimumShift) {
     labels.push({
       kind: 'recently-popular',
       text: `Share in the selected database rose from ${allFigure.frequency}% all time to ${twelveFigure.frequency}% in the last twelve months.`,
     });
-  } else if (shift <= -minimumShift) {
+  } else if (!identical && shift <= -minimumShift) {
     labels.push({
       kind: 'falling-out-of-use',
       text: `Share in the selected database fell from ${allFigure.frequency}% all time to ${twelveFigure.frequency}% in the last twelve months.`,
@@ -213,6 +225,14 @@ function labelsFor(context: {
   }
 
   return labels;
+}
+
+/** Same position total and the same game count on every move. */
+function sameAggregate(left: ExplorerResult, right: ExplorerResult): boolean {
+  if (left.totalGames !== right.totalGames || left.moves.length !== right.moves.length)
+    return false;
+  const games = new Map(left.moves.map((move) => [String(move.uci), move.games]));
+  return right.moves.every((move) => games.get(String(move.uci)) === move.games);
 }
 
 const figure = (move: DatabaseMove | undefined, total: number): RadarFigure => ({

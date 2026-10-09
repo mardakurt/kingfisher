@@ -1,16 +1,19 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import {
+  aliasesForLabel,
   alternativeMoveOrders,
   fenAfter,
   keyAfter,
   loadOpeningCatalog,
   OPENING_ALIASES,
   OPENING_FAMILIES,
+  openingFamilies,
   searchOpenings,
   tokeniseMoves,
   type OpeningEntry,
 } from './opening-catalog';
+import { loadTheoryBook } from './theory-book';
 
 /**
  * The library is the surface a player uses to find an opening by whatever they
@@ -130,12 +133,89 @@ describe('searching by name', () => {
   });
 
   it('has no alias that resolves to nothing in the dataset', () => {
-    const dead: string[] = [];
-    for (const [alias, term] of Object.entries(OPENING_ALIASES)) {
-      const hit = catalog.some((entry) => entry.label.toLowerCase().includes(term.toLowerCase()));
-      if (!hit) dead.push(`${alias} → ${term}`);
+    const families = openingFamilies(catalog);
+    const hit = new Set<string>();
+    for (const entry of catalog) {
+      for (const alias of aliasesForLabel(entry.label, families)) hit.add(alias);
     }
+    const dead = Object.keys(OPENING_ALIASES).filter((alias) => !hit.has(alias));
     expect(dead).toEqual([]);
+  });
+});
+
+describe('aliases do not borrow another opening’s name', () => {
+  it('does not call a Caro-Kann a Kan, or a Panov line the Modern Defense', async () => {
+    const kan = searchOpenings(catalog, 'kan', catalog.length);
+    expect(
+      kan.some(
+        (result) => result.entry.label.includes('Sicilian') && result.entry.label.includes('Kan'),
+      ),
+    ).toBe(true);
+    expect(kan.some((result) => result.entry.name === 'Caro-Kann Defense')).toBe(false);
+
+    const modern = searchOpenings(catalog, 'modern defense', catalog.length);
+    expect(modern.some((result) => result.entry.name === 'Modern Defense')).toBe(true);
+    expect(modern.some((result) => result.entry.name === 'Caro-Kann Defense')).toBe(false);
+
+    const book = await loadTheoryBook();
+    const caro = catalog.find((entry) => entry.label.includes('Panov Attack, Modern Defense'));
+    expect(caro).toBeDefined();
+    const aliases = book.node(caro!.key)?.aliases ?? [];
+    expect(aliases).toContain('caro-kann');
+    expect(aliases).not.toContain('kan');
+    expect(aliases).not.toContain('modern defense');
+  });
+
+  it('does not call a Closed Ruy Lopez a Closed Sicilian', async () => {
+    const closed = searchOpenings(catalog, 'closed sicilian', catalog.length);
+    expect(closed.some((result) => result.entry.label.startsWith('Sicilian Defense: Closed'))).toBe(
+      true,
+    );
+    expect(closed.some((result) => result.entry.label.startsWith('Ruy Lopez'))).toBe(false);
+    expect(closed.every((result) => /sicilian/i.test(result.entry.label))).toBe(true);
+
+    const book = await loadTheoryBook();
+    const ruy = catalog.find((entry) => entry.label.startsWith('Ruy Lopez: Closed'));
+    expect(ruy).toBeDefined();
+    expect(book.node(ruy!.key)?.aliases).not.toContain('closed sicilian');
+  });
+
+  it('does not call a Semi-Slav a Slav, and still calls a Slav a Slav', async () => {
+    const slav = searchOpenings(catalog, 'slav', catalog.length);
+    expect(slav.some((result) => result.entry.name === 'Slav Defense')).toBe(true);
+    expect(slav.some((result) => result.entry.label.includes('Semi-Slav'))).toBe(false);
+
+    const book = await loadTheoryBook();
+    const semi = catalog.find((entry) => entry.name === 'Semi-Slav Defense');
+    const slavLine = catalog.find((entry) => entry.name === 'Slav Defense');
+    expect(semi).toBeDefined();
+    expect(slavLine).toBeDefined();
+    expect(book.node(semi!.key)?.aliases).toContain('semi-slav');
+    expect(book.node(semi!.key)?.aliases).not.toContain('slav');
+    expect(book.node(slavLine!.key)?.aliases).toContain('slav');
+  });
+
+  it('does not call an Accelerated London an Accelerated Dragon', async () => {
+    const dragons = searchOpenings(catalog, 'accelerated dragon', catalog.length);
+    expect(dragons.length).toBeGreaterThan(0);
+    expect(dragons.every((result) => /dragon/i.test(result.entry.label))).toBe(true);
+    expect(
+      dragons.some((result) =>
+        /accelerated london|accelerated panov|accelerated meran|accelerated averbakh/i.test(
+          result.entry.label,
+        ),
+      ),
+    ).toBe(false);
+
+    const book = await loadTheoryBook();
+    const london = catalog.find((entry) => entry.label.includes('Accelerated London'));
+    const dragon = catalog.find((entry) => entry.label.includes('Accelerated Dragon'));
+    const najdorf = catalog.find((entry) => entry.label.includes('Najdorf'));
+    expect(london).toBeDefined();
+    expect(dragon).toBeDefined();
+    expect(book.node(london!.key)?.aliases).not.toContain('accelerated dragon');
+    expect(book.node(dragon!.key)?.aliases).toContain('accelerated dragon');
+    expect(book.node(najdorf!.key)?.aliases).toContain('najdorf');
   });
 });
 

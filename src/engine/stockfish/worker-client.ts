@@ -16,6 +16,8 @@ export class UciWorkerClient implements UciTransport {
   private readonly listeners = new Set<LineListener>();
   private readonly waiters = new Set<(error: Error) => void>();
   private failure: Error | null = null;
+  /** One `#error` line, so a crashed worker cannot be reported twice. */
+  private announced = false;
 
   private constructor(worker: Worker) {
     this.worker = worker;
@@ -29,9 +31,9 @@ export class UciWorkerClient implements UciTransport {
       }
     });
     worker.addEventListener('error', (event: ErrorEvent) => {
-      this.failure = new Error(event.message || 'The engine worker crashed.');
-      // A crashed worker will never emit the line anyone is waiting for.
-      this.abortWaiters(new EngineError(this.failure.message));
+      if (!this.worker) return;
+      // An infinite `go` has no waiter. The session fails a search on `#error`.
+      this.failTransport(event.message || 'The engine worker crashed.');
     });
   }
 
@@ -103,7 +105,36 @@ export class UciWorkerClient implements UciTransport {
   send(command: string): void {
     if (this.failure) throw new EngineError(this.failure.message);
     if (!this.worker) throw new EngineError('The engine session has been closed.');
-    this.worker.postMessage(command);
+    try {
+      this.worker.postMessage(command);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'The engine worker stopped accepting commands.';
+      this.failTransport(message);
+      throw new EngineError(message);
+    }
+  }
+
+  /**
+   * Tell the session the worker is dead, and terminate it.
+   *
+   * `abortWaiters` alone leaves an infinite search analysing: nothing is
+   * waiting for a `bestmove` that will never come. One `#error` line is the
+   * path the session already fails on.
+   */
+  private failTransport(message: string): void {
+    if (this.announced) return;
+    this.announced = true;
+    this.failure = new Error(message);
+    for (const listener of [...this.listeners]) listener(`#error ${message}`);
+    this.abortWaiters(new EngineError(message));
+    const worker = this.worker;
+    this.worker = null;
+    try {
+      worker?.terminate();
+    } catch {
+      // Already gone.
+    }
   }
 
   /**

@@ -138,10 +138,53 @@ describe('parsePgn', () => {
     expect(games.map((game) => mainline(game.tree))).toEqual([['d4']]);
   });
 
+  it('keeps the following games when a refused game has no movetext', () => {
+    const { games, refused } = parsePgn(
+      [
+        '[Variant "Chess960"]',
+        '',
+        '[Event "Real"]',
+        '',
+        '1. e4 e5 2. Nf3 Nc6 1-0',
+        '',
+        '[Event "After"]',
+        '',
+        '1. d4 *',
+      ].join('\n'),
+    );
+    expect(refused.map((refusal) => refusal.variant)).toEqual(['Chess960']);
+    expect(games.map((game) => game.tree.headers.Event)).toEqual(['Real', 'After']);
+    expect(games.map((game) => mainline(game.tree))).toEqual([['e4', 'e5', 'Nf3', 'Nc6'], ['d4']]);
+  });
+
   it('truncates an illegal variation and keeps the rest of the game', () => {
     const game = unwrap(parseSingleGame('1. e4 e5 (1... Qh4 2. Nf3) 2. Nf3 Nc6 *'));
     expect(game.issues.some((issue) => issue.message.includes('Illegal move'))).toBe(true);
     expect(mainline(game.tree)).toEqual(['e4', 'e5', 'Nf3', 'Nc6']);
+  });
+
+  it('stops at a null move instead of letting the same side play the next one', () => {
+    for (const nullMove of ['--', 'Z0']) {
+      const game = unwrap(parseSingleGame(`1. e4 e6 2. d4 ${nullMove} 3. d5 *`));
+      expect(mainline(game.tree), nullMove).toEqual(['e4', 'e6', 'd4']);
+      expect(
+        game.issues.some(
+          (issue) => issue.severity === 'error' && issue.message.includes(`"${nullMove}"`),
+        ),
+      ).toBe(true);
+    }
+    // Ordinary unrecognised text is still skipped, and play continues.
+    const noise = unwrap(parseSingleGame('1. e4 e5 2. Nf3 blah Nc6 *'));
+    expect(mainline(noise.tree)).toEqual(['e4', 'e5', 'Nf3', 'Nc6']);
+  });
+
+  it('plays lowercase castling', () => {
+    const game = unwrap(
+      parseSingleGame(
+        '[SetUp "1"]\n[FEN "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1"]\n\n1. o-o o-o-o *',
+      ),
+    );
+    expect(mainline(game.tree)).toEqual(['O-O', 'O-O-O']);
   });
 
   it('reads several games from one file', () => {
@@ -219,6 +262,23 @@ describe('serializePgn', () => {
     expect(new Set(root.shapes.map(shapeKey))).toEqual(
       new Set(mustGetNode(first.tree, first.tree.rootId).shapes.map(shapeKey)),
     );
+  });
+
+  it('keeps an evaluation written on the starting position', () => {
+    const source = '{ [%eval 0.50][%cal Ge2e4] } 1. e4 {[%eval -0.25]} *';
+    const first = unwrap(parseSingleGame(source));
+    const root = mustGetNode(first.tree, first.tree.rootId);
+    expect(root.evaluation?.score).toEqual({ kind: 'cp', cp: 50 });
+    expect(root.shapes).toEqual([{ kind: 'arrow', from: 'e2', to: 'e4', brush: 'green' }]);
+    const e4 = mustGetNode(first.tree, first.tree.rootId).children[0] as NodeId;
+    expect(mustGetNode(first.tree, e4).evaluation?.score).toEqual({ kind: 'cp', cp: -25 });
+    const text = serializePgn(first.tree);
+    expect(text).toContain('[%eval 0.50]');
+    const again = unwrap(parseSingleGame(text));
+    expect(mustGetNode(again.tree, again.tree.rootId).evaluation?.score).toEqual({
+      kind: 'cp',
+      cp: 50,
+    });
   });
 
   it('writes the game from one move on as its own PGN', () => {

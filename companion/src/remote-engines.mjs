@@ -317,12 +317,14 @@ export class RemoteEngineHost {
     });
     const listeners = new Set();
     const backlog = [];
+    let nextId = 0;
     const session = {
       exited: false,
       emit: (line) => {
-        backlog.push(line);
+        const entry = { id: ++nextId, line };
+        backlog.push(entry);
         if (backlog.length > 500) backlog.shift();
-        for (const listener of listeners) listener(line);
+        for (const listener of listeners) listener(entry.line, entry.id);
       },
       end: () => {
         for (const listener of listeners) listener(null);
@@ -345,11 +347,25 @@ export class RemoteEngineHost {
     });
   }
 
-  subscribe(id, listener) {
+  /**
+   * Subscribe to lines this companion has received from the host.
+   *
+   * `after` is the last event id the subscriber has already applied. Lines at
+   * or before that id are not replayed: an EventSource reconnect would
+   * otherwise deliver an old `info` or `bestmove` as if the host had just
+   * written it. A first connection passes no cursor and still receives the
+   * backlog. Ids are assigned here, in receipt order — the TLS session is not
+   * resumed, and a dropped host connection fails the engine instead.
+   */
+  subscribe(id, listener, after = null) {
     const session = this.#sessions.get(id);
     if (!session) throw new Error('No such engine session.');
     if (session.exited && session.backlog.length === 0) throw new Error('That engine has exited.');
-    for (const line of session.backlog) listener(line);
+    const cursor = typeof after === 'number' && Number.isFinite(after) ? after : null;
+    for (const entry of session.backlog) {
+      if (cursor !== null && entry.id <= cursor) continue;
+      listener(entry.line, entry.id);
+    }
     if (session.exited) {
       listener(null);
       return () => undefined;

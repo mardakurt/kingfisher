@@ -106,18 +106,34 @@ describe('choosing which branches are worth listing', () => {
 });
 
 describe('the reasons a branch carries', () => {
-  it('reports a line that is played more recently than in the reference', () => {
+  it('does not say one pack is up from a different pack', () => {
     const recent = population('recent', 'Recent Theory', 'recent', [
       move('Be7', 'f8e7', 900),
       move('Nf6', 'g8f6', 1000),
       move('a6', 'a7a6', 100),
     ]);
     const rows = criticalBranches({ populations: [ELITE, recent] });
+    const reasons = branch(rows, 'Be7')!.reasons;
+    // 900 of 2,000 in Recent Theory — 45% — and 3,000 of 9,920 in Elite OTB, 30.2%.
+    // Those are two populations. The sentence names both and says against.
+    expect(reasonKinds(reasons)).not.toContain('growth');
+    const divergence = reasonOf(reasons, 'divergence');
+    expect(describeReason(divergence)).toBe('45.0% in Recent Theory against 30.2% in Elite OTB');
+    expect(describeReason(divergence)).not.toContain('up from');
+  });
+
+  it('says up from only for a later window of the same source', () => {
+    const later = population('elite', 'Elite OTB since 2024', 'recent', [
+      move('Be7', 'f8e7', 900),
+      move('Nf6', 'g8f6', 1000),
+      move('a6', 'a7a6', 100),
+    ]);
+    const rows = criticalBranches({ populations: [ELITE, later] });
     const growth = reasonOf(branch(rows, 'Be7')!.reasons, 'growth');
-    // 900 of 2,000 recently — 45% — against 3,000 of 9,920 over the board, 30.2%.
-    expect(growth).toMatchObject({ source: 'Recent Theory', baseline: 'Elite OTB' });
-    expect(growth.share).toBeCloseTo(0.45, 3);
-    expect(growth.baselineShare).toBeCloseTo(3000 / 9920, 3);
+    expect(growth).toMatchObject({ source: 'Elite OTB since 2024', baseline: 'Elite OTB' });
+    expect(describeReason(growth)).toBe(
+      '45.0% in Elite OTB since 2024 — up from 30.2% in Elite OTB',
+    );
   });
 
   it('does not call a share that barely moved growth', () => {
@@ -273,16 +289,16 @@ describe('putting a reason into words', () => {
     ).toBe('18.4% of Elite OTB (2,914 of 15,832)');
   });
 
-  it('says what a share grew from, not just that it grew', () => {
+  it('reserves up from for two windows and names both', () => {
     expect(
       describeReason({
         kind: 'growth',
-        source: 'Recent Theory',
+        source: 'Elite OTB since 2024',
         baseline: 'Elite OTB',
         share: 0.241,
         baselineShare: 0.184,
       }),
-    ).toBe('24.1% in Recent Theory — up from 18.4% in Elite OTB');
+    ).toBe('24.1% in Elite OTB since 2024 — up from 18.4% in Elite OTB');
   });
 
   it('names both populations in a divergence rather than combining them', () => {

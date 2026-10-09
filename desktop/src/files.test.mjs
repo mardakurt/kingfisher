@@ -11,7 +11,14 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { RecentDocuments, isDatabasePath, isPgnPath, openableFromArgv, readPgn } from './files.mjs';
+import {
+  RecentDocuments,
+  authoriseOpenPaths,
+  isDatabasePath,
+  isPgnPath,
+  openableFromArgv,
+  readPgn,
+} from './files.mjs';
 
 const workspace = mkdtempSync(path.join(tmpdir(), 'kingfisher-files-'));
 
@@ -60,6 +67,19 @@ describe('what Kingfisher will open', () => {
     expect(openableFromArgv(['/Applications/Kingfisher.app/Contents/MacOS/Kingfisher'])).toEqual(
       [],
     );
+  });
+
+  /*
+    The extension check would open any PGN. The allow-list is the other half:
+    a PGN the main process never recorded is still refused, and so is a path
+    that is not a chess file at all.
+  */
+  it('opens a recorded chess file and refuses a path the main process never recorded', () => {
+    const recorded = ['/games/Fischer.pgn', '/db/elite.sqlite'];
+    expect(authoriseOpenPaths(['/games/Fischer.pgn'], recorded)).toEqual(['/games/Fischer.pgn']);
+    expect(authoriseOpenPaths(['/db/elite.sqlite'], recorded)).toEqual(['/db/elite.sqlite']);
+    expect(authoriseOpenPaths(['/games/never-recorded.pgn'], recorded)).toEqual([]);
+    expect(authoriseOpenPaths(['/etc/passwd'], recorded)).toEqual([]);
   });
 });
 

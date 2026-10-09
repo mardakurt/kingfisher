@@ -68,11 +68,20 @@ export function buildMoveEvidence(options: {
   readonly result: ExplorerResult;
   readonly sideToMove: 'w' | 'b';
   readonly recent?: ExplorerResult | null;
+  /**
+   * Whether `recent` is a date filter this source can apply.
+   *
+   * False means the second result is not a window: a pack ignores `sinceYear`
+   * and returns the all-time aggregate again. Omitted means the caller has
+   * already asked a source that can filter.
+   */
+  readonly dateFilter?: boolean;
   readonly analysis?: EngineAnalysis | null;
   readonly repertoire?: RepertoirePositionRecord | null;
   readonly personal?: ExplorerResult | null;
 }): readonly MoveEvidence[] {
   const { result, sideToMove, recent, analysis, repertoire, personal } = options;
+  const dateFilter = options.dateFilter !== false;
   const total = result.totalGames || 1;
   const recentTotal = recent?.totalGames ?? 0;
 
@@ -95,11 +104,18 @@ export function buildMoveEvidence(options: {
   const recentOf = (
     move: DatabaseMove,
     filtered: DatabaseMove | undefined,
-    total: number,
+    windowTotal: number,
   ): Partial<MoveEvidence> => {
-    if (filtered && total > 0) {
+    /*
+      A second row that repeats the all-time count is not a date window. Packs
+      ignore sinceYear and hand the same aggregate back; labelling it `filter`
+      would replace the source's own recent counters with the all-time figure.
+    */
+    const repeatsAllTime =
+      filtered !== undefined && windowTotal === result.totalGames && filtered.games === move.games;
+    if (dateFilter && filtered && windowTotal > 0 && !repeatsAllTime) {
       return {
-        recentFrequency: filtered.games / total,
+        recentFrequency: filtered.games / windowTotal,
         recentGames: filtered.games,
         recentFrom: 'filter',
       };

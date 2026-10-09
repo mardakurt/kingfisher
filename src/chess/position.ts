@@ -45,8 +45,9 @@ export class Position {
     const parsed = parseFen(input);
     if (!parsed.ok) return parsed;
 
-    // The structural parser accepts positions the rules engine rejects
-    // (a side to move already giving check, impossible castling rights…).
+    // parseFen has already refused a board Kingfisher cannot play, including a
+    // side not to move that is already in check. chess.js still rejects a few
+    // positions of its own; those come back as invalid-position.
     let engine: Chess;
     try {
       engine = new Chess(input.trim().replace(/\s+/g, ' '));
@@ -116,7 +117,9 @@ export class Position {
   legalMoves(): readonly ChessMove[] {
     if (!this.cachedMoves) {
       const verbose = this.chess().moves({ verbose: true });
-      this.cachedMoves = verbose.map((move) => toChessMove(move));
+      this.cachedMoves = verbose
+        .filter((move) => !capturesKing(move))
+        .map((move) => toChessMove(move));
     }
     return this.cachedMoves;
   }
@@ -163,6 +166,9 @@ export class Position {
     const chess = this.chess(true);
     try {
       const move = chess.move(trimmed);
+      if (capturesKing(move)) {
+        return fail('invalid-san', `"${trimmed}" is not a legal move here.`, { input: trimmed });
+      }
       return ok(toChessMove(move));
     } catch {
       return fail('invalid-san', `"${trimmed}" is not a legal move here.`, { input: trimmed });
@@ -190,6 +196,11 @@ export class Position {
     this.engine = null;
     try {
       const move = chess.move(trimmed);
+      if (capturesKing(move)) {
+        chess.undo();
+        this.engine = chess;
+        return fail('invalid-san', `"${trimmed}" is not a legal move here.`, { input: trimmed });
+      }
       const next = new Position(asFen(move.after));
       next.engine = chess;
       return ok({ move: toChessMove(move), next });
@@ -216,6 +227,13 @@ export class Position {
         to: intent.to,
         ...(intent.promotion ? { promotion: intent.promotion } : {}),
       });
+      if (capturesKing(move)) {
+        chess.undo();
+        this.engine = chess;
+        return fail('illegal-move', `${formatUci(intent)} is not legal in this position.`, {
+          input: formatUci(intent),
+        });
+      }
       const next = new Position(asFen(move.after));
       next.engine = chess;
       return ok({ move: toChessMove(move), next });
@@ -346,6 +364,9 @@ function toChessMove(move: LibMove): ChessMove {
 
 const describeError = (error: unknown): string =>
   error instanceof Error ? error.message : 'The position is not legal.';
+
+/** chess.js lists a capture of the king when the other side is already in check. */
+const capturesKing = (move: { captured?: string }): boolean => move.captured === 'k';
 
 /** Narrow a raw string to the rules engine's square type. */
 export const toLibSquare = (square: Square): LibSquare => square as LibSquare;

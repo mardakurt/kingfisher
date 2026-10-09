@@ -59,8 +59,8 @@ import {
   DATABASE_EXTENSIONS,
   PGN_EXTENSIONS,
   RecentDocuments,
+  authoriseOpenPaths,
   isDatabasePath,
-  isPgnPath,
   openableFromArgv,
   readPgn,
 } from './files.mjs';
@@ -188,6 +188,11 @@ const state = {
   companionToken: null,
   window: null,
   recent: new RecentDocuments(),
+  /**
+   * Paths this process recorded from a dialog, a drop, launch arguments, or
+   * the recent list. The renderer may ask to open only these.
+   */
+  authorisedOpen: new Set(),
   /** Resolves when the background companion start has settled, either way. */
   companionStarted: null,
   /** Why the companion is not running, when it failed rather than was stopped. */
@@ -692,8 +697,27 @@ async function documentFor(file) {
   return { kind: 'pgn', ...pgn };
 }
 
+/** Remember paths this process itself obtained, so a later open can be checked. */
+function rememberOpenPaths(files) {
+  for (const file of Array.isArray(files) ? files : []) {
+    if (typeof file === 'string' && file.length > 0) state.authorisedOpen.add(path.resolve(file));
+  }
+}
+
+function recordedOpenPaths() {
+  return [...state.authorisedOpen, ...state.recent.list().map((entry) => entry.path)];
+}
+
+/**
+ * Open paths the main process has already recorded.
+ *
+ * Dialogs, drops, launch arguments and the recent list record first
+ * (`openTrustedPaths`, or the drop channel). A path that arrived only as a
+ * string from the renderer is not read.
+ */
 async function openPaths(files) {
-  for (const file of files) {
+  const allowed = authoriseOpenPaths(Array.isArray(files) ? files : [], recordedOpenPaths());
+  for (const file of allowed) {
     try {
       // The name only: the log is local, but a path is more than a support
       // report needs, and the Finder route is the one worth being able to see.
@@ -703,6 +727,13 @@ async function openPaths(files) {
       dialog.showErrorBox('Kingfisher could not open that file', String(error?.message ?? error));
     }
   }
+  return allowed.length;
+}
+
+/** Record, then open. Callers are the dialog, the recent menu, and the OS. */
+async function openTrustedPaths(files) {
+  rememberOpenPaths(files);
+  return openPaths(files);
 }
 
 async function chooseAndOpen(kind) {
@@ -716,7 +747,7 @@ async function chooseAndOpen(kind) {
     filters,
   });
   if (result.canceled) return { canceled: true };
-  await openPaths(result.filePaths);
+  await openTrustedPaths(result.filePaths);
   return { canceled: false, paths: result.filePaths };
 }
 
@@ -736,7 +767,7 @@ function rebuildMenu() {
         recent: state.recent.list(),
         onOpenPgn: () => void chooseAndOpen('pgn'),
         onOpenDatabase: () => void chooseAndOpen('database'),
-        onOpenRecent: (file) => void openPaths([file]),
+        onOpenRecent: (file) => void openTrustedPaths([file]),
         onClearRecent: () => {
           state.recent.clear();
           rebuildMenu();
@@ -878,14 +909,20 @@ function registerIpc() {
     return result.canceled ? { canceled: true } : { canceled: false, path: result.filePaths[0] };
   });
 
-  // Files dropped on the window. The renderer can see a dropped file's path
-  // but cannot read it; this is the only way that path becomes content.
-  ipcMain.handle('kingfisher:open-paths', async (_event, files) => {
-    const wanted = (Array.isArray(files) ? files : [])
-      .filter((file) => typeof file === 'string')
-      .filter((file) => isPgnPath(file) || isDatabasePath(file));
-    await openPaths(wanted);
-    return { opened: wanted.length };
+  // A drop's path, taken by the preload from the File the operating system
+  // handed over. Recorded here, before `open-paths` will read it. The
+  // renderer has no channel of its own that can add to this set.
+  ipcMain.on('kingfisher:record-open-path', (event, file) => {
+    if (!state.window || event.sender !== state.window.webContents) return;
+    rememberOpenPaths([file]);
+  });
+
+  // Files dropped on the window. The renderer can name a path, but this
+  // reads it only when the main process recorded that path itself.
+  ipcMain.handle('kingfisher:open-paths', async (event, files) => {
+    if (!state.window || event.sender !== state.window.webContents) return { opened: 0 };
+    const opened = await openPaths(Array.isArray(files) ? files : []);
+    return { opened };
   });
 
   ipcMain.handle('kingfisher:recent', () => state.recent.list());
@@ -1086,7 +1123,7 @@ if (!app.requestSingleInstanceLock()) {
       if (state.window.isMinimized()) state.window.restore();
       state.window.focus();
     }
-    void openPaths(files);
+    void openTrustedPaths(files);
   });
 
   // macOS delivers a double-clicked document here, and can do so before
@@ -1094,7 +1131,7 @@ if (!app.requestSingleInstanceLock()) {
   app.on('open-file', (event, file) => {
     event.preventDefault();
     log('document', `open-file from the system: ${path.basename(file)}`);
-    void openPaths([file]);
+    void openTrustedPaths([file]);
   });
 
   app.whenReady().then(async () => {
@@ -1200,7 +1237,7 @@ if (!app.requestSingleInstanceLock()) {
     }
     createWindow();
     mark('window created');
-    void openPaths(openableFromArgv(process.argv));
+    void openTrustedPaths(openableFromArgv(process.argv));
 
     /*
       Phase 50: the quiet look at launch. One information-only request to

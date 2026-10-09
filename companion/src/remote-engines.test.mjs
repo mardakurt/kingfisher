@@ -115,6 +115,62 @@ describe('remote engines', () => {
     await until(() => engines.list().length === 0);
   });
 
+  it('resumes a subscriber from a cursor instead of replaying earlier output', async () => {
+    const { registry, engines } = engineHost();
+    const key = newPairingKey();
+    const served = await serveEngines({
+      engines,
+      registry,
+      key,
+      address: '127.0.0.1',
+      label: 'studio-mac',
+    });
+    cleanup.push(
+      () => served.close(),
+      () => engines.stopAll(),
+    );
+    const client = new RemoteEngineHost({ host: '127.0.0.1', port: served.port, key });
+    await client.connect();
+    cleanup.push(() => client.close());
+
+    const id = await client.start('scripted');
+    const applied = [];
+    let cursor = 0;
+    const first = client.subscribe(id, (line, eventId) => {
+      if (line === null) return;
+      applied.push(line);
+      if (typeof eventId === 'number') cursor = eventId;
+    });
+    client.send(id, 'uci');
+    await until(() => applied.includes('uciok'));
+    expect(cursor).toBeGreaterThan(0);
+    first();
+
+    const resumed = [];
+    client.subscribe(
+      id,
+      (line, eventId) => {
+        if (line !== null) resumed.push({ line, eventId });
+      },
+      cursor,
+    );
+    expect(resumed.map((entry) => entry.line)).not.toContain('uciok');
+    expect(resumed.some((entry) => entry.line.startsWith('id name'))).toBe(false);
+
+    client.send(id, 'go infinite');
+    await until(() => resumed.some((entry) => entry.line.startsWith('info depth 1')));
+    expect(resumed.map((entry) => entry.line)).not.toContain('uciok');
+    expect(resumed.every((entry) => entry.eventId > cursor)).toBe(true);
+
+    // A subscriber with no cursor still receives the backlog, including the handshake.
+    const late = [];
+    client.subscribe(id, (line) => {
+      if (line !== null) late.push(line);
+    });
+    expect(late).toContain('uciok');
+    expect(late.some((line) => line.startsWith('info depth'))).toBe(true);
+  });
+
   it('refuses a client that does not hold the pairing key', async () => {
     const { registry, engines } = engineHost();
     const served = await serveEngines({

@@ -74,6 +74,9 @@ self.onmessage = (event: MessageEvent<ImportWorkerRequest>) => {
       const importedAt = Date.now();
       for (const result of db.games(request.from, request.to)) {
         if (!isGame(result)) {
+          // Deleted headers are counted by the inspection and are not games.
+          // A decode that failed is a failure; a deletion is not.
+          if (result.header?.deleted) continue;
           failures.push({ id: result.id, reason: result.reason });
           continue;
         }

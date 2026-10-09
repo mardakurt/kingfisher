@@ -158,9 +158,28 @@ describe('engine evidence cannot cross a failed session boundary', () => {
       let position = Position.initial();
       for (const move of line.moves) {
         const played = position.playUci(move);
+        expect(played.ok, line.moves.join(' ')).toBe(true);
         if (!played.ok) break;
         position = Position.fromTrustedFen(played.value.after);
       }
     }
+  });
+
+  it('does not publish a score for a principal variation that is illegal in the root', async () => {
+    const { session, emit } = harness();
+    const handle = session.analyse(request, () => {});
+    await flush();
+    emit('info depth 9 score cp 12 pv e2e4 e7e5');
+    emit('info depth 11 score cp 40 pv e2e4 e7e5 a1h8');
+    emit('info depth 11 score cp 15 multipv 2 pv a1h8');
+    emit('bestmove e2e4');
+    const analysis = await handle.finished;
+    expect(analysis.lines.map((line) => line.moves.join(' '))).toEqual(['e2e4 e7e5']);
+    expect(analysis.lines.some((line) => line.score.kind === 'cp' && line.score.cp === 40)).toBe(
+      false,
+    );
+    expect(analysis.lines.some((line) => line.score.kind === 'cp' && line.score.cp === 15)).toBe(
+      false,
+    );
   });
 });

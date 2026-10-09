@@ -45,9 +45,12 @@ test('the engine catalogue is offered from the companion, with licences and dige
   await settings.getByRole('tab', { name: 'Engine', exact: true }).click();
   await settings.getByRole('button', { name: 'Engines' }).click();
 
-  // The browser engine is always there and needs nothing.
+  // The browser engine is always there and needs nothing. Its badge stays
+  // "Not probed": this list does not handshake it or watch it search, and
+  // the row does not become Ready on its own.
   const wasm = settings.locator('[data-engine-row="stockfish-wasm"]');
-  await expect(wasm).toContainText('Ready');
+  await expect(wasm).toContainText('Not probed');
+  await expect(wasm).not.toContainText('Ready');
   await expect(wasm).toContainText('Sandboxed in the browser');
 
   // And the managed ones, from a real `/engine/catalogue` call.

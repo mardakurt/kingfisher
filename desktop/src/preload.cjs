@@ -95,7 +95,13 @@ contextBridge.exposeInMainWorld('kingfisher', {
    */
   pathForFile: (file) => {
     try {
-      return webUtils.getPathForFile(file);
+      const found = webUtils.getPathForFile(file);
+      // The drop's path is recorded by the main process before the renderer
+      // is allowed to name it. `openPaths` then accepts only recorded paths.
+      if (typeof found === 'string' && found.length > 0) {
+        ipcRenderer.sendSync('kingfisher:record-open-path', found);
+      }
+      return found || null;
     } catch {
       return null;
     }

@@ -131,6 +131,54 @@ describe('exporting a repertoire as PGN', () => {
     expect(parsePgn(pgn).games).toHaveLength(1);
   });
 
+  it('keeps a line that does not descend from the shallowest position', async () => {
+    // 1.e4 from the start, and Nf3 at the Caro-Kann position after
+    // 1.e4 c6 2.d4 d5. Both are stored at depth 0, so walking only from the
+    // shallowest position never plays Nf3. Re-import is not how this is
+    // checked: the PGN has to contain both moves, and the note on Nf3.
+    const created = await repositories.repertoires.create({ title: 'Caro-Kann', color: 'w' });
+    const caro = play(['e4', 'c6', 'd4', 'd5']);
+    const caroFen = mustGetNode(caro.tree, caro.last).fen;
+    await repositories.repertoires.upsertPosition({
+      repertoireId: created.id,
+      fen: START_FEN,
+      sideToMove: 'w',
+      depth: 0,
+      moves: [
+        { uci: asUci('e2e4'), san: asSan('e4'), role: 'main', note: 'Open games.', updatedAt: 1 },
+      ],
+    });
+    await repositories.repertoires.upsertPosition({
+      repertoireId: created.id,
+      fen: caroFen,
+      sideToMove: 'w',
+      depth: 0,
+      note: 'The Caro structure.',
+      moves: [
+        {
+          uci: asUci('g1f3'),
+          san: asSan('Nf3'),
+          role: 'main',
+          note: 'Before c4.',
+          updatedAt: 1,
+        },
+        { uci: asUci('f2f4'), san: asSan('f4'), role: 'avoid', updatedAt: 1 },
+      ],
+    });
+    const stored = await repositories.repertoires.get(created.id);
+
+    const pgn = exportRepertoirePgn(stored!.repertoire, stored!.positions);
+    const parsed = parsePgn(pgn);
+    expect(parsed.games).toHaveLength(2);
+    expect(parsed.games.every((game) => game.issues.length === 0)).toBe(true);
+    expect(pgn).toContain('1. e4');
+    expect(pgn).toContain('Nf3');
+    expect(pgn).toContain('Open games.');
+    expect(pgn).toContain('Before c4.');
+    expect(pgn).toContain('The Caro structure.');
+    expect(pgn).toContain('Avoid: f4');
+  });
+
   it('exports an empty repertoire without failing', async () => {
     const created = await repositories.repertoires.create({ title: 'Empty', color: 'w' });
     const stored = await repositories.repertoires.get(created.id);

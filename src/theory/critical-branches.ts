@@ -12,7 +12,7 @@
  *
  *     9...Be7
  *       18.4% of Elite OTB (2,914 of 15,832)
- *       24.1% of Recent Theory — up from 18.4%
+ *       24.1% in Recent Theory against 18.4% in Elite OTB
  *       no repertoire response
  *
  * and the sort is over those reasons, not over a hidden number. A reader who
@@ -91,8 +91,9 @@ export interface BranchPopulation {
    * How this population is used.
    *
    * `reference` is a population whose frequencies are reported as frequencies.
-   * `recent` is compared against the reference to find what is growing.
-   * `contrast` is compared against it to find where practice disagrees.
+   * `recent` is a later date window of that same source. Only then is a rise
+   * "up from" the earlier window. A different pack is not a date window.
+   * `contrast` is compared against the reference to find where practice disagrees.
    * `own` is the reader's own games. It is reported, and it is never compared:
    * a claim that somebody's archive "diverges from theory" is either a
    * tautology or an accusation, and a role that also let a personal database
@@ -241,7 +242,13 @@ export function criticalBranches(
       */
       if (referenceMove === undefined) continue;
       const gap = share - referenceShare;
-      if (population.role === 'recent' && gap >= settings.growthThreshold) {
+      /*
+        "Up from" is two date windows of one source. Two packs are different
+        populations even when one of them is named Recent Theory; that
+        comparison is the divergence sentence, which says "against".
+      */
+      const sameSource = population.id === reference.id;
+      if (population.role === 'recent' && sameSource && gap >= settings.growthThreshold) {
         reasons.push({
           kind: 'growth',
           source: population.name,
@@ -250,7 +257,10 @@ export function criticalBranches(
           baselineShare: referenceShare,
         });
       }
-      if (population.role === 'contrast' && Math.abs(gap) >= settings.divergenceThreshold) {
+      if (
+        (population.role === 'contrast' || (population.role === 'recent' && !sameSource)) &&
+        Math.abs(gap) >= settings.divergenceThreshold
+      ) {
         reasons.push({
           kind: 'divergence',
           source: population.name,

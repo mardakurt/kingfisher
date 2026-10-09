@@ -30,7 +30,7 @@ import type { ChessMove, MoveIntent, Square } from '@/chess/types';
 import { Button } from '@/components/ui/Button';
 import { Chessboard } from '@/features/board/Chessboard';
 import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
-import { Tactics } from '@/components/icons';
+import { Check, Close, Tactics } from '@/components/icons';
 import { getRepositories } from '@/persistence/repositories';
 import { resolveAnimationMs, usePreferences } from '@/stores/preferences-store';
 import {
@@ -44,7 +44,8 @@ import {
 
 import { loadPuzzleManifest, puzzleById, puzzlesNear, themeLabel } from './puzzle-data';
 
-type Phase = 'loading' | 'solving' | 'solved' | 'failed' | 'empty' | 'error';
+type Phase =
+  'loading' | 'solving' | 'solved' | 'retrying' | 'replying' | 'revealed' | 'empty' | 'error';
 
 const DIFFICULTY = { easier: -250, normal: 0, harder: 250 } as const;
 type Difficulty = keyof typeof DIFFICULTY;
@@ -93,6 +94,9 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
   const [hint, setHint] = useState<Square | null>(null);
   const [recorded, setRecorded] = useState(false);
   const [lastResult, setLastResult] = useState<{ before: number; after: number } | null>(null);
+  const recordedRef = useRef(false);
+  const generation = useRef(0);
+  const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const played = useRef<string[]>([]);
   const started = useRef(0);
   // Seeded from the clock when the first puzzle is chosen, not during render.
@@ -106,8 +110,12 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
   useEffect(() => clearTimers, []);
 
   const record = async (current: Puzzle, solved: boolean) => {
-    if (recorded) return;
+    if (recordedRef.current) return;
+    recordedRef.current = true;
     setRecorded(true);
+    const currentGeneration = generation.current;
+    const attemptedMoves = [...played.current];
+    const durationMs = Date.now() - started.current;
     const before = rating.rating;
     const repositories = await getRepositories();
     await repositories.puzzleAttempts.record({
@@ -116,17 +124,21 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
       puzzleDeviation: current.deviation,
       themes: current.themes,
       solved,
-      played: played.current,
-      durationMs: Date.now() - started.current,
+      played: attemptedMoves,
+      durationMs,
     });
     const list = await repositories.puzzleAttempts.list();
     queryClient.setQueryData(['puzzles', 'attempts'], list);
-    setLastResult({ before, after: solverRating(list).rating });
+    if (generation.current === currentGeneration) {
+      setLastResult({ before, after: solverRating(list).rating });
+    }
   };
 
   const next = async (requested?: string) => {
     clearTimers();
+    generation.current += 1;
     setPhase('loading');
+    setFeedback(null);
     setMessage(null);
     setHint(null);
     setLastResult(null);
@@ -153,6 +165,7 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
       setLine(replay.line);
       setStep(0);
       setRecorded(false);
+      recordedRef.current = false;
       played.current = [];
       // The position before the opponent's move, then the move itself.
       setPosition(Position.fromTrustedFen(replay.line.setup.before));
@@ -202,20 +215,21 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
     if (answer.kind === 'wrong') {
       setPosition(position.after(answer.move));
       setLastMove(answer.move);
-      setPhase('failed');
-      setMessage(
-        `${answer.move.san} is not the solution. The puzzle wanted ${answer.expected.san}.`,
-      );
+      setPhase('retrying');
+      setFeedback('wrong');
+      setMessage('Incorrect move. Try again — you can still finish this puzzle.');
       void record(puzzle, false);
-      // Take the wrong move back so the solution can be shown from here.
+      // Restore this decision, including after a later mistake in the line.
       timers.current.push(
         window.setTimeout(() => {
           setPosition(position);
-          setLastMove(null);
-        }, 900),
+          setLastMove(lastMove);
+          setPhase('solving');
+        }, 700),
       );
       return;
     }
+    setFeedback('correct');
     const after = position.after(answer.move);
     setPosition(after);
     setLastMove(answer.move);
@@ -224,7 +238,9 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
       setMessage(
         answer.alternativeMate
           ? `${answer.move.san} — checkmate, by another route than the listed one. Solved.`
-          : 'Solved.',
+          : recordedRef.current
+            ? 'Puzzle completed in practice. The rated attempt stays unsolved.'
+            : 'Solved. Well done.',
       );
       void record(puzzle, true);
       return;
@@ -232,11 +248,13 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
     setMessage(`${answer.move.san} — correct. Keep going.`);
     const reply = answer.reply;
     if (reply) {
+      setPhase('replying');
       timers.current.push(
         window.setTimeout(() => {
           setPosition(after.after(reply));
           setLastMove(reply);
           setStep((value) => value + 1);
+          setPhase('solving');
         }, 350),
       );
     }
@@ -247,6 +265,7 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
     const expected = line.solution[step * 2];
     if (!expected) return;
     setHint(expected.from);
+    setFeedback(null);
     setMessage(
       'A hint ends the rated attempt: it is recorded as unsolved. You can still finish it.',
     );
@@ -257,7 +276,9 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
     if (!puzzle || !line) return;
     clearTimers();
     if (!recorded) void record(puzzle, false);
-    setPhase('failed');
+    setPhase('revealed');
+    setFeedback(null);
+    setHint(null);
     let at = Position.fromTrustedFen(line.setup.after);
     const remaining = line.solution;
     setPosition(at);
@@ -276,6 +297,18 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
     setMessage(`Solution: ${remaining.map((move) => move.san).join(' ')}`);
   };
 
+  const retry = () => {
+    if (!line) return;
+    clearTimers();
+    setPosition(line.start);
+    setLastMove(line.setup);
+    setStep(0);
+    setHint(null);
+    setFeedback(null);
+    setMessage('Try the puzzle again. This is practice; your rating will not change.');
+    setPhase('solving');
+  };
+
   const shapes = useMemo<Shape[]>(
     () => (hint ? [{ kind: 'square' as const, square: hint, brush: 'green' as const }] : []),
     [hint],
@@ -291,11 +324,119 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
 
   const ratingText = `${Math.round(rating.rating)}${rating.provisional ? '?' : ''}`;
 
+  const inProgress = phase === 'solving' || phase === 'replying' || phase === 'retrying';
+
   const panel = (
     <aside
       className="flex w-full shrink-0 flex-col gap-3 overflow-y-auto border-line-subtle p-4 wide:w-[340px] wide:border-l"
       data-puzzle-panel
     >
+      {puzzle ? (
+        <section className="space-y-1 text-[12px]" data-puzzle-id={puzzle.id}>
+          <p className="font-medium text-primary">
+            {line?.solver === 'w' ? 'White' : 'Black'} to play
+            {phase === 'solving' ? ' — find the best move' : ''}
+          </p>
+          {message ? (
+            <div
+              className={`flex items-start gap-2 rounded-[var(--radius-control)] border border-current p-3 ${feedback === 'wrong' ? 'text-negative' : feedback === 'correct' ? 'text-positive' : 'text-secondary'}`}
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              data-puzzle-message={phase}
+              data-puzzle-feedback={feedback ?? undefined}
+            >
+              {feedback ? (
+                <span className="mt-0.5 shrink-0" aria-hidden="true">
+                  {feedback === 'wrong' ? (
+                    <Close className="h-5 w-5" />
+                  ) : (
+                    <Check className="h-5 w-5" />
+                  )}
+                </span>
+              ) : null}
+              <p>{message}</p>
+            </div>
+          ) : null}
+          {phase === 'solved' || phase === 'revealed' ? (
+            <div className="space-y-0.5 pt-1 text-[11px] text-tertiary">
+              <p data-puzzle-difficulty>
+                Puzzle rating {puzzle.rating} (±{puzzle.deviation}) · played{' '}
+                {puzzle.plays.toLocaleString()} times on Lichess
+              </p>
+              <p>{puzzle.themes.map(themeLabel).join(' · ')}</p>
+              {puzzle.openings.length ? <p>{puzzle.openings[0]!.replace(/_/g, ' ')}</p> : null}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      <div className="flex flex-wrap gap-1.5">
+        {inProgress ? (
+          <>
+            <Button onClick={showHint} disabled={phase !== 'solving'} data-puzzle-hint>
+              Hint
+            </Button>
+            <Button onClick={showSolution} data-puzzle-solution>
+              Show solution
+            </Button>
+            {/*
+              ChessBase's "Stuck? One click opens the position on the analysis
+              board". An engine there would give the answer away, so it ends
+              the rated attempt as a hint does, and the button says so.
+            */}
+            <Button
+              onClick={() => {
+                if (!puzzle || !line) return;
+                clearTimers();
+                const fen = position?.fen ?? line.setup.after;
+                void (recorded ? Promise.resolve() : record(puzzle, false)).then(() =>
+                  router.push(`/analysis?fen=${encodeURIComponent(fen)}`),
+                );
+              }}
+              title="Opens this position on the analysis board. The attempt is recorded as unsolved."
+              data-puzzle-analyse-stuck
+            >
+              Analyse (counts as unsolved)
+            </Button>
+          </>
+        ) : null}
+        {phase === 'revealed' && line ? (
+          <Button onClick={retry} data-puzzle-retry>
+            Try again
+          </Button>
+        ) : null}
+        {/*
+          The accent belongs to "Next puzzle", the way on once a puzzle is
+          over. While solving, the same button is Skip, and the loudest control
+          on an unsolved puzzle was the one that gives it up.
+        */}
+        <Button
+          {...(inProgress ? {} : { variant: 'accent' as const })}
+          onClick={() => void next()}
+          disabled={phase === 'loading'}
+          data-puzzle-next
+        >
+          {inProgress ? 'Skip' : 'Next puzzle'}
+        </Button>
+        {puzzle && (phase === 'solved' || phase === 'revealed') ? (
+          <Button
+            onClick={() =>
+              router.push(`/analysis?fen=${encodeURIComponent(line?.setup.after ?? puzzle.fen)}`)
+            }
+          >
+            Analyse
+          </Button>
+        ) : null}
+      </div>
+      {phase === 'solving' ? (
+        <p className="text-[10.5px] text-tertiary">
+          {recorded
+            ? 'Practice mode. Keep trying; this attempt is already recorded as unsolved.'
+            : 'Skip records nothing. A hint or a wrong move records the attempt as unsolved.'}
+        </p>
+      ) : null}
+
       <section className="rounded-[var(--radius-panel)] border border-line bg-surface-1 p-3">
         <p className="text-2xs uppercase tracking-wide text-tertiary">Your puzzle rating</p>
         <p className="text-2xl font-semibold text-primary tabular" data-puzzle-rating>
@@ -349,103 +490,6 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
           ))}
         </div>
       </section>
-
-      {puzzle ? (
-        <section className="space-y-1 text-[12px]" data-puzzle-id={puzzle.id}>
-          <p className="font-medium text-primary">
-            {line?.solver === 'w' ? 'White' : 'Black'} to play
-            {phase === 'solving' ? ' — find the best move' : ''}
-          </p>
-          {message ? (
-            <p
-              className={
-                phase === 'failed'
-                  ? 'text-danger'
-                  : phase === 'solved'
-                    ? 'text-success'
-                    : 'text-secondary'
-              }
-              role="status"
-              data-puzzle-message={phase}
-            >
-              {message}
-            </p>
-          ) : null}
-          {phase === 'solved' || phase === 'failed' ? (
-            <div className="space-y-0.5 pt-1 text-[11px] text-tertiary">
-              <p data-puzzle-difficulty>
-                Puzzle rating {puzzle.rating} (±{puzzle.deviation}) · played{' '}
-                {puzzle.plays.toLocaleString()} times on Lichess
-              </p>
-              <p>{puzzle.themes.map(themeLabel).join(' · ')}</p>
-              {puzzle.openings.length ? <p>{puzzle.openings[0]!.replace(/_/g, ' ')}</p> : null}
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-
-      <div className="flex flex-wrap gap-1.5">
-        {phase === 'solving' ? (
-          <>
-            <Button onClick={showHint} data-puzzle-hint>
-              Hint
-            </Button>
-            <Button onClick={showSolution} data-puzzle-solution>
-              Show solution
-            </Button>
-            {/*
-              ChessBase's "Stuck? One click opens the position on the analysis
-              board". An engine there would give the answer away, so it ends
-              the rated attempt as a hint does, and the button says so.
-            */}
-            <Button
-              onClick={() => {
-                if (!puzzle || !line) return;
-                const fen = position?.fen ?? line.setup.after;
-                void (recorded ? Promise.resolve() : record(puzzle, false)).then(() =>
-                  router.push(`/analysis?fen=${encodeURIComponent(fen)}`),
-                );
-              }}
-              title="Opens this position on the analysis board. The attempt is recorded as unsolved."
-              data-puzzle-analyse-stuck
-            >
-              Analyse (counts as unsolved)
-            </Button>
-          </>
-        ) : null}
-        {phase === 'failed' && line ? (
-          <Button onClick={showSolution} data-puzzle-solution>
-            Play the solution
-          </Button>
-        ) : null}
-        {/*
-          The accent belongs to "Next puzzle", the way on once a puzzle is
-          over. While solving, the same button is Skip, and the loudest control
-          on an unsolved puzzle was the one that gives it up.
-        */}
-        <Button
-          {...(phase === 'solving' ? {} : { variant: 'accent' as const })}
-          onClick={() => void next()}
-          disabled={phase === 'loading'}
-          data-puzzle-next
-        >
-          {phase === 'solving' ? 'Skip' : 'Next puzzle'}
-        </Button>
-        {puzzle && (phase === 'solved' || phase === 'failed') ? (
-          <Button
-            onClick={() =>
-              router.push(`/analysis?fen=${encodeURIComponent(line?.setup.after ?? puzzle.fen)}`)
-            }
-          >
-            Analyse
-          </Button>
-        ) : null}
-      </div>
-      {phase === 'solving' ? (
-        <p className="text-[10.5px] text-tertiary">
-          Skip records nothing. A hint or a wrong move records the attempt as unsolved.
-        </p>
-      ) : null}
 
       {phase === 'empty' ? (
         <p className="text-xs text-secondary" data-puzzle-empty>

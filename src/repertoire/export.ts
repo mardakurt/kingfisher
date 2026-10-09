@@ -8,6 +8,9 @@
  * - Every position the repertoire answers is walked from the starting position,
  *   depth first, and each answer becomes a move. Alternatives at the same
  *   position become PGN variations, which is exactly what a variation is.
+ * - A stored position that no stored move reaches is its own game. A second
+ *   line that does not descend from the shallowest position is still in the
+ *   file.
  * - Recorded opponent replies continue the line, because a line has to alternate
  *   to be a line at all. A position with several recorded replies branches.
  * - Notes and roles are written as move comments, since PGN has nowhere else to
@@ -21,7 +24,7 @@
  * to fix later, and it is stated in ARCHITECTURE.md.
  */
 
-import { positionKey } from '@/chess/fen';
+import { positionKey, START_FEN } from '@/chess/fen';
 import { playUciAt } from '@/chess/game';
 import { serializePgn } from '@/chess/pgn';
 import { createTree, setComment } from '@/chess/tree/tree';
@@ -48,20 +51,8 @@ export interface RepertoireExportOptions {
   readonly startFen?: Fen;
 }
 
-export function repertoireToTree(
-  repertoire: RepertoireRecord,
-  positions: readonly RepertoirePositionRecord[],
-  options: RepertoireExportOptions = {},
-): GameTree {
-  const byKey = new Map(positions.map((position) => [position.positionKey, position]));
-  const start =
-    options.startFen ??
-    // The shallowest recorded position is the natural root when a repertoire
-    // was built from a non-standard setup.
-    [...positions].sort((a, b) => a.depth - b.depth)[0]?.fen ??
-    ('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' as Fen);
-
-  let tree = createTree(start, {
+function repertoireHeaders(repertoire: RepertoireRecord): Record<string, string> {
+  return {
     Event: repertoire.title,
     Site: 'Kingfisher',
     White: repertoire.color === 'w' ? repertoire.title : '?',
@@ -69,38 +60,113 @@ export function repertoireToTree(
     Result: '*',
     RepertoireColor: repertoire.color === 'w' ? 'White' : 'Black',
     ...(repertoire.description ? { RepertoireDescription: repertoire.description } : {}),
-  });
+  };
+}
 
-  const walk = (nodeId: NodeId, fen: Fen, depth: number, visited: ReadonlySet<string>): void => {
-    if (depth >= MAX_PLIES) return;
-    const key = positionKey(fen);
-    // A transposition back into a line already on this path would loop forever.
-    if (visited.has(key)) return;
-    const position = byKey.get(key);
-    if (!position) return;
+/**
+ * One game per disconnected component.
+ *
+ * The first game starts at the shallowest stored position (or `startFen`).
+ * Every stored position that walk never reached, and that no stored move
+ * enters, starts another game. A position left over after that — stored, but
+ * only reachable by a move the walk could not play — is a game of its own
+ * rather than a line the file drops. Nothing is emitted for a position the
+ * repertoire does not store.
+ */
+function repertoireGames(
+  repertoire: RepertoireRecord,
+  positions: readonly RepertoirePositionRecord[],
+  options: RepertoireExportOptions,
+): readonly GameTree[] {
+  const byKey = new Map(positions.map((position) => [position.positionKey, position]));
+  const headers = repertoireHeaders(repertoire);
+  const start =
+    options.startFen ??
+    // The shallowest recorded position is the natural root when a repertoire
+    // was built from a non-standard setup.
+    [...positions].sort((a, b) => a.depth - b.depth)[0]?.fen ??
+    START_FEN;
+  const reached = new Set<string>();
 
-    const notes = positionComment(position);
-    if (notes) tree = setComment(tree, nodeId, notes);
+  const build = (rootFen: Fen): GameTree => {
+    let tree = createTree(rootFen, headers);
+    const walk = (nodeId: NodeId, fen: Fen, depth: number, visited: ReadonlySet<string>): void => {
+      if (depth >= MAX_PLIES) return;
+      const key = positionKey(fen);
+      // A transposition back into a line already on this path would loop forever.
+      if (visited.has(key)) return;
+      const position = byKey.get(key);
+      if (!position) return;
+      reached.add(key);
 
-    const playable = position.moves.filter((move) => move.role !== 'avoid');
-    if (playable.length === 0) return;
+      const notes = positionComment(position);
+      if (notes) tree = setComment(tree, nodeId, notes);
 
-    const nextVisited = new Set([...visited, key]);
-    for (const move of playable) {
-      const played = playUciAt(tree, nodeId, move.uci);
-      // A stored move that is no longer legal here means the FEN and the move
-      // disagree; skipping it is better than aborting the whole export.
-      if (!played.ok) continue;
-      tree = played.value.tree;
-      const child = played.value.tree.nodes[played.value.nodeId];
-      const comment = moveComment(move);
-      if (comment) tree = setComment(tree, played.value.nodeId, comment);
-      if (child) walk(played.value.nodeId, child.fen, depth + 1, nextVisited);
-    }
+      const playable = position.moves.filter((move) => move.role !== 'avoid');
+      if (playable.length === 0) return;
+
+      const nextVisited = new Set([...visited, key]);
+      for (const move of playable) {
+        const played = playUciAt(tree, nodeId, move.uci);
+        // A stored move that is no longer legal here means the FEN and the move
+        // disagree; skipping it is better than aborting the whole export.
+        if (!played.ok) continue;
+        tree = played.value.tree;
+        const child = played.value.tree.nodes[played.value.nodeId];
+        const comment = moveComment(move);
+        if (comment) tree = setComment(tree, played.value.nodeId, comment);
+        if (child) walk(played.value.nodeId, child.fen, depth + 1, nextVisited);
+      }
+    };
+    walk(tree.rootId, rootFen, 0, new Set());
+    return tree;
   };
 
-  walk(tree.rootId, start, 0, new Set());
-  return tree;
+  const primary = build(start);
+  const trees: GameTree[] = [];
+  // An empty repertoire is one game with headers and no moves. A start that
+  // the repertoire does not store is not a game of its own when other
+  // positions are.
+  if (positions.length === 0 || reached.size > 0) trees.push(primary);
+
+  const entered = new Set<string>();
+  for (const position of positions) {
+    for (const move of position.moves) {
+      if (move.role === 'avoid') continue;
+      const probe = createTree(position.fen);
+      const played = playUciAt(probe, probe.rootId, move.uci);
+      if (!played.ok) continue;
+      const child = played.value.tree.nodes[played.value.nodeId];
+      if (!child) continue;
+      const key = positionKey(child.fen);
+      if (byKey.has(key)) entered.add(key);
+    }
+  }
+
+  const byRoot = (a: RepertoirePositionRecord, b: RepertoirePositionRecord) =>
+    a.depth - b.depth || a.positionKey.localeCompare(b.positionKey);
+  const unvisited = () => positions.filter((position) => !reached.has(position.positionKey));
+
+  for (const position of unvisited()
+    .filter((position) => !entered.has(position.positionKey))
+    .sort(byRoot)) {
+    if (reached.has(position.positionKey)) continue;
+    trees.push(build(position.fen));
+  }
+  for (const position of unvisited().sort(byRoot)) {
+    if (reached.has(position.positionKey)) continue;
+    trees.push(build(position.fen));
+  }
+
+  return trees.length > 0 ? trees : [primary];
+}
+
+export function repertoireToTree(
+  repertoire: RepertoireRecord,
+  positions: readonly RepertoirePositionRecord[],
+  options: RepertoireExportOptions = {},
+): GameTree {
+  return repertoireGames(repertoire, positions, options)[0]!;
 }
 
 export function exportRepertoirePgn(
@@ -108,7 +174,11 @@ export function exportRepertoirePgn(
   positions: readonly RepertoirePositionRecord[],
   options: RepertoireExportOptions = {},
 ): string {
-  return serializePgn(repertoireToTree(repertoire, positions, options));
+  return (
+    repertoireGames(repertoire, positions, options)
+      .map((tree) => serializePgn(tree).replace(/\n+$/, ''))
+      .join('\n\n') + '\n'
+  );
 }
 
 function moveComment(move: RepertoireMove): string {

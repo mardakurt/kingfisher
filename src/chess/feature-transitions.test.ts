@@ -36,8 +36,8 @@ describe('featureTransitions', () => {
     /* White starts with two bishops on f1, c1; Black has one
        bishop on f8. After Black plays Bxf1, White loses the
        pair. Then White plays Rxbishop to recover it. */
-    const withPair = '4k3/8/8/8/8/8/8/R1B1K1B1 w - - 0 1';
-    const noPair = '4k3/8/8/8/8/8/8/R1B1K1b1 w - - 0 1';
+    const withPair = '4k3/8/8/8/8/8/8/R1B1KB2 w - - 0 1';
+    const noPair = '4k3/8/8/8/8/8/8/R1B1Kb2 w - - 0 1';
     const gained = featureTransitions(noPair, withPair);
     expect(
       gained.some((t) => t.kind === 'bishop-pair' && /now has the bishop pair/.test(t.statement)),

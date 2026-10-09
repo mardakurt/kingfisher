@@ -18,7 +18,7 @@ import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { EngineHost } from './engines.mjs';
+import { EngineHost, SUBSCRIBER_GRACE_MS } from './engines.mjs';
 import {
   clampCommand,
   engineEnvironment,
@@ -211,8 +211,8 @@ describe('a running engine', () => {
   beforeEach(() => {
     directory = mkdtempSync(path.join(tmpdir(), 'kingfisher-sandbox-'));
   });
-  afterEach(() => {
-    host?.stopAll();
+  afterEach(async () => {
+    await host?.stopAll();
     rmSync(directory, { recursive: true, force: true });
   });
 
@@ -336,6 +336,100 @@ describe('a running engine', () => {
     const session = host.start('fake');
     const lines = await collect(session, (line) => line.startsWith('#error'));
     expect(lines.some((line) => line.includes('longer than 64 kB'))).toBe(true);
+  });
+
+  it('resumes a subscriber from a cursor instead of replaying earlier output', async () => {
+    host = new EngineHost(
+      install(
+        [
+          "console.log('info depth 4 score cp 10 pv e2e4');",
+          "console.log('bestmove e2e4');",
+          'process.stdin.resume();',
+        ].join('\n'),
+      ),
+    );
+    const session = host.start('fake');
+    let cursor = 0;
+    let unsubscribe = () => {};
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('no bestmove')), 5000);
+      unsubscribe = host.subscribe(session.id, (line, eventId) => {
+        if (typeof eventId === 'number') cursor = eventId;
+        if (String(line).startsWith('bestmove')) {
+          clearTimeout(timer);
+          unsubscribe();
+          resolve();
+        }
+      });
+    });
+    expect(cursor).toBeGreaterThan(0);
+    const replayed = [];
+    host.subscribe(
+      session.id,
+      (line) => {
+        if (line !== null) replayed.push(line);
+      },
+      cursor,
+    );
+    expect(replayed).not.toContain('bestmove e2e4');
+    expect(replayed.some((line) => String(line).includes('pv e2e4'))).toBe(false);
+  });
+
+  it('stops the engine after its last subscriber leaves, and keeps it if one returns', async () => {
+    host = new EngineHost(
+      install("console.log('pid ' + process.pid);\nsetInterval(() => {}, 1000);\n"),
+    );
+    const session = host.start('fake');
+    let pid = 0;
+    let unsubscribe = () => {};
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('no pid')), 5000);
+      unsubscribe = host.subscribe(session.id, (line) => {
+        if (!String(line).startsWith('pid ')) return;
+        pid = Number(String(line).split(' ')[1]);
+        clearTimeout(timer);
+        resolve();
+      });
+    });
+    expect(pid).toBeGreaterThan(0);
+    expect(() => process.kill(pid, 0)).not.toThrow();
+
+    unsubscribe();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    // Immediate stop deletes the session before the process has died. Grace
+    // leaves it registered, which is what a reconnect within the window finds.
+    expect(host.list().some((entry) => entry.id === session.id)).toBe(true);
+    expect(() => process.kill(pid, 0)).not.toThrow();
+
+    const again = host.subscribe(session.id, () => {});
+    await new Promise((resolve) => setTimeout(resolve, SUBSCRIBER_GRACE_MS + 400));
+    expect(() => process.kill(pid, 0)).not.toThrow();
+    expect(host.list().some((entry) => entry.id === session.id)).toBe(true);
+
+    again();
+    await waitUntilGone(pid, SUBSCRIBER_GRACE_MS + 1500);
+    expect(() => process.kill(pid, 0)).toThrow();
+    expect(host.list().some((entry) => entry.id === session.id)).toBe(false);
+  });
+
+  it('does not resolve stop until an engine that ignores quit has exited', async () => {
+    host = new EngineHost(
+      install("console.log('pid ' + process.pid);\nsetInterval(() => {}, 1000);\n"),
+    );
+    const session = host.start('fake');
+    const lines = await collect(session, (line) => String(line).startsWith('pid '));
+    const pid = Number(lines.find((line) => String(line).startsWith('pid ')).split(' ')[1]);
+    expect(() => process.kill(pid, 0)).not.toThrow();
+    let settled = false;
+    const done = host.stop(session.id).then(() => {
+      settled = true;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(settled).toBe(false);
+    expect(() => process.kill(pid, 0)).not.toThrow();
+    await done;
+    expect(settled).toBe(true);
+    expect(() => process.kill(pid, 0)).toThrow();
   });
 
   it('publishes the ceiling it is enforcing', () => {

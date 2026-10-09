@@ -305,7 +305,9 @@ test.describe('installing a reference pack through the real UI', () => {
         count the panel attributes to *this* source being the
         one this fixture carries and Starter does not.
       */
-      await expect(dock).toContainText(`${expectedGames} games here`);
+      await expect(dock).toContainText(
+        fixture.counts.games === 1 ? '1 game here' : `${expectedGames} games here`,
+      );
 
       // Verification is clean on a pack that just installed.
       await openReferenceSources(page);

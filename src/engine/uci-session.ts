@@ -35,6 +35,22 @@ import type { UciTransport } from './transport';
 /** How often listeners hear about progress while a search is running. */
 const UPDATE_INTERVAL_MS = 90;
 
+/**
+ * A principal variation is published only when every move is legal from the
+ * root. The first illegal move drops the line, score included: truncating the
+ * moves and keeping the score would present that score as the evaluation of a
+ * different line.
+ */
+function variationIsLegal(root: Position, moves: readonly string[]): boolean {
+  let position = root;
+  for (const move of moves) {
+    const played = position.playUci(move);
+    if (!played.ok) return false;
+    position = position.after(played.value);
+  }
+  return true;
+}
+
 interface Search {
   readonly id: number;
   readonly request: AnalysisRequest;
@@ -47,6 +63,8 @@ interface Search {
   lines: Map<number, PrincipalVariation>;
   snapshot: EngineAnalysis;
   cancelled: boolean;
+  /** Set once the search has been published as finished, so a second bestmove cannot. */
+  settled: boolean;
   lastEmit: number;
   timer: ReturnType<typeof setTimeout> | null;
 }
@@ -57,6 +75,12 @@ export class UciSession implements EngineSession {
   private queue: Promise<void> = Promise.resolve();
   private applied: Partial<EngineConfiguration> = {};
   private disposed = false;
+  /**
+   * After `stop`'s `bestmove`, until `readyok`. Lines in this window belong to
+   * the search that just ended. A reconnect can replay them; they are not
+   * evidence about the position the next search will ask about.
+   */
+  private settling = false;
 
   constructor(
     private readonly client: UciTransport,
@@ -159,6 +183,7 @@ export class UciSession implements EngineSession {
       lines: new Map(),
       snapshot: EMPTY_ANALYSIS(root.fen),
       cancelled: false,
+      settled: false,
       lastEmit: 0,
       timer: null,
     };
@@ -213,7 +238,15 @@ export class UciSession implements EngineSession {
     return this.queue;
   }
 
-  /** Stop whatever is running and wait for the engine to acknowledge. */
+  /**
+   * Stop whatever is running and wait until the engine is idle.
+   *
+   * `bestmove` acknowledges the stop. The next search is not marked active
+   * until `readyok`: lines that arrive in between — the tail of the old
+   * search, or a backlog a reconnect replayed — are ignored. An engine that
+   * never answers is failed and not reused; a late `bestmove` must not be
+   * read as the next position.
+   */
   private async stopActiveSearch(): Promise<void> {
     const search = this.active;
     if (!search) return;
@@ -225,6 +258,10 @@ export class UciSession implements EngineSession {
       );
       this.client.send('stop');
       await acknowledged;
+      this.settling = true;
+      if (this.active === search) this.finishSearch(search);
+      await this.waitReady();
+      this.settling = false;
     } catch (error) {
       // UCI output carries no request ID. Reusing a process after an unacknowledged
       // stop would allow its late output to masquerade as a new search.
@@ -246,6 +283,7 @@ export class UciSession implements EngineSession {
 
   private fail(error: unknown): void {
     if (this.disposed) return;
+    this.settling = false;
     const search = this.active;
     this.active = null;
     this.disposed = true;
@@ -259,8 +297,9 @@ export class UciSession implements EngineSession {
       this.fail(new EngineError('The engine process or connection failed.'));
       return;
     }
+    if (this.settling || this.disposed) return;
     const search = this.active;
-    if (!search || this.disposed) return;
+    if (!search) return;
 
     const message = parseUciLine(line);
     if (message.kind === 'info') {
@@ -277,8 +316,21 @@ export class UciSession implements EngineSession {
         an arrow is a chess claim.
       */
       const best = message.best && search.root.playUci(message.best).ok ? message.best : null;
+      /*
+        A bound is not a move to play. Consumers take the first move of the
+        first line when they have no `bestMove` yet, and some of them prefer
+        that line even when `bestMove` is set. A fail-high whose move disagrees
+        with the legal `bestmove` is dropped here so it cannot be that move.
+        The bound flag stays on a line that does agree, for whoever displays it.
+      */
+      if (best) {
+        for (const [rank, line] of [...search.lines]) {
+          if (line.bound && line.moves[0] !== best) search.lines.delete(rank);
+        }
+      }
       search.snapshot = {
         ...search.snapshot,
+        lines: [...search.lines.values()].sort((a, b) => a.rank - b.rank),
         ...(best ? { bestMove: best } : {}),
         ...(best && message.ponder ? { ponder: message.ponder } : {}),
         complete: true,
@@ -318,19 +370,40 @@ export class UciSession implements EngineSession {
 
     if (info.pv && info.pv.length > 0 && info.score) {
       const rank = info.multipv ?? 1;
-      if (!Number.isInteger(rank) || rank < 1 || rank > 500) return;
-      // A fresh depth-1 line for rank 1 means the engine restarted its table.
-      if (rank === 1 && info.depth !== undefined && info.depth < search.snapshot.depth) {
-        search.lines.clear();
+      if (
+        Number.isInteger(rank) &&
+        rank >= 1 &&
+        rank <= 500 &&
+        variationIsLegal(search.root, info.pv)
+      ) {
+        const existing = search.lines.get(rank);
+        /*
+          A fail-high (`lowerbound` / `upperbound`) is not an exact score.
+          Replacing the exact line at this rank with it is how stopping during
+          the fail-high left that number as the finished evaluation. A bound
+          may fill a rank that has no exact score yet, and it keeps its flag.
+        */
+        const boundReplacesExact = Boolean(info.bound) && existing !== undefined && !existing.bound;
+        if (!boundReplacesExact) {
+          // A fresh depth-1 line for rank 1 means the engine restarted its table.
+          if (
+            !info.bound &&
+            rank === 1 &&
+            info.depth !== undefined &&
+            info.depth < search.snapshot.depth
+          ) {
+            search.lines.clear();
+          }
+          search.lines.set(rank, {
+            rank,
+            score: toWhitePov(info.score, search.rootTurn),
+            depth: info.depth ?? base.depth,
+            ...(info.seldepth !== undefined ? { seldepth: info.seldepth } : {}),
+            moves: info.pv,
+            ...(info.bound ? { bound: info.bound } : {}),
+          });
+        }
       }
-      search.lines.set(rank, {
-        rank,
-        score: toWhitePov(info.score, search.rootTurn),
-        depth: info.depth ?? base.depth,
-        ...(info.seldepth !== undefined ? { seldepth: info.seldepth } : {}),
-        moves: info.pv,
-        ...(info.bound ? { bound: info.bound } : {}),
-      });
     }
 
     search.snapshot = {
@@ -353,6 +426,8 @@ export class UciSession implements EngineSession {
   }
 
   private finishSearch(search: Search): void {
+    if (search.settled) return;
+    search.settled = true;
     if (search.timer) {
       clearTimeout(search.timer);
       search.timer = null;

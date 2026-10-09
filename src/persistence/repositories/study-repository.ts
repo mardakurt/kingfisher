@@ -1,3 +1,4 @@
+import { announceChapterSaved } from '../cross-tab';
 import { stableId } from '../ids';
 import { normalizeTags } from '../tags';
 import { STORE_NAMES } from '../schema/migrations';
@@ -182,17 +183,47 @@ export class LocalStudyRepository implements StudyRepository {
     return this.saveChapter({ ...chapter, title: requiredTitle(title, 'Chapter') });
   }
 
+  /**
+   * Tags are not the chapter. A read taken before this write can be a
+   * snapshot of an older tree; putting that snapshot back would replace
+   * another tab's moves and land on the revision that tab just wrote, so
+   * the next save would not even look like a conflict.
+   *
+   * The revision is re-read inside the write, the same way `saveChapter`
+   * does. The fresh record keeps its tree; the tags and the revision are
+   * what this write is for. A revision that moved on is a conflict, and the
+   * other tabs hear the revision that actually landed.
+   */
   async tagChapter(id: ChapterId, tags: readonly string[]): Promise<ChapterRecord> {
-    const current = await this.getChapter(id);
-    if (!current) throw new Error('That chapter no longer exists.');
+    const seen = await this.getChapter(id);
+    if (!seen) throw new Error('That chapter no longer exists.');
     const normalized = normalizeTags(tags);
-    const next: ChapterRecord = {
-      ...current,
-      ...(normalized.length ? { tags: normalized } : { tags: undefined }),
-      updatedAt: Date.now(),
-      revision: current.revision + 1,
-    };
-    await this.database.put(STORE_NAMES.chapters, next);
+    const now = Date.now();
+    const next = await this.database.transaction(
+      [STORE_NAMES.studies, STORE_NAMES.chapters],
+      'readwrite',
+      async (transaction) => {
+        const raw = await transaction.get<unknown>(STORE_NAMES.chapters, id);
+        if (raw === undefined) {
+          throw new Error('That chapter no longer exists.');
+        }
+        const current = assertValid(raw, isChapterRecord, 'chapter');
+        if (current.revision !== seen.revision) {
+          throw new StaleChapterWriteError(current, seen.revision);
+        }
+        const updated: ChapterRecord = {
+          ...current,
+          ...(normalized.length ? { tags: normalized } : { tags: undefined }),
+          updatedAt: now,
+          revision: current.revision + 1,
+        };
+        const study = await transaction.get<StudyRecord>(STORE_NAMES.studies, current.studyId);
+        if (study) await transaction.put(STORE_NAMES.studies, { ...study, updatedAt: now });
+        await transaction.put(STORE_NAMES.chapters, updated);
+        return updated;
+      },
+    );
+    announceChapterSaved(next.id, next.revision);
     return next;
   }
 

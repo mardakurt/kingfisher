@@ -51,7 +51,7 @@ test('a puzzle is solved by playing its moves, the reply comes, and the rating r
   await open(page, id);
   await expect(page.locator('[data-puzzle-rating]')).toHaveText('1500?');
   await playMove(page, first!);
-  await expect(page.locator('[data-puzzle-message="solving"]')).toContainText('correct');
+  await expect(page.locator('[data-puzzle-feedback="correct"]')).toContainText('correct');
   // The reply has to arrive before the second move is legal.
   await expect(async () => {
     await playMove(page, third!);
@@ -75,14 +75,16 @@ test('a puzzle is solved by playing its moves, the reply comes, and the rating r
   await expect(page.locator('[data-puzzle-rating]')).toHaveText(`${rating}?`);
 });
 
-test('a wrong move ends the rated attempt, names the solution, and the rating falls', async ({
+test('a wrong move gives feedback without the answer, can be retried, and counts only once', async ({
   page,
 }) => {
   const board = page.locator('[data-puzzle-board]');
   // The first two-move puzzle whose solving piece has somewhere else to go.
   let wrong: string | null = null;
+  let solutionMoves: string[] = [];
   for (const [id, , moves] of puzzlesWith('r1600', 2).slice(0, 8)) {
-    const solution = moves.split(' ')[1]!;
+    solutionMoves = moves.split(' ').slice(1);
+    const solution = solutionMoves[0]!;
     await open(page, id);
     await board.getByRole('gridcell', { name: new RegExp(`^${solution.slice(0, 2)},`) }).click();
     // The solution's own destination is always among them, so wait for it.
@@ -97,7 +99,74 @@ test('a wrong move ends the rated attempt, names the solution, and the rating fa
   }
   expect(wrong, 'one of eight puzzles offers a second destination').not.toBeNull();
   await board.getByRole('gridcell', { name: new RegExp(`^${wrong},`) }).click();
-  await expect(page.locator('[data-puzzle-message="failed"]')).toContainText('is not the solution');
+  await expect(page.locator('[data-puzzle-feedback="wrong"]')).toContainText(
+    'Incorrect move. Try again',
+  );
+  await expect(page.locator('[data-puzzle-message]')).not.toContainText('Solution:');
   await expect(page.locator('[data-puzzle-record]')).toContainText('1 attempt · 0 solved');
   await expect(page.locator('[data-puzzle-delta]')).toContainText('-');
+  const rating = await page.locator('[data-puzzle-rating]').textContent();
+  await expect(page.locator('[data-puzzle-message="solving"]')).toBeVisible();
+  await playMove(page, solutionMoves[0]!);
+  await expect(page.locator('[data-puzzle-feedback="correct"]')).toContainText('correct');
+  await expect(page.locator('[data-puzzle-message="solving"]')).toBeVisible();
+  await playMove(page, solutionMoves[2]!);
+  await expect(page.locator('[data-puzzle-message="solved"]')).toContainText(
+    'completed in practice',
+  );
+  await expect(page.locator('[data-puzzle-record]')).toContainText('1 attempt · 0 solved');
+  await expect(page.locator('[data-puzzle-rating]')).toHaveText(rating!);
+  await page.reload();
+  await expect(page.locator('[data-puzzle-record]')).toContainText('1 attempt · 0 solved');
+});
+
+test('revealing a solution allows another interactive practice attempt without another rating', async ({
+  page,
+}) => {
+  const [id, , moves] = puzzleWith('r1200', 2);
+  const [, first, , third] = moves.split(' ');
+  await open(page, id);
+  await page.locator('[data-puzzle-solution]').click();
+  await expect(page.locator('[data-puzzle-message="revealed"]')).toContainText('Solution:');
+  await page.locator('[data-puzzle-retry]').click();
+  await playMove(page, first!);
+  await expect(page.locator('[data-puzzle-message="solving"]')).toBeVisible();
+  await playMove(page, third!);
+  await expect(page.locator('[data-puzzle-message="solved"]')).toContainText(
+    'completed in practice',
+  );
+  await expect(page.locator('[data-puzzle-record]')).toContainText('1 attempt · 0 solved');
+});
+
+test('a mistake after the reply preserves earlier progress and allows another try', async ({
+  page,
+}) => {
+  // Published puzzle 7TBMH: ...b4 Qf4+ Kg8 Qxc7. Qh6 is legal but misses the fork.
+  await open(page, '7TBMH');
+  await playMove(page, 'c1f4');
+  await expect(page.locator('[data-puzzle-message="solving"]')).toBeVisible();
+  await playMove(page, 'f4h6');
+  await expect(page.locator('[data-puzzle-feedback="wrong"]')).toContainText('Incorrect move');
+  await expect(page.locator('[data-puzzle-message="solving"]')).toBeVisible();
+  await expect(page.getByRole('gridcell', { name: 'f4, White queen', exact: true })).toBeVisible();
+  await playMove(page, 'f4c7');
+  await expect(page.locator('[data-puzzle-message="solved"]')).toContainText(
+    'completed in practice',
+  );
+  await expect(page.locator('[data-puzzle-record]')).toContainText('1 attempt · 0 solved');
+});
+
+test('a hint leaves the puzzle playable while keeping the rated attempt unsolved', async ({
+  page,
+}) => {
+  await open(page, '7TBMH');
+  await page.locator('[data-puzzle-hint]').click();
+  await expect(page.locator('[data-puzzle-message]')).toContainText('You can still finish it');
+  await playMove(page, 'c1f4');
+  await expect(page.locator('[data-puzzle-message="solving"]')).toBeVisible();
+  await playMove(page, 'f4c7');
+  await expect(page.locator('[data-puzzle-message="solved"]')).toContainText(
+    'completed in practice',
+  );
+  await expect(page.locator('[data-puzzle-record]')).toContainText('1 attempt · 0 solved');
 });

@@ -90,6 +90,42 @@ describe('gathering evidence for one move', () => {
     expect(evidence[0]?.database.games).toBe(600);
   });
 
+  it('does not label a filtered row identical to the all-time row as a date filter', () => {
+    const played = {
+      ...move('e4', 'e2e4', 600, 300, 200, 100),
+      recent: { sinceYear: 2024, games: 40, white: 20, draws: 10, black: 10 },
+    };
+    const all = result([played], 1000);
+    const copy = result([move('e4', 'e2e4', 600, 300, 200, 100)], 1000);
+    const kept = buildMoveEvidence({ result: all, sideToMove: 'w', recent: copy })[0]!;
+    expect(kept.recentFrom).toBe('source');
+    expect(kept.recentSince).toBe(2024);
+    expect(kept.recentGames).toBe(40);
+
+    const plain = result([move('e4', 'e2e4', 600)], 1000);
+    const unlabeled = buildMoveEvidence({ result: plain, sideToMove: 'w', recent: plain })[0]!;
+    expect(unlabeled.recentFrom).toBeUndefined();
+    expect(unlabeled.recentGames).toBeUndefined();
+  });
+
+  it('keeps the source recent counters when the source cannot filter by date', () => {
+    const played = {
+      ...move('e4', 'e2e4', 600),
+      recent: { sinceYear: 2023, games: 25, white: 10, draws: 10, black: 5 },
+    };
+    const all = result([played], 1000);
+    const window = result([move('e4', 'e2e4', 10)], 50);
+    const evidence = buildMoveEvidence({
+      result: all,
+      sideToMove: 'w',
+      recent: window,
+      dateFilter: false,
+    })[0]!;
+    expect(evidence.recentFrom).toBe('source');
+    expect(evidence.recentGames).toBe(25);
+    expect(evidence.recentSince).toBe(2023);
+  });
+
   it('lists only moves the database has, not engine-only candidates', () => {
     const analysis = {
       lines: [{ rank: 1, score: cp(30), depth: 20, moves: [asUci('h2h4')] }],

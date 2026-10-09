@@ -173,10 +173,14 @@ const answersFor = (
       return mine ? ownMoves(position.moves) : [];
     case 'opponent-reply':
       return mine ? [] : playable;
-    case 'critical':
-      // More than one recorded answer: the positions where the player has to
-      // remember which of their own options they settled on.
-      return playable.length > 1 ? playable : [];
+    case 'critical': {
+      // More than one of the player's own moves: the positions where they
+      // have to remember which answer they settled on. Replies on the other
+      // side of the board are the opponent's choice, however many there are.
+      if (!mine) return [];
+      const own = ownMoves(position.moves);
+      return own.length > 1 ? own : [];
+    }
     case 'full-branch':
       return playable;
   }

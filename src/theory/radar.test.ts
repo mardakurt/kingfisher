@@ -121,6 +121,18 @@ describe('the theory radar', () => {
     expect(radar.rows).toEqual([]);
   });
 
+  it('does not treat three identical aggregates as a twelve-month window', () => {
+    // A pack ignores sinceYear, so the three queries are one aggregate. Equal
+    // counts are not evidence that every game is from the last twelve months.
+    const aggregate = result(1000, [move('Nf3', 800), move('h4', 200)]);
+    const radar = buildRadar(aggregate, aggregate, aggregate, { currentYear: 2026 });
+    const labels = radar.rows.flatMap((row) => row.labels);
+    expect(labels.map((label) => label.kind)).not.toContain('new-in-database');
+    expect(labels.map((label) => label.kind)).not.toContain('first-seen-since');
+    expect(labels.map((label) => label.kind)).not.toContain('rare-before');
+    expect(labels.map((label) => label.text).join(' ')).not.toContain('last twelve months');
+  });
+
   it('does not invent a year for a source that reports none', () => {
     const radar = buildRadar(
       result(200, [move('Nf3', 100, { lastPlayedYear: 2026 }), move('d4', 100)]),

@@ -211,8 +211,10 @@ export function buildCrosstable(input: readonly CrosstableGame[]): Crosstable {
     let ratedGames = 0;
     let opponentSum = 0;
     for (const entry of list) {
-      if (entry.color === 'w') whiteGames += 1;
+      // Colour is a property of a finished game. An unfinished game scores
+      // for nobody, and it must not move "games with Black" either.
       if (entry.score === null) continue;
+      if (entry.color === 'w') whiteGames += 1;
       if (entry.score === 1) wins += 1;
       else if (entry.score === 0.5) draws += 1;
       else losses += 1;

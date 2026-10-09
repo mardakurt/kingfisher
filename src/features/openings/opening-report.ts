@@ -72,6 +72,16 @@ export interface OpeningReportInput {
   readonly fen: string;
   /** Where the theory book places this position, and how far past it we are. */
   readonly placement?: TheoryBookMatch | null;
+  /**
+   * Whether the theory-book lookup has finished.
+   *
+   * Omitted means the caller already has an answer, so a null placement is an
+   * unnamed position. `pending` and `failed` are not that answer, and must
+   * not be rendered as one.
+   */
+  readonly theoryBook?: 'pending' | 'failed' | 'ready';
+  /** Installed sources left out of the population columns. */
+  readonly omittedSources?: number;
   /** The named path from the top of the book, deepest last. */
   readonly crumbs?: readonly TheoryBookNode[];
   /** Named variations directly below this position. */
@@ -140,6 +150,35 @@ export interface PopulationHistory {
 const count = (value: number): string => value.toLocaleString('en-GB');
 const percent = (value: number): string => `${(value * 100).toFixed(1)}%`;
 
+function unreadBook(input: OpeningReportInput): string | null {
+  if (input.theoryBook === 'pending') return 'The Theory Book is still loading.';
+  if (input.theoryBook === 'failed') return 'The Theory Book could not be read.';
+  return null;
+}
+
+/**
+ * How an installed source is used in this report.
+ *
+ * This report reads each pack as its own population. It does not read two
+ * date windows of one source, so it never claims one share is "up from"
+ * another. A pack id containing "recent" is still a different population.
+ * "Up from" is reserved for two date windows of one source that can filter
+ * by date; two packs are named and set against each other.
+ *
+ * A selected collection is `own` and nothing else. Falling through to
+ * `index === 0` would make the reader's own archive the reference population
+ * whenever no pack was installed, and `contrast` whenever one was.
+ */
+export function reportPopulationRole(
+  id: string,
+  index: number,
+  own = false,
+): BranchPopulation['role'] {
+  if (own) return 'own';
+  if (id.includes('online') || id.includes('lichess')) return 'contrast';
+  return index === 0 ? 'reference' : 'contrast';
+}
+
 /** "Elite OTB · 407,538 games" — a population is never quoted without its size. */
 const populationLabel = (population: BranchPopulation): string =>
   population.result
@@ -158,6 +197,16 @@ const PIECE = {
 } as const;
 
 function identitySection(input: OpeningReportInput): ReportSection {
+  const unread = unreadBook(input);
+  if (unread) {
+    return {
+      id: 'identity',
+      title: 'Opening',
+      provenance: null,
+      entries: [],
+      emptyReason: unread,
+    };
+  }
   const crumbs = input.crumbs ?? [];
   const node = input.placement?.node;
   if (!node) {
@@ -196,6 +245,16 @@ function identitySection(input: OpeningReportInput): ReportSection {
 }
 
 function briefSection(input: OpeningReportInput): ReportSection {
+  const unread = unreadBook(input);
+  if (unread) {
+    return {
+      id: 'brief',
+      title: 'Variation brief',
+      provenance: null,
+      entries: [],
+      emptyReason: unread,
+    };
+  }
   const resolved = input.brief;
   if (!resolved) {
     return {
@@ -296,10 +355,15 @@ function populationSection(input: OpeningReportInput): ReportSection {
       emptyReason: 'No source was consulted for this position.',
     };
   }
+  const omitted = input.omittedSources ?? 0;
+  const omission =
+    omitted > 0
+      ? ` ${omitted} other installed ${omitted === 1 ? 'source is' : 'sources are'} not shown.`
+      : '';
   return {
     id: 'populations',
     title: 'What was played, by population',
-    provenance: 'Each row is one source. Nothing here is combined across them.',
+    provenance: `Each row is one source. Nothing here is combined across them.${omission}`,
     entries: populations.map((population) => {
       if (!population.result) {
         return {
@@ -466,6 +530,16 @@ function repertoireSection(
 }
 
 function childrenSection(input: OpeningReportInput): ReportSection {
+  const unread = unreadBook(input);
+  if (unread) {
+    return {
+      id: 'named-branches',
+      title: 'Named variations below this one',
+      provenance: null,
+      entries: [],
+      emptyReason: unread,
+    };
+  }
   const children = input.children ?? [];
   if (children.length === 0) {
     return {

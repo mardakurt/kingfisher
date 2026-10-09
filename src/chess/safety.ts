@@ -13,6 +13,8 @@
  *   exchange. Pins and checks are **not** considered — a pinned piece is
  *   counted as an attacker — so the result is a material count over one
  *   square, never an evaluation of the position, and it is labelled that way.
+ *   An en passant capture is an exchange on the landing square. A pawn that
+ *   captures on the last rank promotes to a queen.
  * - **En prise**: a piece the opponent wins material by capturing (exchange
  *   value above zero). **Loose**: a piece nobody defends, attacked or not.
  * - **The threat** is not computed here at all. `nullMoveFen` gives the
@@ -24,7 +26,7 @@
  * it may take only when nothing defends the square, and is never taken.
  */
 
-import { SQUARES, squareIndex } from './board';
+import { SQUARES, fileOf, makeSquare, rankOf, squareIndex } from './board';
 import { formatFen, type FenParts } from './fen';
 import { attackedSquares } from './relations';
 import type { Color, Fen, Piece, PieceType, Square } from './types';
@@ -77,6 +79,47 @@ const leastValuable = (parts: FenParts, squares: readonly Square[]): Square | nu
   return best;
 };
 
+/** The pawn a double step left behind the en passant square, when that pawn is there. */
+function enPassantVictim(parts: FenParts): Square | null {
+  const ep = parts.epSquare;
+  if (!ep) return null;
+  const square = makeSquare(fileOf(ep), rankOf(ep) + (parts.turn === 'w' ? -1 : 1));
+  if (!square) return null;
+  const piece = parts.board[squareIndex(square)];
+  const moved: Color = parts.turn === 'w' ? 'b' : 'w';
+  if (!piece || piece.type !== 'p' || piece.color !== moved) return null;
+  return square;
+}
+
+/** Pawns of `by` that can capture `target` en passant. They land on the en passant square. */
+function enPassantCapturers(parts: FenParts, target: Square, by: Color): Square[] {
+  if (by !== parts.turn || parts.epSquare === null || enPassantVictim(parts) !== target) return [];
+  const capturers: Square[] = [];
+  for (const square of attackersOf(parts, parts.epSquare, by)) {
+    if (parts.board[squareIndex(square)]?.type === 'p') capturers.push(square);
+  }
+  return capturers;
+}
+
+const PROMOTION_RANK: Readonly<Record<Color, number>> = { w: 7, b: 0 };
+
+/**
+ * A pawn capture on the last rank promotes. Nothing in this exchange names a
+ * piece, so the pawn becomes a queen, which is what an unqualified SAN capture does.
+ */
+function placedPiece(
+  attacker: Piece,
+  landing: Square,
+): { readonly piece: Piece; readonly bonus: number } {
+  if (attacker.type === 'p' && rankOf(landing) === PROMOTION_RANK[attacker.color]) {
+    return {
+      piece: { color: attacker.color, type: 'q' },
+      bonus: PIECE_VALUES.q - PIECE_VALUES.p,
+    };
+  }
+  return { piece: attacker, bonus: 0 };
+}
+
 /**
  * Material `by` gains, in pawns, by starting an exchange on `target` with its
  * least valuable attacker (0 when it has none, or when starting would lose).
@@ -90,20 +133,29 @@ export function staticExchange(parts: FenParts, target: Square, by: Color): numb
   let board = parts;
   let side = by;
   let onSquare: Piece = victim;
+  let square = target;
   for (;;) {
-    const attackers = attackersOf(board, target, side);
-    const from = leastValuable(board, attackers);
+    const direct = attackersOf(board, square, side);
+    const ep = enPassantCapturers(board, square, side).filter((from) => !direct.includes(from));
+    const from = leastValuable(board, [...direct, ...ep]);
     if (!from) break;
     const attacker = board.board[squareIndex(from)]!;
+    const landing = ep.includes(from) && board.epSquare ? board.epSquare : square;
     // A king may take only when nothing would recapture.
     if (attacker.type === 'k') {
-      const after = withPiece(without(board, from), target, attacker);
-      if (attackersOf(after, target, opposite(side)).length > 0) break;
+      let after = withPiece(without(board, from), landing, attacker);
+      if (landing !== square) after = without(after, square);
+      if (attackersOf(after, landing, opposite(side)).length > 0) break;
     }
-    gains.push(PIECE_VALUES[onSquare.type]);
+    const placed = placedPiece(attacker, landing);
+    gains.push(PIECE_VALUES[onSquare.type] + placed.bonus);
     if (onSquare.type === 'k') break;
-    board = withPiece(without(board, from), target, attacker);
-    onSquare = attacker;
+    let next = without(board, from);
+    if (landing !== square) next = without(next, square);
+    next = withPiece(next, landing, placed.piece);
+    board = next.epSquare === null ? next : { ...next, epSquare: null };
+    onSquare = placed.piece;
+    square = landing;
     side = opposite(side);
   }
   // Fold back from the end: each side takes only if it does not lose by it.
@@ -128,6 +180,13 @@ export interface SafetyReport {
   readonly loose: readonly PieceSafety[];
 }
 
+/** Direct attackers, plus a pawn that can take this pawn en passant. */
+function capturersOf(parts: FenParts, target: Square, by: Color): Square[] {
+  const direct = attackersOf(parts, target, by);
+  const extra = enPassantCapturers(parts, target, by).filter((square) => !direct.includes(square));
+  return extra.length === 0 ? direct : [...direct, ...extra];
+}
+
 /** Every non-king piece of `color`, judged as if the opponent were to capture. */
 export function safetyOf(parts: FenParts, color: Color): SafetyReport {
   const enPrise: PieceSafety[] = [];
@@ -135,7 +194,7 @@ export function safetyOf(parts: FenParts, color: Color): SafetyReport {
   for (const square of SQUARES) {
     const piece = parts.board[squareIndex(square)];
     if (!piece || piece.color !== color || piece.type === 'k') continue;
-    const attackers = attackersOf(parts, square, opposite(color));
+    const attackers = capturersOf(parts, square, opposite(color));
     const defenders = attackersOf(parts, square, color);
     const exchange = attackers.length > 0 ? staticExchange(parts, square, opposite(color)) : 0;
     const entry = { square, piece, attackers, defenders, exchange };

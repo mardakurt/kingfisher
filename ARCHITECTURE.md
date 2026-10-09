@@ -1435,6 +1435,15 @@ See ADR 0030.
 
 ---
 
+## Conversion sessions with unavailable tablebase evidence
+
+A conversion session records a legal move even when its subsequent probe fails.
+That ply's outcome and the current tablebase result are null: the previous
+position's verdict is not evidence about the new one. Result-change annotations
+require two consecutive known results. Checkmate, stalemate and other terminal
+outcomes still come from the rules. A tablebase-perfect opponent without a
+verified reply plays no defence and reports the missing answer.
+
 ## Where a tablebase answer comes from
 
 `tablebase/` splits capability from probing, and the split is the design.

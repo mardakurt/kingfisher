@@ -46,6 +46,25 @@ describe('static exchange', () => {
     const free = parts('8/8/8/8/8/8/3p4/4K2k w - - 0 1');
     expect(staticExchange(free, 'd2' as Square, 'w')).toBe(1);
   });
+
+  it('counts an en passant capture, and continues the exchange on the landing square', () => {
+    const hanging = parts('4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1');
+    expect(staticExchange(hanging, 'd5' as Square, 'w')).toBe(1);
+    expect(safetyOf(hanging, 'b').enPrise.map((entry) => entry.square)).toEqual(['d5']);
+    // The queen on e7 recaptures on d6 and does not attack d5.
+    const recaptured = parts('4k3/4q3/8/3pP3/8/8/8/4K3 w - d6 0 1');
+    expect(staticExchange(recaptured, 'd5' as Square, 'w')).toBe(0);
+    expect(safetyOf(recaptured, 'b').enPrise).toEqual([]);
+  });
+
+  it('values a pawn capture on the eighth rank as a promotion to a queen', () => {
+    const hanging = parts('r3k3/1P6/8/8/8/8/8/4K3 w - - 0 1');
+    expect(staticExchange(hanging, 'a8' as Square, 'w')).toBe(13);
+    // The new queen is recaptured: the promotion bonus and the queen cancel,
+    // leaving a rook for a pawn.
+    const recaptured = parts('r2qk3/1P6/8/8/8/8/8/4K3 w - - 0 1');
+    expect(staticExchange(recaptured, 'a8' as Square, 'w')).toBe(4);
+  });
 });
 
 describe('safety report', () => {

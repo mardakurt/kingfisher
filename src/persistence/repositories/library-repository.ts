@@ -120,15 +120,20 @@ export class LocalProfileRepository implements ProfileRepository {
     return assertValid(raw, isUserProfileRecord, 'profile');
   }
 
-  /** Blank entries are dropped: an empty alias would match every game. */
+  /**
+   * Blank entries are dropped: an empty alias would match every game.
+   *
+   * `put` replaces the whole record. The next profile is the current one
+   * with only the aliases changed — listing the fields to copy is how a
+   * favourite, or the next field someone adds, gets deleted by a rename.
+   */
   async setAliases(aliases: readonly string[]): Promise<UserProfileRecord> {
     const current = await this.get();
     const cleaned = [...new Set(aliases.map((alias) => alias.trim()).filter(Boolean))];
     const profile: UserProfileRecord = {
+      ...current,
       id: 'me',
       aliases: cleaned,
-      displayName: current.displayName,
-      customThemes: current.customThemes ?? [],
       updatedAt: Date.now(),
     };
     await this.database.put(STORE_NAMES.profile, profile);

@@ -209,6 +209,23 @@ describe('what each drill mode asks about', () => {
     expect(keys('critical')).toEqual(['branching']);
   });
 
+  it('does not ask the opponent’s replies as a critical position of yours', () => {
+    // White has one move. Black has two expected replies. Critical is where
+    // you have more than one of your own answers, so the Black position is
+    // not one, and a position where White really has two answers is.
+    const positions = [
+      position('after-e4', 'w', [move('e2e4', 'e4')]),
+      position('black-replies', 'b', [move('e7e5', 'e5', true), move('c7c5', 'c5', true)]),
+      position('two-answers', 'w', [move('e2e4', 'e4'), move('d2d4', 'd4')]),
+    ];
+    const own = buildReviewSession({ colour: 'w', positions }, { mode: 'my-move', now: NOW });
+    expect(own.map((prompt) => prompt.positionKey).sort()).toEqual(['after-e4', 'two-answers']);
+
+    const critical = buildReviewSession({ colour: 'w', positions }, { mode: 'critical', now: NOW });
+    expect(critical.map((prompt) => prompt.positionKey)).toEqual(['two-answers']);
+    expect([...(critical[0]?.solutionUci ?? [])].sort()).toEqual(['d2d4', 'e2e4']);
+  });
+
   it('leaves an expected opponent move out of your own side of the repertoire', () => {
     const prompts = buildReviewSession(
       {

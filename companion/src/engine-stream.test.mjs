@@ -92,9 +92,34 @@ it('replays a session’s output to a stream opened late, and keeps it open', as
   };
   await read((seen) => seen.includes('uciok'));
   expect(text).toContain('"id name Scripted 1"');
+  const ids = [...text.matchAll(/^id: (\d+)/gm)].map((match) => Number(match[1]));
+  expect(ids.length).toBeGreaterThan(0);
+  const cursor = String(Math.max(...ids));
+  // A reconnect carries the last id it applied. The backlog behind that id
+  // — including uciok — must not be delivered again.
+  const resumed = await fetch(
+    `http://127.0.0.1:${PORT}/engine/stream?session=${session}&token=${TOKEN}`,
+    { headers: { 'last-event-id': cursor } },
+  );
+  expect(resumed.status).toBe(200);
+  const resumedReader = resumed.body.getReader();
+  const resumedDecoder = new TextDecoder();
+  let resumedText = '';
+  const readResumed = async (until) => {
+    const deadline = Date.now() + 5_000;
+    while (!until(resumedText)) {
+      if (Date.now() > deadline) throw new Error(`resumed stream said only: ${resumedText}`);
+      const { done, value } = await resumedReader.read();
+      if (done) throw new Error(`resumed stream closed early after: ${resumedText}`);
+      resumedText += resumedDecoder.decode(value, { stream: true });
+    }
+  };
   // Still open: the next command's answer arrives on the same stream.
   await api('/engine/send', { session, line: 'isready' });
   await read((seen) => seen.includes('readyok'));
+  await readResumed((seen) => seen.includes('readyok'));
+  expect(resumedText).not.toContain('uciok');
+  await resumedReader.cancel();
   await reader.cancel();
   await api('/engine/stop', { session });
 }, 60_000);

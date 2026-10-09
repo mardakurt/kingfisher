@@ -3,6 +3,7 @@ import { Chess } from 'chess.js';
 
 import type { AppRepositories } from '../src/persistence/types';
 import { isNavigationAbortNoise } from './tools';
+import { authoredMove, type BoardSnapshot } from './support/authored-move';
 
 /**
  * Two real tabs on one profile, editing one study for a sustained, seeded
@@ -135,17 +136,39 @@ async function playRandom(page: Page, random: () => number) {
   const legal = new Chess(before).moves({ verbose: true }).filter((move) => !move.promotion);
   if (legal.length === 0) return null;
   const move = legal[Math.floor(random() * legal.length)]!;
-  await page.getByRole('gridcell', { name: new RegExp(`^${move.from},`) }).click();
-  await page.getByRole('gridcell', { name: new RegExp(`^${move.to},`) }).click();
-  const after = await fenOf(page);
-  if (after === before) return null;
-  /*
-    Where the move landed, read after it: a pending chapter switch can open
-    another chapter between choosing the move and clicking it, and the move is
-    then played on that board. The resulting position and the document shown
-    with it are what was authored.
-  */
-  return { chapter: await documentTitle(page), after, san: move.san };
+  // Observe commits while the clicks run. Merely seeing a different FEN
+  // afterwards also counts chapter navigation as an authored move. Observing
+  // each transition retains a real move even if a later switch overwrites it.
+  await page.evaluate(() => {
+    const snapshots: { fen: string; chapter: string }[] = [];
+    const read = () => {
+      const fen = document.querySelector('[data-fen-tooltip]')?.textContent?.trim() ?? '';
+      if (!fen || snapshots.at(-1)?.fen === fen) return;
+      const status = [...document.querySelectorAll('footer span')].find((span) =>
+        /^· (saved|saving…|unsaved|not saved)$/.test(span.textContent?.trim() ?? ''),
+      );
+      snapshots.push({ fen, chapter: status?.previousElementSibling?.textContent?.trim() ?? '' });
+    };
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(document.body, { subtree: true, childList: true, characterData: true });
+    (window as unknown as { __kfStopBoardProbe: () => typeof snapshots }).__kfStopBoardProbe =
+      () => {
+        read();
+        observer.disconnect();
+        return snapshots;
+      };
+  });
+  let snapshots: BoardSnapshot[] = [];
+  try {
+    await page.getByRole('gridcell', { name: new RegExp(`^${move.from},`) }).click();
+    await page.getByRole('gridcell', { name: new RegExp(`^${move.to},`) }).click();
+  } finally {
+    snapshots = await page.evaluate(() =>
+      (window as unknown as { __kfStopBoardProbe: () => BoardSnapshot[] }).__kfStopBoardProbe(),
+    );
+  }
+  return authoredMove(snapshots, move.from, move.to);
 }
 
 test('two tabs editing one study under slow storage lose nothing and never mislabel the board', async ({

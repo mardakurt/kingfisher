@@ -221,11 +221,21 @@ async function play(page: Page, from: string, to: string) {
  * teardown accumulates, and it is also what a player actually does.
  */
 async function navigate(page: Page, label: string) {
-  await page
+  const link = page
     .getByRole('navigation', { name: 'Sections' })
-    .getByRole('link', { name: label, exact: true })
-    .click();
+    .getByRole('link', { name: label, exact: true });
+  const href = await link.getAttribute('href');
+  if (!href) throw new Error(`No route for ${label}`);
+  const target = new URL(href, page.url());
+  await link.click();
+  // The global hydration marker remains true on the page we are leaving.
+  // Wait for the requested route, so its old dock is not used during navigation.
+  await page.waitForURL((url) => url.pathname === target.pathname, { timeout: 60_000 });
   await ready(page);
+  const workspace = target.pathname.slice(1);
+  if (['analysis', 'review', 'training', 'repertoire'].includes(workspace)) {
+    await page.locator(`[data-workspace-frame="${workspace}"]`).waitFor();
+  }
 }
 
 /** One pass through the things a player does all afternoon. */
@@ -566,96 +576,77 @@ test('an afternoon of tool, engine and route switching leaks no observable resou
  * the trimming is confined to Explorer history, because evicting the
  * persistence caches to save memory would empty every panel on the page.
  */
-test('an all-day research session cannot grow the explorer cache without bound', async ({
-  page,
-}) => {
-  /*
-    Phase 40 replaces the previous "skip when acceptance binary is
-    set" gate. The acceptance binary disables the development-only
-    query-client hook this test relies on, and a separate set of
-    navigation-driven soaks already covers production. The two
-    modes exercise different things — synthetic injection proves
-    the ceiling is honoured, navigation soaks prove the ceiling
-    is reachable in practice — and both deserve coverage.
-
-    The active test below runs when the development hook is
-    available; when it is not (acceptance binary, CI without the
-    hook), the test asserts *that the hook is absent* as a
-    positive failure mode that proves the suite is actually
-    exercising the cache ceiling, not silently no-op'ing.
-  */
-  test.setTimeout(180_000);
-  await page.goto(analysisUrl(page));
-  await ready(page);
-  const hookAfterReady = await page.evaluate(() => {
-    return Boolean((globalThis as { __kingfisherQueryClient?: unknown }).__kingfisherQueryClient);
-  });
-  if (!hookAfterReady) {
-    /*
-      In acceptance / production the development hook is absent
-      by design. The cache ceiling must still hold — assert that
-      the cache is bounded without forcing an injection.
-    */
-    const cacheSize = await page.evaluate(() => {
-      const win = globalThis as {
-        __kingfisherQueryClient?: { getQueryCache(): { getAll(): unknown[] } };
-      };
-      return win.__kingfisherQueryClient?.getQueryCache().getAll().length ?? null;
+const packagedCacheCheck = Boolean(process.env.KINGFISHER_ACCEPTANCE_BINARY);
+test(
+  packagedCacheCheck
+    ? 'the packaged application exposes no development cache-injection hook'
+    : 'an all-day research session cannot grow the explorer cache without bound',
+  async ({ page }) => {
+    test.setTimeout(180_000);
+    await page.goto(analysisUrl(page));
+    await ready(page);
+    const hookAfterReady = await page.evaluate(() => {
+      return Boolean((globalThis as { __kingfisherQueryClient?: unknown }).__kingfisherQueryClient);
     });
-    if (cacheSize === null) {
-      // Hook absent — there is no ceiling the test can assert.
-      // The production navigation soaks cover this case.
-      expect(true).toBe(true);
+    if (packagedCacheCheck) {
+      // Production resource bounds are measured by the navigation soaks. This
+      // separate assertion protects the absence of the development injection API.
+      expect(hookAfterReady, 'production must not expose the cache injection hook').toBe(false);
       return;
     }
-    expect(cacheSize).toBeLessThan(10_000);
-    return;
-  }
+    expect(hookAfterReady, 'the browser cache-ceiling test requires its development hook').toBe(
+      true,
+    );
 
-  // Genuine entries first, from genuine navigation.
-  await play(page, 'e2', 'e4');
-  await play(page, 'e7', 'e5');
-  await selectTool(page, page.getByRole('complementary', { name: 'Workspace tools' }), 'Explorer');
-  await page.getByRole('button', { name: 'e4', exact: true }).first().click();
+    // Genuine entries first, from genuine navigation.
+    await play(page, 'e2', 'e4');
+    await play(page, 'e7', 'e5');
+    await selectTool(
+      page,
+      page.getByRole('complementary', { name: 'Workspace tools' }),
+      'Explorer',
+    );
+    await page.getByRole('button', { name: 'e4', exact: true }).first().click();
 
-  const counts = await page.evaluate(async () => {
-    const client = (
-      globalThis as typeof globalThis & {
-        __kingfisherQueryClient?: {
-          setQueryData(key: unknown[], value: unknown): void;
-          getQueryData(key: unknown[]): unknown;
-          getQueryCache(): { getAll(): { queryKey: unknown[] }[] };
-        };
+    const counts = await page.evaluate(async () => {
+      const client = (
+        globalThis as typeof globalThis & {
+          __kingfisherQueryClient?: {
+            setQueryData(key: unknown[], value: unknown): void;
+            getQueryData(key: unknown[]): unknown;
+            getQueryCache(): { getAll(): { queryKey: unknown[] }[] };
+          };
+        }
+      ).__kingfisherQueryClient!;
+      const before = client.getQueryCache().getAll().length;
+      const persistence = client
+        .getQueryCache()
+        .getAll()
+        .filter((query) => query.queryKey[0] === 'persistence').length;
+      // 500+ positions, as an afternoon of research would leave behind.
+      for (let index = 0; index < 600; index += 1) {
+        client.setQueryData(['explorer', 'local', 'v1', `soak-fen-${index}`, {}], { index });
+        await Promise.resolve();
       }
-    ).__kingfisherQueryClient!;
-    const before = client.getQueryCache().getAll().length;
-    const persistence = client
-      .getQueryCache()
-      .getAll()
-      .filter((query) => query.queryKey[0] === 'persistence').length;
-    // 500+ positions, as an afternoon of research would leave behind.
-    for (let index = 0; index < 600; index += 1) {
-      client.setQueryData(['explorer', 'local', 'v1', `soak-fen-${index}`, {}], { index });
-      await Promise.resolve();
-    }
-    const all = client.getQueryCache().getAll();
-    return {
-      before,
-      persistence,
-      persistenceAfter: all.filter((query) => query.queryKey[0] === 'persistence').length,
-      explorerAfter: all.filter((query) => query.queryKey[0] === 'explorer').length,
-      newest: client.getQueryData(['explorer', 'local', 'v1', 'soak-fen-599', {}]),
-    };
-  });
+      const all = client.getQueryCache().getAll();
+      return {
+        before,
+        persistence,
+        persistenceAfter: all.filter((query) => query.queryKey[0] === 'persistence').length,
+        explorerAfter: all.filter((query) => query.queryKey[0] === 'explorer').length,
+        newest: client.getQueryData(['explorer', 'local', 'v1', 'soak-fen-599', {}]),
+      };
+    });
 
-  expect(counts.before).toBeGreaterThan(0);
-  // The ceiling from `database/cache.ts`, not a number this test invented.
-  expect(counts.explorerAfter).toBeLessThanOrEqual(256);
-  // Back-navigation still pays off: the most recent position is still cached.
-  expect(counts.newest).toEqual({ index: 599 });
-  // Nothing else was collected to get there.
-  expect(counts.persistenceAfter).toBeGreaterThanOrEqual(counts.persistence);
-});
+    expect(counts.before).toBeGreaterThan(0);
+    // The ceiling from `database/cache.ts`, not a number this test invented.
+    expect(counts.explorerAfter).toBeLessThanOrEqual(256);
+    // Back-navigation still pays off: the most recent position is still cached.
+    expect(counts.newest).toEqual({ index: 599 });
+    // Nothing else was collected to get there.
+    expect(counts.persistenceAfter).toBeGreaterThanOrEqual(counts.persistence);
+  },
+);
 
 /**
  * The research chain, repeated — not the route walk, the workflow.

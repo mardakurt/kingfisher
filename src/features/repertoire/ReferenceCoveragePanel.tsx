@@ -34,6 +34,7 @@ import { reviewKeys } from '@/features/review/queries';
 import { asFen, type Uci } from '@/chess/types';
 import { plural } from '@/lib/plural';
 
+import { coverageRunState, type CoverageAttempt } from './reference-coverage-run';
 import { SOURCES, type SourceId } from './sources';
 
 export interface CoverageRepertoire {
@@ -91,12 +92,32 @@ export function ReferenceCoveragePanel({
           completed={reports.completed}
           total={reports.total}
           data={reports.data}
+          unread={reports.unread}
           repertoire={repertoire}
         />
       ) : (
-        <ReferenceCoverageTable reports={reports.data} repertoire={repertoire} />
+        <>
+          <UnreadPositions positions={reports.unread} />
+          <ReferenceCoverageTable
+            reports={reports.data}
+            repertoire={repertoire}
+            incomplete={reports.unread.length > 0}
+          />
+        </>
       )}
     </section>
+  );
+}
+
+function UnreadPositions({ positions }: { readonly positions: readonly string[] }) {
+  if (positions.length === 0) return null;
+  return (
+    <p
+      className="border-t border-line-subtle px-3 py-2 text-[10.5px] text-tertiary"
+      data-coverage-unread
+    >
+      Not read: {positions.join('; ')}. These positions are missing from the gap list.
+    </p>
   );
 }
 
@@ -104,11 +125,13 @@ function CoverageProgress({
   completed,
   total,
   data,
+  unread,
   repertoire,
 }: {
   readonly completed: number;
   readonly total: number;
   readonly data: readonly CoverageReport[];
+  readonly unread: readonly string[];
   readonly repertoire?: CoverageRepertoire;
 }) {
   const share = total > 0 ? Math.min(1, completed / total) : 0;
@@ -128,13 +151,18 @@ function CoverageProgress({
           />
         </div>
       </div>
+      <UnreadPositions positions={unread} />
       {data.length > 0 ? (
-        <ReferenceCoverageTable reports={data} repertoire={repertoire} />
-      ) : (
+        <ReferenceCoverageTable
+          reports={data}
+          repertoire={repertoire}
+          incomplete={unread.length > 0}
+        />
+      ) : unread.length === 0 ? (
         <p className="border-t border-line-subtle px-3 py-2 text-[10.5px] text-tertiary">
           Starting…
         </p>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -142,9 +170,12 @@ function CoverageProgress({
 function ReferenceCoverageTable({
   reports,
   repertoire,
+  incomplete = false,
 }: {
   readonly reports: readonly CoverageReport[];
   readonly repertoire?: CoverageRepertoire;
+  /** True when some positions were not read, so an empty gap list is not full coverage. */
+  readonly incomplete?: boolean;
 }) {
   const actionable = reports.filter(isActionable);
   const flatGaps: { gap: CoverageGap; fen: string }[] = [];
@@ -222,6 +253,7 @@ function ReferenceCoverageTable({
     },
   });
   if (flatGaps.length === 0) {
+    if (incomplete) return null;
     return (
       <p className="border-t border-line-subtle px-3 py-2 text-[10.5px] text-tertiary">
         Every high-frequency reply in this source is in the repertoire.
@@ -280,7 +312,8 @@ function useReferenceCoverage(
     pending: boolean;
     completed: number;
     total: number;
-  }>({ data: [], pending: false, completed: 0, total: 0 });
+    unread: readonly string[];
+  }>({ data: [], pending: false, completed: 0, total: 0, unread: [] });
 
   // Re-run when the source or the position count changes. The provider
   // object identity is the live registry's, so this is the right cache key
@@ -319,20 +352,37 @@ function useReferenceCoverage(
     // the effect is *itself* the run; the render that follows
     // its synchronous prefix is exactly what we want.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setState({ data: [], pending: true, completed: 0, total: positions.length });
-    // One slot per position, filled as each answer lands; a slot that has
-    // not landed is `null`, and every reader below leaves it out. (The
-    // filters used to test for `undefined`, so a run in progress handed the
-    // table nulls, which crashed it on `report.gaps` — unseen until the
-    // bundled pack became the default source and the table drew mid-run.)
-    const reports: (CoverageReport | null)[] = new Array<CoverageReport | null>(
-      positions.length,
-    ).fill(null);
-    let completed = 0;
+    setState({ data: [], pending: true, completed: 0, total: positions.length, unread: [] });
+    // One slot per position, filled as each answer lands. A rejection is a
+    // finished slot too: the bounded runner swallows it, so the run's own
+    // promise does not reject, and the gap list must not pretend the
+    // failures were read.
+    const slots: (CoverageAttempt<CoverageReport> | undefined)[] = [];
+    const publish = (runEnded: boolean) => {
+      if (cancelled) return;
+      const settled = coverageRunState({
+        total: positions.length,
+        runEnded,
+        attempts: slots.filter(
+          (slot): slot is CoverageAttempt<CoverageReport> => slot !== undefined,
+        ),
+      });
+      setState({
+        data: settled.successes,
+        pending: settled.pending,
+        completed: settled.completed,
+        total: positions.length,
+        unread: settled.unread,
+      });
+    };
     void runBounded({
       items: positions,
       concurrency: 4,
       signal: abort.signal,
+      onError: (_error, position, index) => {
+        slots[index] = { index, ok: false, position: position.fen };
+        publish(false);
+      },
       worker: (position, index) =>
         provider.explore({ fen: position.fen, limit: 10 }).then((result) => {
           if (cancelled) return null;
@@ -348,26 +398,15 @@ function useReferenceCoverage(
           // provider returned zero moves), the row stays
           // blank but the slot's progress is still
           // counted.
-          reports[index] = newReports[0] ?? null;
-          completed += 1;
-          if (!cancelled) {
-            setState({
-              data: reports.filter((report): report is CoverageReport => report !== null),
-              pending: completed < positions.length,
-              completed,
-              total: positions.length,
-            });
-          }
+          const report = newReports[0] ?? null;
+          slots[index] = { index, ok: true, report };
+          publish(false);
+          return report;
         }),
-    }).catch(() => {
-      if (!cancelled)
-        setState({
-          data: reports.filter((r): r is CoverageReport => r !== null),
-          pending: false,
-          completed,
-          total: positions.length,
-        });
-    });
+    }).then(
+      () => publish(true),
+      () => publish(true),
+    );
     return () => {
       cancelled = true;
       abort.abort();

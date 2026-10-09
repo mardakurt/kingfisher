@@ -220,17 +220,25 @@ interface GameParse {
 function skipMovetext(tokens: readonly Token[], start: number): number {
   let index = start;
   let depth = 0;
-  let sawMovetext = false;
   while (index < tokens.length) {
     const token = tokens[index] as Token;
-    if (token.type === 'tag' && sawMovetext) return index;
+    // The refused game's tags have already been read. The next tag is the next
+    // game, including when this game has no movetext of its own.
+    if (token.type === 'tag') return index;
     index += 1;
     if (token.type === 'variation-start') depth += 1;
     else if (token.type === 'variation-end') depth = Math.max(0, depth - 1);
     else if (token.type === 'result' && depth === 0) return index;
-    else if (token.type !== 'tag') sawMovetext = true;
   }
   return index;
+}
+
+/**
+ * `--` and `Z0` are null moves. A node can carry a move or be the root; it
+ * cannot carry a pass, so the variation stops here the way an illegal move does.
+ */
+function isNullMove(value: string): boolean {
+  return value === '--' || value.toLowerCase() === 'z0';
 }
 
 interface Frame {
@@ -246,6 +254,13 @@ function parseOneGame(tokens: readonly Token[], start: number): GameParse {
   let index = start;
   while (index < tokens.length && tokens[index]?.type === 'tag') {
     const token = tokens[index] as Token;
+    const previous = index > start ? (tokens[index - 1] as Token) : undefined;
+    // A blank line ends a tag section. Once these tags already refuse the game,
+    // the next section is the following game — a header-only Chess960 game must
+    // not absorb it. A repeated tag key is the same boundary with no blank line.
+    const blankLine = previous !== undefined && token.line > previous.line + 1;
+    const repeated = token.key !== undefined && headers[token.key] !== undefined;
+    if ((blankLine || repeated) && refusalOf(headers)) break;
     if (token.key) headers[token.key] = token.value;
     index += 1;
   }
@@ -365,6 +380,19 @@ function parseOneGame(tokens: readonly Token[], start: number): GameParse {
               },
             };
           }
+          if (data.score) {
+            const root = mustGetNode(tree, tree.rootId);
+            tree = {
+              ...tree,
+              nodes: {
+                ...tree.nodes,
+                [tree.rootId]: {
+                  ...root,
+                  evaluation: { ...root.evaluation, score: data.score, engine: 'PGN' },
+                },
+              },
+            };
+          }
         } else if (data.text) {
           pending.push(data.text);
         }
@@ -432,6 +460,17 @@ function parseOneGame(tokens: readonly Token[], start: number): GameParse {
       }
 
       case 'unknown':
+        if (isNullMove(token.value)) {
+          sawMovetext = true;
+          issues.push({
+            severity: 'error',
+            message: `Illegal move "${token.value}"; the rest of this variation was skipped.`,
+            line: token.line,
+          });
+          skipping = true;
+          skipNesting = 0;
+          break;
+        }
         issues.push({
           severity: 'warning',
           message: `Skipped unrecognised text "${truncate(token.value)}".`,

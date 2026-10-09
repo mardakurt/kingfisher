@@ -177,6 +177,8 @@ describe('starting', () => {
     built, the missing-bridge reason is asserted instead: one of the two
     branches always runs, and neither is a skip.
   */
+  // Loading a native framework can exceed Vitest's 5 s default while the full
+  // suite is starting workers. Keep a bounded integration-test budget.
   it('the built bridge loads the vendored Sparkle and reports the recorded version', async () => {
     const { start } = await load();
     const built =
@@ -218,5 +220,5 @@ describe('starting', () => {
       expect(result.started).toBe(false);
       expect(result.reason).toMatch(/Sparkle is not in this build|macOS only/);
     }
-  });
+  }, 30_000);
 });

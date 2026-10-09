@@ -18,7 +18,11 @@ import type { BranchPopulation } from '@/theory/critical-branches';
 import type { TheoryBookNode } from '@/theory/theory-book';
 import type { ResolvedBrief } from '@/theory/variation-briefs';
 
-import { buildOpeningReport, type OpeningReportInput } from './opening-report';
+import {
+  buildOpeningReport,
+  reportPopulationRole,
+  type OpeningReportInput,
+} from './opening-report';
 import { criticalBranches } from '@/theory/critical-branches';
 
 const FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -178,9 +182,36 @@ describe('naming the opening without overstating it', () => {
   });
 
   it('invents no name for a position the dataset does not cover', () => {
-    const unnamed = section({ ...full, placement: null }, 'identity')!;
+    const unnamed = section({ ...full, placement: null, theoryBook: 'ready' }, 'identity')!;
     expect(unnamed.entries).toEqual([]);
     expect(unnamed.emptyReason).toContain('none is invented');
+  });
+
+  it('does not call the position unnamed while the book is unread', () => {
+    const pending = section({ ...full, placement: null, theoryBook: 'pending' }, 'identity')!;
+    expect(pending.emptyReason).toBe('The Theory Book is still loading.');
+    expect(pending.emptyReason).not.toContain('none is invented');
+    const failed = section({ ...full, placement: null, theoryBook: 'failed' }, 'identity')!;
+    expect(failed.emptyReason).toBe('The Theory Book could not be read.');
+    expect(failed.emptyReason).not.toContain('none is invented');
+    expect(section({ ...full, theoryBook: 'pending' }, 'named-branches')?.emptyReason).toBe(
+      'The Theory Book is still loading.',
+    );
+  });
+
+  it('says how many installed sources were left out of the three columns', () => {
+    const shown = section({ ...full, omittedSources: 2 }, 'populations')!;
+    expect(shown.provenance).toContain('2 other installed sources are not shown');
+    expect(shown.provenance).toContain('Nothing here is combined');
+    expect(shown.entries).toHaveLength(2);
+    expect(section(full, 'populations')?.provenance).not.toContain('not shown');
+  });
+
+  it('does not treat a pack whose id says recent as a date window', () => {
+    expect(reportPopulationRole('kingfisher-recent-theory', 0)).toBe('reference');
+    expect(reportPopulationRole('kingfisher-recent-theory', 1)).toBe('contrast');
+    expect(reportPopulationRole('kingfisher-elite-otb', 0)).not.toBe('recent');
+    expect(reportPopulationRole('sqlite:games', 3, true)).toBe('own');
   });
 
   it('shows the named variations below without counts or scores', () => {

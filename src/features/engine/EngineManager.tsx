@@ -109,6 +109,8 @@ export function EngineManager() {
   // makes the row appear without a reload.
   useEngineDefinitionsVersion();
   const browserEngines = engineDefinitions().filter((entry) => entry.transport === 'worker');
+  // Not "Ready": the row ships with the page, and nothing has handshaken it or
+  // watched it search. The player can still run it. Ready is that proof.
 
   return (
     <div className="flex flex-col gap-3">
@@ -117,7 +119,7 @@ export function EngineManager() {
           key={browserEngine.id}
           id={browserEngine.id}
           name={browserEngine.name}
-          state="Ready"
+          state="Not probed"
           trust="browser"
           detail={
             browserEngine.id === 'stockfish-wasm-full'

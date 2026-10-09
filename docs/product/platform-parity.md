@@ -1,11 +1,18 @@
 # Platform parity — the web application and the macOS application
 
-**Closure candidate (2026-10-06).** Bounded rating classes, the Your openings
+**Source revision check (2026-10-09, 1.5.1).** Puzzle retries and feedback,
+backup and profile fixes, and chess/data/engine correctness changes are
+Mac-facing source changes. The installed 1.5.0 build 1164 was tested separately;
+those results do not certify these later changes. The public descriptor is
+unchanged. See the [closure report](../reports/2026-10-08-closure.md) for exact
+validation results and package identity.
+
+**Historical closure candidate (2026-10-06).** Bounded rating classes, the Your openings
 repertoire overview and recorded PGN Title browsing/display are being tested for 1.5.0. They are
 not in public Mac 1.4.9. Final browser, scale, Windows Edge and package acceptance
 remain pending; see the [comparison](chessbase-mac-comparison-1.5.0.md).
 
-**Unreleased source changes (2026-10-06, after 1.4.9).** `469df0a` is
+**Historical source checkpoint (2026-10-06, after 1.4.9).** `469df0a` is
 Mac-facing and not in any published build: the bundle declares macOS 14 as
 its minimum (13 was never tested), the first Date or Opening sort of a
 companion collection builds its index, a slow reload no longer highlights a

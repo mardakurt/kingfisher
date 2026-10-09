@@ -18,7 +18,7 @@ import {
 export interface ConversionPly {
   readonly san: San;
   readonly by: Color;
-  readonly outcome: ConversionOutcome;
+  readonly outcome: ConversionOutcome | null;
   /** Set only where the result actually moved; see `describeChange`. */
   readonly change: ResultChange | null;
 }
@@ -46,12 +46,12 @@ interface ConversionState {
     category: TablebaseCategory;
     sideToMove: Color;
   }): void;
-  /** Record a played move and the tablebase's verdict on the position after it. */
+  /** Record a played move; null means the tablebase did not answer. */
   record(input: {
     fen: Fen;
     san: San;
     by: Color;
-    category: TablebaseCategory;
+    category: TablebaseCategory | null;
     sideToMove: Color;
     halfmoveClock: number;
   }): void;
@@ -98,21 +98,24 @@ export const useConversion = create<ConversionState>()((set, get) => ({
   record: ({ fen, san, by, category, sideToMove, halfmoveClock }) => {
     const state = get();
     if (state.startingOutcome === null) return;
-    const before = state.currentOutcome ?? state.startingOutcome;
-    const after = outcomeFor(category, sideToMove, state.side);
-    const ending = endingFor({
-      category,
-      sideToMove,
-      perspective: state.side,
-      startingOutcome: state.startingOutcome,
-      halfmoveClock,
-    });
+    const before = state.currentOutcome;
+    const after = category === null ? null : outcomeFor(category, sideToMove, state.side);
+    const ending =
+      category === null
+        ? null
+        : endingFor({
+            category,
+            sideToMove,
+            perspective: state.side,
+            startingOutcome: state.startingOutcome,
+            halfmoveClock,
+          });
     set({
       fen,
       currentOutcome: after,
       history: [
         ...state.history,
-        { san, by, outcome: after, change: describeChange(before, after) },
+        { san, by, outcome: after, change: before && after ? describeChange(before, after) : null },
       ],
       ending,
     });

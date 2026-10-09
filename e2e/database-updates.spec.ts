@@ -9,6 +9,7 @@ test('a verified update rolls back in the product and refreshes the visible game
   page,
   request,
 }) => {
+  test.setTimeout(120_000);
   const directory = mkdtempSync(path.join(tmpdir(), 'kingfisher-update-ui-'));
   const name = `Rollback UI ${Date.now()}`;
   let key: string | null = null;
@@ -18,8 +19,9 @@ test('a verified update rolls back in the product and refreshes the visible game
       headers: { authorization: 'Bearer phase8-e2e-token' },
       data,
     });
-    expect(response.ok()).toBeTruthy();
-    return response.json();
+    const body = await response.json();
+    expect(response.ok(), `${route}: ${response.status()} ${JSON.stringify(body)}`).toBeTruthy();
+    return body;
   };
   try {
     const created = await post('/db/create', { name, layout: 'postings', directory });
@@ -51,7 +53,10 @@ test('a verified update rolls back in the product and refreshes the visible game
       expect(competing.status()).toBe(400);
       expect((await competing.json()).error).toContain('active import');
       await expect
-        .poll(async () => (await post('/db/import-file-status', { jobId: job.jobId })).phase)
+        .poll(async () => (await post('/db/import-file-status', { jobId: job.jobId })).phase, {
+          // A cold eight-worker import took 21 s in the full suite.
+          timeout: 60_000,
+        })
         .toBe('done');
     }
     await page.goto('/analysis');
@@ -98,6 +103,15 @@ test('a verified update rolls back in the product and refreshes the visible game
       page.getByText('Showing up to 100 · exact match count 1', { exact: true }),
     ).toBeVisible();
   } finally {
+    if (lastJob) {
+      // A failed assertion must not turn cleanup into a second, masking error.
+      await post('/db/import-file-cancel', { jobId: lastJob });
+      await expect
+        .poll(async () => (await post('/db/import-file-status', { jobId: lastJob })).phase, {
+          timeout: 30_000,
+        })
+        .toMatch(/^(done|stopped|failed)$/);
+    }
     if (key) await post('/db/delete', { key });
     rmSync(directory, { recursive: true, force: true });
   }

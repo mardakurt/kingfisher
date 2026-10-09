@@ -53,6 +53,7 @@ export function serializePgn(tree: GameTree, options: SerializeOptions = {}): st
     const rootComment = formatComment({
       text: root.comment ?? '',
       shapes: root.shapes,
+      ...(root.evaluation ? { score: root.evaluation.score } : {}),
       ...(root.meta.videoSeconds !== undefined ? { videoSeconds: root.meta.videoSeconds } : {}),
     });
     if (rootComment) tokens.push(`{ ${rootComment} }`);

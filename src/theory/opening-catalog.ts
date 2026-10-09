@@ -221,6 +221,136 @@ export const OPENING_FAMILIES: readonly string[] = [
   'Trompowsky Attack',
 ];
 
+/**
+ * Whole tokens, with a hyphenated name kept together.
+ *
+ * `Kan` is not a token of `Caro-Kann`, and `Slav` is not a token of
+ * `Semi-Slav`. An apostrophe splits, so `Petrov` matches `Petrov's`.
+ */
+const TOKEN = /[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*/gu;
+
+function foldToken(token: string): string {
+  return token.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+}
+
+function tokensOf(value: string): readonly string[] {
+  return [...value.matchAll(TOKEN)].map((match) => foldToken(match[0]));
+}
+
+/** Hyphenated compounds split, for comparing an alias's words with its term. */
+function looseTokens(value: string): readonly string[] {
+  return tokensOf(value).flatMap((token) => token.split('-'));
+}
+
+function familyOf(label: string): string {
+  const colon = label.indexOf(': ');
+  return colon === -1 ? label : label.slice(0, colon);
+}
+
+function containsContiguous(haystack: readonly string[], needle: readonly string[]): boolean {
+  if (needle.length === 0 || needle.length > haystack.length) return false;
+  for (let start = 0; start <= haystack.length - needle.length; start += 1) {
+    if (needle.every((token, offset) => haystack[start + offset] === token)) return true;
+  }
+  return false;
+}
+
+/**
+ * First-move filings, not openings a nickname would be stolen from.
+ *
+ * A London filed under Queen's Pawn Game is still a London. A "Modern
+ * Defense" clause inside the Caro-Kann is the Panov, not the Modern.
+ */
+const FILING_FAMILY_NAMES = ["Queen's Pawn Game", "King's Pawn Game", 'Indian Defense'] as const;
+
+interface AliasRule {
+  readonly alias: string;
+  readonly termTokens: readonly string[];
+  readonly extraTokens: readonly string[];
+  readonly termKey: string;
+}
+
+let aliasRuleCache: readonly AliasRule[] | null = null;
+let filingKeyCache: ReadonlySet<string> | null = null;
+
+function aliasRules(): readonly AliasRule[] {
+  aliasRuleCache ??= Object.entries(OPENING_ALIASES).map(([alias, term]) => {
+    const termTokens = tokensOf(term);
+    const termLoose = looseTokens(term);
+    const aliasLoose = looseTokens(alias);
+    const refines =
+      termLoose.length > 0 &&
+      termLoose.every((token) => aliasLoose.includes(token)) &&
+      aliasLoose.length > termLoose.length;
+    return {
+      alias,
+      termTokens,
+      termKey: termTokens.join(' '),
+      extraTokens: refines ? aliasLoose.filter((token) => !termLoose.includes(token)) : [],
+    };
+  });
+  return aliasRuleCache;
+}
+
+function filingFamilyKeys(): ReadonlySet<string> {
+  filingKeyCache ??= new Set(FILING_FAMILY_NAMES.map((name) => tokensOf(name).join(' ')));
+  return filingKeyCache;
+}
+
+/** Every opening family in a catalog, folded the same way labels are matched. */
+export function openingFamilies(
+  entries: readonly { readonly label: string }[],
+): ReadonlySet<string> {
+  const families = new Set<string>();
+  for (const entry of entries) families.add(tokensOf(familyOf(entry.label)).join(' '));
+  return families;
+}
+
+function ruleMatches(
+  labelTokens: readonly string[],
+  labelLoose: readonly string[],
+  familyTokens: readonly string[],
+  familyKey: string,
+  families: ReadonlySet<string>,
+  rule: AliasRule,
+): boolean {
+  if (!containsContiguous(labelTokens, rule.termTokens)) return false;
+  if (rule.extraTokens.some((token) => !labelLoose.includes(token))) return false;
+  /*
+    The term is some other opening's own name, and this label's family is a
+    different opening. "Modern Defense" inside the Panov is that case.
+    "London System" under Queen's Pawn Game is not: that family is a filing.
+  */
+  if (
+    families.has(rule.termKey) &&
+    familyKey !== rule.termKey &&
+    !containsContiguous(familyTokens, rule.termTokens) &&
+    !filingFamilyKeys().has(familyKey)
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Nicknames that apply to this label.
+ *
+ * Search and the Theory Book both call this, so "also called" and the search
+ * box cannot disagree. A match is whole tokens. An alias that adds words to
+ * its term — "closed sicilian" for the term "Closed" — requires those words
+ * as well, so a Closed Ruy Lopez is not a Closed Sicilian.
+ */
+export function aliasesForLabel(label: string, families: ReadonlySet<string>): readonly string[] {
+  const labelTokens = tokensOf(label);
+  const labelLoose = labelTokens.flatMap((token) => token.split('-'));
+  const familyTokens = tokensOf(familyOf(label));
+  const familyKey = familyTokens.join(' ');
+  const found = aliasRules()
+    .filter((rule) => ruleMatches(labelTokens, labelLoose, familyTokens, familyKey, families, rule))
+    .map((rule) => rule.alias);
+  return [...new Set(found)].sort();
+}
+
 export function searchOpenings(
   entries: readonly OpeningEntry[],
   query: string,
@@ -278,13 +408,22 @@ export function searchOpenings(
   }
 
   const needle = raw.toLowerCase();
-  const alias = OPENING_ALIASES[needle];
-  const term = (alias ?? raw).toLowerCase();
-  const reason: OpeningSearchResult['reason'] = alias ? 'alias' : 'name';
+  const aliasTerm = OPENING_ALIASES[needle];
+  const reason: OpeningSearchResult['reason'] = aliasTerm ? 'alias' : 'name';
+  const rankTerm = (aliasTerm ?? raw).toLowerCase();
+
+  if (aliasTerm) {
+    const families = openingFamilies(entries);
+    return entries
+      .filter((entry) => aliasesForLabel(entry.label, families).includes(needle))
+      .sort((a, b) => nameRank(b, rankTerm) - nameRank(a, rankTerm) || a.plies - b.plies)
+      .slice(0, limit)
+      .map((entry) => ({ entry, reason }));
+  }
 
   return entries
-    .filter((entry) => entry.label.toLowerCase().includes(term))
-    .sort((a, b) => nameRank(b, term) - nameRank(a, term) || a.plies - b.plies)
+    .filter((entry) => entry.label.toLowerCase().includes(rankTerm))
+    .sort((a, b) => nameRank(b, rankTerm) - nameRank(a, rankTerm) || a.plies - b.plies)
     .slice(0, limit)
     .map((entry) => ({ entry, reason }));
 }

@@ -51,6 +51,8 @@ import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/Button';
 import { promptInstall, subscribeInstall, type InstallPromptState } from '@/pwa/install-prompt';
+import { portablePreferences } from '@/stores/portable-preferences';
+import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
 
 import { composeSavedState, type SavedStatePersistence } from './saved-state';
@@ -218,7 +220,8 @@ export function StoragePersistenceStatus({ compact = false }: { readonly compact
                 setPopoverOpen(false);
                 const { downloadWorkspaceBackup } = await import('./backup');
                 try {
-                  const result = await downloadWorkspaceBackup();
+                  const preferences = portablePreferences(usePreferences.getState());
+                  const result = await downloadWorkspaceBackup({ preferences });
                   if (result.ok) {
                     notify({
                       tone: 'success',

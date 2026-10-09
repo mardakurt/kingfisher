@@ -38,3 +38,13 @@ companion/data/
 # Generated from src/search by `npm run companion:shared`; checked by companion/src/shared.test.mjs
 companion/src/shared/
 companion/generated/
+
+# Local binary comparison captures are not source text.
+chessbase images for comparison/
+
+# Upstream tab-separated datasets have no Prettier parser.
+*.tsv
+
+# Syzygy fixtures are binary tablebase files, verified byte for byte.
+*.rtbw
+*.rtbz

@@ -82,10 +82,10 @@ test('the document links a complete favicon set and every icon is served', async
       })),
     );
   const by = (predicate: (i: (typeof icons)[number]) => boolean) => icons.find(predicate);
-  expect(by((i) => i.href.startsWith('/favicon.ico'))).toMatchObject({
-    rel: 'icon',
-    sizes: '48x48',
-  });
+  const ico = by((i) => i.href.startsWith('/favicon.ico'));
+  expect(ico).toMatchObject({ rel: 'icon' });
+  // Next's bundlers advertise different layers of the same multi-size ICO.
+  expect(['16x16', '32x32', '48x48']).toContain(ico?.sizes);
   expect(by((i) => i.href.startsWith('/icon.svg'))).toMatchObject({ type: 'image/svg+xml' });
   // A multiple of 48 px, as PNG: the size a search-result favicon is made from.
   expect(by((i) => i.href.startsWith('/icon1.png'))).toMatchObject({
@@ -102,6 +102,13 @@ test('the document links a complete favicon set and every icon is served', async
       // Next development and Vercel use different valid ICO media types.
       expect(['image/x-icon', 'image/vnd.microsoft.icon'], icon.href).toContain(contentType);
       expect([...body.subarray(0, 4)], icon.href).toEqual([0, 0, 1, 0]);
+      const count = body.readUInt16LE(4);
+      const sizes = Array.from({ length: count }, (_, i) => {
+        const offset = 6 + i * 16;
+        return `${body[offset] || 256}x${body[offset + 1] || 256}`;
+      });
+      expect(sizes, icon.href).toEqual(expect.arrayContaining(['16x16', '32x32', '48x48']));
+      expect(sizes, icon.href).toContain(icon.sizes);
     } else {
       expect(contentType, icon.href).toContain(icon.type ?? 'image/');
     }

@@ -3,10 +3,11 @@
 /**
  * What has changed here recently.
  *
- * Three queries against the *same source the explorer is showing*, with
- * different date filters, put side by side. Querying a different database
- * would compare two collections and call it a trend, so the source comes from
- * the caller rather than being chosen here.
+ * Date windows against the *same source the explorer is showing*, put side by
+ * side. Querying a different database would compare two collections and call
+ * it a trend, so the source comes from the caller rather than being chosen
+ * here. A source that cannot filter by date is not asked for a window: its
+ * unfiltered aggregate is not the last twelve months.
  *
  * The panel's job beyond the table is to keep the claim honest. Every label it
  * prints is a complete sentence that names the database, the thin-sample
@@ -59,26 +60,36 @@ export function TheoryRadarPanel({
     if (!played.ok) notify({ tone: 'error', message: played.error.message });
   };
   const provider = databaseProviderById(sourceId);
+  const dateFilter = provider?.capabilities.dateFilter ?? false;
 
   /*
-    One query, three requests. Keeping them together means the three windows
-    are always from the same moment and the same source; three separate hooks
-    could legitimately show a twelve-month figure fetched before an import and
-    an all-time figure fetched after it.
+    One query, and three requests only when the source can filter by date.
+    A pack ignores sinceYear, so asking it three times returns one aggregate
+    and the radar would call every move new. Three separate hooks could also
+    show a twelve-month figure fetched before an import and an all-time
+    figure fetched after it, so the windows that do run stay in one query.
   */
   const windows = useQuery<{
     allTime: ExplorerResult;
-    threeYear: ExplorerResult;
-    twelveMonth: ExplorerResult;
+    threeYear: ExplorerResult | null;
+    twelveMonth: ExplorerResult | null;
   }>({
-    queryKey: ['theory-radar', sourceId, provider?.cacheVersion ?? 'live', fen, currentYear],
+    queryKey: [
+      'theory-radar',
+      sourceId,
+      provider?.cacheVersion ?? 'live',
+      fen,
+      currentYear,
+      dateFilter,
+    ],
     enabled: Boolean(provider),
     retry: providerRetry,
     gcTime: 10 * 60_000,
     queryFn: async ({ signal }) => {
       if (!provider) throw new Error(`Unknown database: ${sourceId}`);
-      const [allTime, threeYear, twelveMonth] = await Promise.all([
-        provider.explore({ fen, limit: 20 }, signal),
+      const allTime = await provider.explore({ fen, limit: 20 }, signal);
+      if (!provider.capabilities.dateFilter) return { allTime, threeYear: null, twelveMonth: null };
+      const [threeYear, twelveMonth] = await Promise.all([
         provider.explore({ fen, filters: { sinceYear: currentYear - 2 }, limit: 20 }, signal),
         provider.explore({ fen, filters: { sinceYear: currentYear }, limit: 20 }, signal),
       ]);
@@ -88,7 +99,7 @@ export function TheoryRadarPanel({
 
   const radar = useMemo(
     () =>
-      windows.data
+      windows.data?.threeYear && windows.data.twelveMonth
         ? buildRadar(windows.data.allTime, windows.data.threeYear, windows.data.twelveMonth, {
             currentYear,
           })
@@ -106,9 +117,15 @@ export function TheoryRadarPanel({
       </PanelHeader>
       <PanelBody className="px-3 py-3">
         {windows.isPending ? (
-          <p className="text-2xs text-tertiary">Comparing three date windows…</p>
+          <p className="text-2xs text-tertiary">
+            {dateFilter
+              ? 'Comparing three date windows…'
+              : `Reading ${provider?.name ?? 'this source'}…`}
+          </p>
         ) : windows.isError ? (
           <p className="text-2xs text-negative">{(windows.error as Error).message}</p>
+        ) : !dateFilter ? (
+          <UndatedRadar result={windows.data.allTime} sourceName={provider?.name ?? sourceId} />
         ) : !radar || radar.rows.length === 0 ? (
           <EmptyState
             title="Nothing has moved here."
@@ -169,6 +186,63 @@ export function TheoryRadarPanel({
         )}
       </PanelBody>
     </>
+  );
+}
+
+function UndatedRadar({
+  result,
+  sourceName,
+}: {
+  readonly result: ExplorerResult;
+  readonly sourceName: string;
+}) {
+  const recent = result.moves.filter((move) => (move.recent?.games ?? 0) > 0);
+  const sinceYears = [
+    ...new Set(recent.flatMap((move) => (move.recent ? [move.recent.sinceYear] : []))),
+  ];
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-[10px] leading-relaxed text-tertiary">
+        {sourceName} cannot filter by date, so it cannot say what was played in the last twelve
+        months or the last three years.
+      </p>
+      {recent.length > 0 ? (
+        <>
+          <p className="text-[10px] leading-relaxed text-tertiary">
+            It carries its own recent counters
+            {sinceYears.length === 1 ? `, from ${sinceYears[0]} onwards` : ''}. Those counts are
+            that source’s window. They are not the last twelve months.
+          </p>
+          <table className="w-full text-[10.5px] tabular">
+            <thead>
+              <tr className="text-[9.5px] text-tertiary">
+                <th className="pb-1 text-left font-medium">Move</th>
+                <th className="pb-1 text-right font-medium">All time</th>
+                <th className="pb-1 text-right font-medium">
+                  {sinceYears.length === 1 ? `Since ${sinceYears[0]}` : 'Source recent'}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {recent.map((move) => (
+                <tr key={move.uci} className="border-t border-line-subtle">
+                  <td className="py-1 font-mono text-primary">{move.san}</td>
+                  <td className="py-1 text-right text-tertiary">{move.games.toLocaleString()}</td>
+                  <td className="py-1 text-right text-secondary">
+                    {move.recent?.games.toLocaleString()}
+                    {sinceYears.length === 1 ? '' : ` since ${move.recent?.sinceYear}`}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      ) : (
+        <p className="text-[10px] leading-relaxed text-tertiary">
+          It does not carry a separate recent count here, so nothing is labelled recent.
+        </p>
+      )}
+    </div>
   );
 }
 

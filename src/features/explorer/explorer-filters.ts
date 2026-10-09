@@ -148,3 +148,74 @@ export function applicableExplorerFilters(
     ignored,
   };
 }
+
+/**
+ * The filters one comparison column may be asked.
+ *
+ * The explorer's active source has already dropped what *it* cannot apply.
+ * The column beside it is a different source. A 2200+ Lichess filter sent to
+ * a starter pack comes back as the unfiltered aggregate, and the column must
+ * say so rather than looking like the same cut of a different population.
+ */
+export function explorerFiltersForSource(
+  filters: ExplorerFilters,
+  capabilities:
+    | Pick<DatabaseCapabilities, 'ratingFilter' | 'dateFilter' | 'playerFilter' | 'speedFilter'>
+    | undefined,
+): { readonly filters: ExplorerFilters; readonly ignored: readonly string[] } {
+  const rating = capabilities?.ratingFilter ?? false;
+  const date = capabilities?.dateFilter ?? false;
+  const player = capabilities?.playerFilter ?? false;
+  const speed = capabilities?.speedFilter ?? false;
+  const ignored: string[] = [];
+  const next: {
+    minRating?: number;
+    maxRating?: number;
+    sinceYear?: number;
+    untilYear?: number;
+    player?: string;
+    playerColor?: 'w' | 'b';
+    speeds?: readonly string[];
+  } = {};
+
+  if (filters.minRating != null || filters.maxRating != null) {
+    if (rating) {
+      if (filters.minRating != null) next.minRating = filters.minRating;
+      if (filters.maxRating != null) next.maxRating = filters.maxRating;
+    } else {
+      ignored.push(ratingPhrase(filters));
+    }
+  }
+  if (filters.sinceYear != null || filters.untilYear != null) {
+    if (date) {
+      if (filters.sinceYear != null) next.sinceYear = filters.sinceYear;
+      if (filters.untilYear != null) next.untilYear = filters.untilYear;
+    } else {
+      const parts: string[] = [];
+      if (filters.sinceYear != null) parts.push(`since ${filters.sinceYear}`);
+      if (filters.untilYear != null) parts.push(`until ${filters.untilYear}`);
+      ignored.push(parts.join(' '));
+    }
+  }
+  if (filters.player) {
+    if (player) {
+      next.player = filters.player;
+      if (filters.playerColor) next.playerColor = filters.playerColor;
+    } else {
+      ignored.push(`player ${filters.player}`);
+    }
+  }
+  if (filters.speeds && filters.speeds.length > 0) {
+    if (speed) next.speeds = filters.speeds;
+    else ignored.push(`speed ${filters.speeds.join(', ')}`);
+  }
+  return { filters: next, ignored };
+}
+
+function ratingPhrase(filters: ExplorerFilters): string {
+  if (filters.minRating != null && filters.maxRating != null) {
+    return `Elo ${filters.minRating}–${filters.maxRating}`;
+  }
+  if (filters.minRating != null) return `Min Elo ${filters.minRating}`;
+  return `Elo up to ${filters.maxRating}`;
+}

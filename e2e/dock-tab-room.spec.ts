@@ -37,6 +37,9 @@ test('the Training dock keeps its pinned tools when the labels render wider', as
     .getByRole('navigation', { name: 'Sections' })
     .getByRole('link', { name: 'Training' })
     .click();
+  // A cold development route can compile longer than the assertion budget.
+  // Wait for the actual sidebar navigation before measuring the rendered dock.
+  await page.waitForURL('**/training', { timeout: 60_000 });
   const training = page.locator('[data-workspace-frame="training"]');
   await expect(training.getByText('Play the prepared move.').first()).toBeVisible();
   await page.getByRole('button', { name: 'Show answer' }).click();

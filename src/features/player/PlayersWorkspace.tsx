@@ -28,6 +28,7 @@ import { cn } from '@/lib/cn';
 import { legendYears } from '@/reference/legends';
 import { describeTitledPlayer, regionName } from '@/reference/titled-players';
 import {
+  catalogGamesCaption,
   searchPlayers,
   usePlayerCatalog,
   type CatalogPlayer,
@@ -279,9 +280,7 @@ function PlayerRow({
       </div>
       <div className="shrink-0 text-right">
         <div className="text-sm text-primary tabular">{player.games.toLocaleString()}</div>
-        <div className="text-[10px] text-tertiary">
-          {player.games === 1 ? 'game here' : 'games here'}
-        </div>
+        <div className="text-[10px] text-tertiary">{catalogGamesCaption(player)}</div>
       </div>
     </li>
   );

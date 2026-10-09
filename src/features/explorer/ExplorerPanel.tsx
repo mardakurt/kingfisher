@@ -187,9 +187,12 @@ export function ExplorerPanel() {
     ...(playerFilter ? (explorerPlayerQuery(provider?.id, player, playerColor) ?? {}) : {}),
   };
 
-  const window = RECENT_WINDOWS.find((entry) => entry.id === recentWindow) ?? RECENT_WINDOWS[0];
+  const recentWindowId = dateFilter ? recentWindow : 'off';
+  const window = RECENT_WINDOWS.find((entry) => entry.id === recentWindowId) ?? RECENT_WINDOWS[0];
   const recentFilters =
-    window.years > 0 ? { ...filters, sinceYear: new Date().getFullYear() - window.years } : filters;
+    dateFilter && window.years > 0
+      ? { ...filters, sinceYear: new Date().getFullYear() - window.years }
+      : filters;
 
   const query = useExplorer(provider?.id ?? '', node.fen, filters);
   // A second query against the same source with a tighter date window. Two
@@ -277,7 +280,8 @@ export function ExplorerPanel() {
     return buildMoveEvidence({
       result: query.data,
       sideToMove: position.turn,
-      recent: window.years > 0 ? (recentQuery.data ?? null) : null,
+      recent: dateFilter && window.years > 0 ? (recentQuery.data ?? null) : null,
+      dateFilter,
       analysis: analysedFen === node.fen ? analysis : null,
       repertoire: repertoireHere.data?.[0] ?? null,
     });
@@ -289,6 +293,7 @@ export function ExplorerPanel() {
     query.data,
     recentQuery.data,
     repertoireHere.data,
+    dateFilter,
     window.years,
   ]);
 
@@ -652,11 +657,31 @@ export function ExplorerPanel() {
           ) : null}
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-tertiary">Compare recent</span>
-            <Segmented
-              items={RECENT_WINDOWS.map((entry) => ({ id: entry.id, label: entry.label }))}
-              value={recentWindow}
-              onChange={setRecentWindow}
-            />
+            <div className="inline-flex max-w-full flex-wrap gap-y-0.5 rounded-[var(--radius-control)] border border-line bg-surface-2 p-0.5">
+              {RECENT_WINDOWS.map((entry) => {
+                const disabled = !dateFilter && entry.years > 0;
+                const selected = recentWindowId === entry.id;
+                return (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    disabled={disabled}
+                    aria-pressed={selected}
+                    onClick={() => {
+                      if (!disabled) setRecentWindow(entry.id);
+                    }}
+                    className={cn(
+                      'shrink-0 rounded-[var(--radius-board)] px-2 py-0.5 text-2xs transition-colors disabled:pointer-events-none disabled:opacity-40',
+                      selected
+                        ? 'bg-surface-3 text-primary'
+                        : 'text-tertiary hover:bg-surface-3 hover:text-secondary',
+                    )}
+                  >
+                    {entry.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           {/*
             Phase 29 BL: speed facet for sources that distinguish
@@ -677,12 +702,13 @@ export function ExplorerPanel() {
               />
             </div>
           ) : null}
-          {!provider?.capabilities.dateFilter && window.years > 0 ? (
+          {!dateFilter ? (
             <p className="text-[10px] text-caution">
-              {provider?.name} cannot filter by date.
+              {provider?.name} cannot filter by date, so the 12 month, 3 year and 5 year windows are
+              off.
               {carriedSince !== undefined
                 ? ` It carries its own recent counters instead, covering ${carriedSince} onwards, and that is what the Recent column shows.`
-                : ' The recent column would repeat the all-time one, so it is not shown.'}
+                : ' A date window would repeat the all-time column, so it is not shown.'}
             </p>
           ) : null}
         </div>

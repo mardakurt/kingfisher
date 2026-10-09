@@ -39,6 +39,8 @@ export async function buildCompanionKit(outFile = KIT_FILE) {
 // or an ampersand is URL-encoded in import.meta.url, and the plain comparison
 // made the script do nothing there — `--check` included — without a word.
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const file = await buildCompanionKit(process.argv[2] ?? KIT_FILE);
+  const file = await buildCompanionKit(
+    process.argv[2] ?? process.env.KINGFISHER_COMPANION_KIT ?? KIT_FILE,
+  );
   console.log(`wrote ${path.relative(ROOT, file)}`);
 }
