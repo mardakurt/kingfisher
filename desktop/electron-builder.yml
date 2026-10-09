@@ -175,6 +175,11 @@ mac:
     SUAllowsAutomaticUpdates: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
+  # These are sealed data assets, not executable code. osx-sign otherwise
+  # timestamps every compressed reference shard and Chromium locale individually.
+  # Executables, native modules and frameworks retain their own signatures.
+  signIgnore:
+    - '\.(?:gz|wasm|pak|png|ico|icns|jpe?g|gif|webp)$'
   # electron-builder notarises the signed .app through @electron/notarize when
   # APPLE_API_KEY, APPLE_API_KEY_ID and APPLE_API_ISSUER are set (a dev build
   # without them is signed and not notarised, with a warning). That happens in

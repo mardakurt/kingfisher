@@ -2,6 +2,7 @@
 import path from 'node:path';
 import { assertDesktopResources } from '../src/required-resources.mjs';
 import { assertSparkleBundle } from '../src/sparkle-bundle.mjs';
+import { assertPackageFiles } from '../src/package-files.mjs';
 
 export default async function verifyPackage(context) {
   const contents =
@@ -12,6 +13,7 @@ export default async function verifyPackage(context) {
     ? path.join(contents, 'Resources')
     : path.join(context.appOutDir, 'resources');
   assertDesktopResources(path.join(resources, 'kingfisher'));
+  assertPackageFiles(path.join(resources, 'kingfisher'));
   if (contents) {
     // Sparkle: the framework, its helpers, the bridge and the Info.plist
     // keys, before anything is signed — a bundle Sparkle cannot run in is

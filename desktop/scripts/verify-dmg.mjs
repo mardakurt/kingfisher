@@ -37,6 +37,7 @@ import { execFile as execFileCb } from 'node:child_process';
 import { MINIMUM_MACOS } from '../src/platform-floor.mjs';
 import { inspectDesktopResources } from '../src/required-resources.mjs';
 import { inspectSparkleBundle } from '../src/sparkle-bundle.mjs';
+import { isPackageFile } from '../src/package-files.mjs';
 import { existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
@@ -233,13 +234,7 @@ export async function verifyDmg(dmg, options = {}) {
 
     // 7. Nothing that should not ship.
     const everything = walk(app);
-    const unwanted = everything.filter(
-      (rel) =>
-        /(^|\/)\.DS_Store$/.test(rel) ||
-        /(^|\/)[^/]+ \d+(\.[^/]*)?$/.test(rel) || // "name 2", "name 3.txt"
-        /\.test\.mjs$/.test(rel) ||
-        /(^|\/)__fixtures__(\/|$)/.test(rel),
-    );
+    const unwanted = everything.filter((rel) => !isPackageFile(rel));
     facts.fileCount = everything.length;
     check(
       'no unexpected files',

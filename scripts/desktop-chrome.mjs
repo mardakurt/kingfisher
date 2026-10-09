@@ -300,6 +300,22 @@ async function assertComposed(window, light, label) {
   return placed && spaced && aligned && fits;
 }
 
+async function settleAnimations(window) {
+  await window.evaluate(async () => {
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await Promise.all(
+      document
+        .getAnimations()
+        .filter(
+          (animation) =>
+            animation.playState === 'running' &&
+            animation.effect?.getComputedTiming().iterations !== Infinity,
+        )
+        .map((animation) => animation.finished.catch(() => {})),
+    );
+  });
+}
+
 async function main() {
   if (process.platform !== 'darwin') {
     console.log('The macOS window buttons only exist on macOS. Nothing to check here.');
@@ -480,8 +496,19 @@ async function main() {
     again would be the classic leftover, and it is invisible until somebody
     happens to use full screen.
   */
-  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setFullScreen(true));
-  await window.waitForTimeout(1500);
+  await app.evaluate(({ app: application, BrowserWindow }) => {
+    const nativeWindow = BrowserWindow.getAllWindows()[0];
+    // macOS full-screen transitions require the application's active window.
+    application.focus({ steal: true });
+    nativeWindow.show();
+    nativeWindow.focus();
+    nativeWindow.setFullScreen(true);
+  });
+  // The macOS animation completes asynchronously; elapsed time is not evidence
+  // that the native event has reached the renderer.
+  await window.waitForFunction(() => document.documentElement.dataset.fullscreen === 'true', null, {
+    timeout: 15000,
+  });
 
   /*
     6a. And the way in: the buttons are gone, so the room for them must be too.
@@ -499,6 +526,7 @@ async function main() {
     rather than the design inset a browser still shows — because that is the
     corner the user is looking at in full screen.
   */
+  await settleAnimations(window);
   const full = await survey(window);
   check(
     'the application is told the window is full screen',
@@ -518,7 +546,12 @@ async function main() {
       : 'no mark painted',
   );
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setFullScreen(false));
-  await window.waitForTimeout(1500);
+  await window.waitForFunction(
+    () => document.documentElement.dataset.fullscreen === undefined,
+    null,
+    { timeout: 15000 },
+  );
+  await settleAnimations(window);
   const back = await survey(window);
   check(
     'leaving full screen clears the attribute',

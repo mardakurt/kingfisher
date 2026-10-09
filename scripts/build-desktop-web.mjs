@@ -39,6 +39,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { isPackageFile } from '../desktop/src/package-files.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const STANDALONE = path.join(ROOT, '.next', 'standalone');
@@ -99,8 +100,15 @@ if (!existsSync(path.join(STANDALONE, 'server.js'))) {
 
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(path.dirname(OUT), { recursive: true });
-cpSync(STANDALONE, OUT, { recursive: true });
-cpSync(path.join(ROOT, '.next', 'static'), path.join(OUT, '.next', 'static'), { recursive: true });
+cpSync(STANDALONE, OUT, {
+  recursive: true,
+  filter: (source) => isPackageFile(path.relative(STANDALONE, source)),
+});
+const staticRoot = path.join(ROOT, '.next', 'static');
+cpSync(staticRoot, path.join(OUT, '.next', 'static'), {
+  recursive: true,
+  filter: (source) => isPackageFile(path.relative(staticRoot, source)),
+});
 // The web server's parent watch, beside the server it guards (desktop/src/web-parent-watch.cjs).
 cpSync(
   path.join(ROOT, 'desktop', 'src', 'web-parent-watch.cjs'),
@@ -196,6 +204,7 @@ let skipped = 0;
 cpSync(path.join(ROOT, 'public'), path.join(OUT, 'public'), {
   recursive: true,
   filter: (source) => {
+    if (!isPackageFile(path.relative(path.join(ROOT, 'public'), source))) return false;
     if (!excludedRoots.some((root) => source === root || source.startsWith(`${root}${path.sep}`))) {
       return true;
     }

@@ -32,6 +32,16 @@ const config = yaml.load(readFileSync(path.join(DESKTOP, 'electron-builder.yml')
 const resources = new Map((config.extraResources ?? []).map((entry) => [entry.to, entry]));
 
 describe('electron-builder.yml', () => {
+  it('individually signs native code while sealing data assets in the app signature', () => {
+    const ignored = config.mac.signIgnore.map((pattern) => new RegExp(pattern));
+    const skips = (file) => ignored.some((pattern) => pattern.test(file));
+    for (const file of ['game-024.kfp.gz', 'locale.pak', 'stockfish.wasm', 'icon.png']) {
+      expect(skips(file), file).toBe(true);
+    }
+    for (const file of ['Kingfisher', 'Autoupdate', 'kingfisher-sparkle.node', 'libvips.dylib']) {
+      expect(skips(file), file).toBe(false);
+    }
+  });
   it('blocks archives until resource and boot verification pass', () => {
     expect(config.afterPack).toBe('scripts/verify-package.mjs');
     expect(config.afterSign).toBe('scripts/verify-package-boot.mjs');
