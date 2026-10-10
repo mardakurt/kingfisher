@@ -5,7 +5,7 @@
  * Reports:
  *   - the canonical repo path and HEAD;
  *   - which cache directories exist under ~/Library/Caches/Kingfisher/;
- *   - any directory under the user's ~/Desktop/Projects/ that looks like a
+ *   - any directory under the user's ~/Projects/ that looks like a
  *     Kingfisher checkout or worktree left behind.
  *
  * The script is deliberately read-only. It never moves or deletes anything;
@@ -27,7 +27,7 @@ const ROOT_RAW = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
 const ROOT = decodeURIComponent(ROOT_RAW);
 const HOME = homedir();
 const CACHE_ROOT = join(HOME, 'Library', 'Caches', 'Kingfisher');
-const PROJECTS_DIR = join(HOME, 'Desktop', 'Projects');
+const PROJECTS_DIR = join(HOME, 'Projects');
 
 const readText = (path) => {
   try {
@@ -103,12 +103,12 @@ const reportSuspectProjects = () => {
     }
   }
   if (found.length === 0) {
-    console.log('Suspect directories under ~/Desktop/Projects/');
+    console.log('Suspect directories under ~/Projects/');
     console.log('  (none — clean)');
     console.log('');
     return;
   }
-  console.log('Suspect directories under ~/Desktop/Projects/');
+  console.log('Suspect directories under ~/Projects/');
   for (const entry of found) {
     console.log(`  ${entry.path}`);
     console.log(`    HEAD: ${entry.head ?? 'unknown'}`);

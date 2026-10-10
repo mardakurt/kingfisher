@@ -11,7 +11,7 @@ should expect to find on disk.
 Exactly **one** Kingfisher source checkout, on `master`, pointed at
 `github.com/mardakurt/kingfisher`. Path is whatever the maintainer chose at
 clone time; the canonical one for this workspace is
-`~/Desktop/Projects/chess&poker/chess/studying hub`. The clone is a regular
+`~/Projects/chess&poker/chess/studying hub`. The clone is a regular
 checkout, _not_ a worktree — Phase 29's secondary check-in
 (`kingfisher-phase29-audit-storage`) was a worktree of this same repo and was
 archived, not duplicated.
@@ -84,7 +84,7 @@ runtime application data, not workspace layout; **never** reorganise it from
 this side. A phase that touches this directory is a phase that has lost the
 plot.
 
-## What should not appear in `~/Desktop/Projects/`
+## What should not appear in `~/Projects/`
 
 If a Kingfisher-related folder appears here that is not the source repo
 itself, it is either:
@@ -107,7 +107,7 @@ Reports:
 
 - the canonical repo path and HEAD;
 - which cache directories exist (and which the user has not created yet);
-- any directory under `~/Desktop/Projects/` that contains a Kingfisher
+- any directory under `~/Projects/` that contains a Kingfisher
   marker (`.claude`, `package.json` with a Kingfisher manifest, `src/`
   with `app/`, `engine/`, `chess/`).
 

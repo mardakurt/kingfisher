@@ -82,7 +82,7 @@ room").
 
 ## Part A — Put the Mac and GitHub in the same state (do this first)
 
-The owner's canonical checkout is `~/Desktop/Projects/chess&poker/chess/studying hub`
+The owner's canonical checkout is `~/Projects/chess&poker/chess/studying hub`
 (`docs/operations/local-workspace-layout.md`). Confirm it; if it is somewhere
 else, use that and say so.
 
