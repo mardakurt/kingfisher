@@ -12,7 +12,7 @@ The user-facing surfaces link here from their footers and from
 
 - **Web:** Kingfisher 1.5.1 at <https://kingfisherchess.app>, deployed from
   `master` on every push, so it can be ahead of the macOS release.
-- **macOS:** Kingfisher 1.4.9 for Apple Silicon — Developer ID signed,
+- **macOS:** Kingfisher 1.5.1 for Apple Silicon — Developer ID signed,
   notarised by Apple, stapled. The exact build (number, commit, SHA-256)
   the landing offers is in `src/release/macos-download.json`; the
   install guide is [`docs/release/install-macos.md`](docs/release/install-macos.md).

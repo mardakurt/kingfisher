@@ -7,6 +7,15 @@ those results do not certify these later changes. The public descriptor is
 unchanged. See the [closure report](../reports/2026-10-08-closure.md) for exact
 validation results and package identity.
 
+**Published revision check (2026-10-10, 1.5.1).** The public Mac download is
+1.5.1 build 1166 from `fcd8aedc23b70a8ad8536a10be254b1e3bc3e628`, stable and
+clean at packaging; Developer ID signed, app and DMG notarised and stapled,
+trust GREEN, minimum macOS 14.0. `desktop:certify` passed 10 of 11 steps twice:
+every packaged gate passed, and the unit step failed both times only on 5 s
+timeouts in two whole-tree source scans while iCloud's file provider was busy.
+The same suite passed 421/421 files on that commit under `npm test` between
+the runs. See the [closure report](../reports/2026-10-08-closure.md).
+
 **Historical closure candidate (2026-10-06).** Bounded rating classes, the Your openings
 repertoire overview and recorded PGN Title browsing/display are being tested for 1.5.0. They are
 not in public Mac 1.4.9. Final browser, scale, Windows Edge and package acceptance

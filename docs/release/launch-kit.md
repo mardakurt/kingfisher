@@ -1,7 +1,7 @@
-# Launch kit — Kingfisher 1.4.9
+# Launch kit — Kingfisher 1.5.1
 
-Draft copy for the current public release: Kingfisher 1.4.9 on the web and
-macOS (Apple Silicon, macOS 13 or later, Developer ID signed and notarised).
+Draft copy for the current public release: Kingfisher 1.5.1 on the web and
+macOS (Apple Silicon, macOS 14 or later, Developer ID signed and notarised).
 This kit contains no user counts, endorsements or claims of complete ChessBase
 parity. Check [`marketing-facts.md`](../product/marketing-facts.md) before posting.
 
@@ -16,7 +16,7 @@ page-view and performance analytics do not run in the Mac application.
 
 ## Release announcement draft
 
-> Kingfisher 1.4.9 lists every database in the sidebar, names an opened
+> Kingfisher 1.5.1 lists every database in the sidebar, names an opened
 > game's players with photographs and flags, shows a database's openings, top
 > games, annotators and teams, a player's opening families by colour in
 > Preparation, searches several databases at once, and offers figurine
@@ -31,7 +31,7 @@ page-view and performance analytics do not run in the Mac application.
 > events. Other installed or remote sources retain separate counts, licences
 > and provenance. No combined statistic is presented as a single population.
 >
-> `Kingfisher-1.4.9-arm64.dmg` is Developer ID signed and notarised by Apple.
+> `Kingfisher-1.5.1-arm64.dmg` is Developer ID signed and notarised by Apple.
 > Sparkle checks quietly at launch; Check for Updates opens its native interface.
 > Download and installation require a user action. Work remains in the profile.
 >

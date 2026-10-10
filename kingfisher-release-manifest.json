@@ -2,17 +2,25 @@
   "schema": "kingfisher-runtime-release-manifest/1",
   "kingfisher": {
     "name": "kingfisher",
-    "version": "1.4.9"
+    "version": "1.5.1",
+    "tag": "v1.5.1"
   },
-  "htmlUrl": "https://github.com/mardakurt/kingfisher/releases/tag/v1.4.9",
-  "publishedAt": "2026-10-05T23:52:10Z",
+  "htmlUrl": "https://github.com/mardakurt/kingfisher/releases/tag/v1.5.1",
+  "publishedAt": "2026-10-10T09:21:48.514Z",
   "desktop": [
     {
-      "name": "Kingfisher-1.4.9-arm64.dmg",
+      "name": "Kingfisher-1.5.1-arm64.dmg",
       "arch": "arm64",
-      "sha256": "7b7c704329775a373f95c9095c1941f80924dd789f528e519049762ae3e4fd9a",
-      "bytes": 193109138,
-      "url": "https://github.com/mardakurt/kingfisher/releases/download/v1.4.9/Kingfisher-1.4.9-arm64.dmg"
+      "sha256": "b116eda96c9dd3ca4be90a303b6fcc54ac0d5a8e07295ca2528477f54262dd50",
+      "bytes": 191960163,
+      "url": "https://github.com/mardakurt/kingfisher/releases/download/v1.5.1/Kingfisher-1.5.1-arm64.dmg"
+    },
+    {
+      "name": "Kingfisher-1.5.1-arm64.zip",
+      "arch": "arm64",
+      "sha256": "39938a3daa3b8fefc1cc7730cc15156b666c2ed8d5ae97271fdf020b146a4c9f",
+      "bytes": 193012215,
+      "url": "https://github.com/mardakurt/kingfisher/releases/download/v1.5.1/Kingfisher-1.5.1-arm64.zip"
     }
   ]
 }
