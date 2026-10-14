@@ -4,6 +4,16 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## Unreleased
+
+- An unsaved analysis is never replaced without a way back. Opening the
+  Scoresheet keeps it in its own tab; the "+" beside Save, a Library game
+  or a search hit that replaces it leaves a notice with **Open it in a new
+  tab**, which stays until used or dismissed.
+- When a browser cannot start the multi-threaded Stockfish build, analysis
+  falls back to the single-threaded build instead of reporting “Engine
+  error”. The engine panel shows the one thread it runs with.
+
 ## 1.5.1 — 2026-10-09
 
 - Puzzles show correct and incorrect move feedback. Wrong moves return to the
