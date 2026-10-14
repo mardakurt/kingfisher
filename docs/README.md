@@ -1,5 +1,8 @@
 # Kingfisher documentation
 
+- [1.5.2 release notes](release/1.5.2.md) — puzzle move marks, unsaved-work safety, engine fallback.
+- [2026-10-14 stream-hardening report](reports/2026-10-14-stream-hardening.md) — what was audited, found, fixed and run.
+
 - [1.5.1 release notes](release/1.5.1.md) — puzzle retries and correctness fixes.
 
 - [ChessBase Mac closure candidate for 1.5.0](product/chessbase-mac-comparison-1.5.0.md) — claim/control matrix and explicitly pending acceptance.

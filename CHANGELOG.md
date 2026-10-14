@@ -4,7 +4,11 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
-## Unreleased
+## 1.5.2 — 2026-10-14
+
+- Puzzles mark each move on the board, on the square it landed on: a red
+  cross for a wrong move until it is taken back, a green tick for a right
+  one until the reply, and the solving move keeps its tick.
 
 - An unsaved analysis is never replaced without a way back. Opening the
   Scoresheet keeps it in its own tab; the "+" beside Save, a Library game
