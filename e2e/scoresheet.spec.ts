@@ -117,3 +117,47 @@ test('a sheet is corrected by taking a move back, and survives a reload', async 
   await expect(board.getByRole('gridcell', { name: /^c4, White bishop/ })).toBeVisible();
   await expect(board.getByRole('gridcell', { name: /^c6, Black knight/ })).toBeVisible();
 });
+
+/**
+ * The board is shared by every page. Opening the scoresheet from the sidebar
+ * used to put a blank sheet over whatever the analysis board held: three
+ * unsaved moves, one click, and they were gone with no question asked.
+ * Unsaved work now keeps its own tab, on the analysis board, and the sheet
+ * gets a tab of its own.
+ */
+test('opening the scoresheet never replaces an unsaved analysis', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/analysis');
+  await ready(page);
+  const board = page.getByRole('grid', { name: 'Chessboard' }).first();
+  for (const [from, to] of [
+    ['e2', 'e4'],
+    ['e7', 'e5'],
+    ['g1', 'f3'],
+  ]) {
+    await board.getByRole('gridcell', { name: new RegExp(`^${from},`) }).click();
+    await board.getByRole('gridcell', { name: new RegExp(`^${to},`) }).click();
+  }
+  const status = page.getByRole('contentinfo');
+  await expect(status).toContainText('3 half-moves');
+
+  const strip = page.getByRole('tablist', { name: 'Workspace tabs' });
+  const before = await strip.getByRole('tab').count();
+  await page
+    .getByRole('navigation', { name: 'Sections' })
+    .getByRole('link', { name: 'Scoresheet', exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/scoresheet$/);
+
+  // The sheet is ready on a fresh board, in a tab of its own.
+  const entry = page.getByLabel('Move as written on the sheet');
+  await expect(entry).toBeEnabled();
+  await expect(page.getByTestId('sheet-entry')).toContainText('0 on the board');
+  await expect(strip.getByRole('tab')).toHaveCount(before + 1);
+
+  // The analysis is where it was left, on the analysis board.
+  await strip.getByRole('tab').first().click();
+  await expect(page).toHaveURL(/\/analysis$/);
+  await expect(status).toContainText('3 half-moves');
+  await expect(status).not.toContainText('From the sheet');
+});

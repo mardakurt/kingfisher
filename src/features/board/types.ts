@@ -52,7 +52,18 @@ export interface ChessboardProps {
   readonly engineArrows?: readonly EngineArrow[];
   /** The Explorer's moves, drawn under the engine's (`reference-arrows.ts`). */
   readonly referenceArrows?: readonly ReferenceArrow[];
+  /**
+   * A verdict on the move just played, drawn as a badge in the corner of the
+   * square it landed on, above the piece — the green tick or red cross a
+   * puzzle board shows. The board draws it; whoever judged the move owns it.
+   */
+  readonly moveBadge?: MoveBadge | null;
   readonly className?: string;
+}
+
+export interface MoveBadge {
+  readonly square: Square;
+  readonly verdict: 'correct' | 'wrong';
 }
 
 export type PromotionChoice = PromotionPiece;

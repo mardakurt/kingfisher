@@ -47,7 +47,20 @@ const nextConfig: NextConfig = {
   typedRoutes: true,
   // E2E owns its disposable output instead of inheriting an ordinary dev
   // server's cache or sharing the production build's generated manifests.
-  ...(process.env.KINGFISHER_E2E === '1' ? { distDir: '.next/e2e.nosync' } : {}),
+  ...(process.env.KINGFISHER_E2E === '1'
+    ? {
+        distDir: '.next/e2e.nosync',
+        /*
+          The development server keeps five compiled routes for 60 s by
+          default and recompiles the rest on their next visit. A three-hour
+          suite revisits some thirty routes, so tests met "Compiling…" and
+          Fast Refresh rebuilds mid-assertion and failed on time, not on
+          behaviour (2026-10-14: a repertoire and a model-game case). The
+          suite keeps every route it has compiled for the whole run.
+        */
+        onDemandEntries: { maxInactiveAge: 24 * 60 * 60 * 1000, pagesBufferLength: 200 },
+      }
+    : {}),
   /*
     No image optimiser in the standalone build.
 

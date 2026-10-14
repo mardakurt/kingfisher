@@ -29,6 +29,7 @@ import { Position } from '@/chess/position';
 import type { ChessMove, MoveIntent, Square } from '@/chess/types';
 import { Button } from '@/components/ui/Button';
 import { Chessboard } from '@/features/board/Chessboard';
+import type { MoveBadge } from '@/features/board/types';
 import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
 import { Check, Close, Tactics } from '@/components/icons';
 import { getRepositories } from '@/persistence/repositories';
@@ -48,6 +49,8 @@ type Phase =
   'loading' | 'solving' | 'solved' | 'retrying' | 'replying' | 'revealed' | 'empty' | 'error';
 
 const DIFFICULTY = { easier: -250, normal: 0, harder: 250 } as const;
+/** How long a correct move, and its tick, stand before the opponent replies. */
+const REPLY_DELAY_MS = 600;
 type Difficulty = keyof typeof DIFFICULTY;
 
 /** Themes worth choosing from, in the order the set holds most of them. */
@@ -97,6 +100,13 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
   const recordedRef = useRef(false);
   const generation = useRef(0);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
+  /*
+    The verdict on the board, on the square the move landed on, as Lichess
+    and Chess.com show it: the panel's message is read after the fact, the
+    board is where the eyes are. It follows the move — gone when a wrong move
+    is taken back or the reply is played, kept on the move that solves.
+  */
+  const [badge, setBadge] = useState<MoveBadge | null>(null);
   const played = useRef<string[]>([]);
   const started = useRef(0);
   // Seeded from the clock when the first puzzle is chosen, not during render.
@@ -139,6 +149,7 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
     generation.current += 1;
     setPhase('loading');
     setFeedback(null);
+    setBadge(null);
     setMessage(null);
     setHint(null);
     setLastResult(null);
@@ -217,6 +228,7 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
       setLastMove(answer.move);
       setPhase('retrying');
       setFeedback('wrong');
+      setBadge({ square: answer.move.to, verdict: 'wrong' });
       setMessage('Incorrect move. Try again — you can still finish this puzzle.');
       void record(puzzle, false);
       // Restore this decision, including after a later mistake in the line.
@@ -224,12 +236,14 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
         window.setTimeout(() => {
           setPosition(position);
           setLastMove(lastMove);
+          setBadge(null);
           setPhase('solving');
         }, 700),
       );
       return;
     }
     setFeedback('correct');
+    setBadge({ square: answer.move.to, verdict: 'correct' });
     const after = position.after(answer.move);
     setPosition(after);
     setLastMove(answer.move);
@@ -253,9 +267,11 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
         window.setTimeout(() => {
           setPosition(after.after(reply));
           setLastMove(reply);
+          setBadge(null);
           setStep((value) => value + 1);
           setPhase('solving');
-        }, 350),
+          // Long enough for the tick to be seen before the reply removes it.
+        }, REPLY_DELAY_MS),
       );
     }
   };
@@ -266,6 +282,7 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
     if (!expected) return;
     setHint(expected.from);
     setFeedback(null);
+    setBadge(null);
     setMessage(
       'A hint ends the rated attempt: it is recorded as unsolved. You can still finish it.',
     );
@@ -278,6 +295,7 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
     if (!recorded) void record(puzzle, false);
     setPhase('revealed');
     setFeedback(null);
+    setBadge(null);
     setHint(null);
     let at = Position.fromTrustedFen(line.setup.after);
     const remaining = line.solution;
@@ -305,6 +323,7 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
     setStep(0);
     setHint(null);
     setFeedback(null);
+    setBadge(null);
     setMessage('Try the puzzle again. This is practice; your rating will not change.');
     setPhase('solving');
   };
@@ -565,6 +584,7 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
                   pieceSet={preferences.pieceSet}
                   coordinates={preferences.coordinateStyle}
                   animationMs={resolveAnimationMs(preferences.animationSpeed)}
+                  moveBadge={badge}
                 />
               ) : (
                 <div className="flex aspect-square w-full items-center justify-center rounded-[var(--radius-panel)] border border-dashed border-line text-xs text-tertiary">

@@ -32,6 +32,12 @@ export interface Notice {
   readonly tone: 'info' | 'error' | 'success';
   readonly message: string;
   readonly detail?: string;
+  /**
+   * One thing the person can do about it. A notice with an action stays
+   * until it is used or dismissed: an undo that vanishes after four seconds
+   * is not one anybody can rely on.
+   */
+  readonly action?: { readonly label: string; readonly run: () => void };
 }
 
 interface UiState {
@@ -213,8 +219,8 @@ export const useUi = create<UiState>((set) => ({
         { ...notice, id },
       ].slice(-4),
     }));
-    // Errors stay until dismissed; confirmations get out of the way.
-    if (notice.tone !== 'error') {
+    // Errors and offers stay until dismissed; confirmations get out of the way.
+    if (notice.tone !== 'error' && !notice.action) {
       setTimeout(() => {
         set((state) => ({ notices: state.notices.filter((item) => item.id !== id) }));
       }, 4000);

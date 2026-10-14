@@ -91,7 +91,13 @@ const alive = (pid) => {
   }
 };
 
-describe('a desktop service', () => {
+/*
+  Every case spawns real Node processes and waits for them to answer over
+  HTTP or to die; start-up alone is most of a second each, and three cases
+  ran 4.1–4.6 s against Vitest's default 5 s. The budget is a fraction of the
+  service's own READY_TIMEOUT_MS, not a tolerance for anything slower.
+*/
+describe('a desktop service', { timeout: 20_000 }, () => {
   it('is ready only once it answers, and stops on SIGTERM', async () => {
     const port = await freePort();
     const service = new Service({

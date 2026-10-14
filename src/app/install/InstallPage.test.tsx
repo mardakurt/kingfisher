@@ -47,7 +47,13 @@ describe('the install page follows the descriptor', () => {
     expect(html).toMatch(/Right-click/);
   });
 
+  // The floor is pinned in each fixture rather than read from the live
+  // descriptor: 1.5.1 moved it to 14.0 and a hard-coded "13" here went red
+  // on master. Two values prove the page follows the descriptor at all.
   it('states the macOS floor from the descriptor', () => {
-    expect(render(notarised)).toContain('macOS 13 (Ventura)');
+    const sonoma = render({ ...notarised, minimumMacOS: '14.0' });
+    expect(sonoma).toContain('macOS 14 (Sonoma)');
+    expect(sonoma).not.toContain('macOS 13 (Ventura)');
+    expect(render({ ...notarised, minimumMacOS: '13.0' })).toContain('macOS 13 (Ventura)');
   });
 });

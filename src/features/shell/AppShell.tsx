@@ -23,6 +23,7 @@ import { APP_VERSION } from '@/lib/version';
 
 import { ConflictNotice } from '@/features/persistence/ConflictNotice';
 import { RecoveryNotice } from '@/features/persistence/RecoveryNotice';
+import { DisplacedWorkGuard } from '@/features/tabs/DisplacedWorkGuard';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 import { Notices } from './Notices';
@@ -264,6 +265,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         ) : null}
         <MoveContextMenu />
         <Notices />
+        <DisplacedWorkGuard />
       </div>
     </ChessWorkspaceProvider>
   );

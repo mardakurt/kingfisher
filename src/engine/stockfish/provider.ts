@@ -163,10 +163,26 @@ export class StockfishWasmProvider implements EngineProvider {
 
   async create(configuration: Partial<EngineConfiguration> = {}): Promise<EngineSession> {
     const manifest = await loadStockfishManifest();
-    const build = selectBuild(buildsForNetwork(manifest.builds, this.network));
+    const builds = buildsForNetwork(manifest.builds, this.network);
+    let build = selectBuild(builds);
     if (!build) throw new EngineError('No usable engine build is installed.', this.installHint);
 
-    const client = await UciWorkerClient.start(build.script, HANDSHAKE_TIMEOUT_MS[this.network]);
+    let client: UciWorkerClient;
+    try {
+      client = await UciWorkerClient.start(build.script, HANDSHAKE_TIMEOUT_MS[this.network]);
+    } catch (error) {
+      // A cross-origin-isolated page can still fail to start the threaded
+      // build: its pthread workers or its shared memory are refused (an
+      // embedded Chromium did exactly this). The single-threaded build of the
+      // same network answers the same question more slowly, and an analysis
+      // board that says "Engine error" mid-session answers none. The engine's
+      // own `id name` and the derived capabilities report the build that ran.
+      const single = build.threads ? builds.find((candidate) => !candidate.threads) : undefined;
+      if (!single) throw error;
+      threadedBuildFailed.add(this.network);
+      build = single;
+      client = await UciWorkerClient.start(build.script, HANDSHAKE_TIMEOUT_MS[this.network]);
+    }
     const { identity, options } = await readIdentity(client);
     const capabilities = deriveCapabilities(options, build);
 
@@ -180,8 +196,22 @@ export class StockfishWasmProvider implements EngineProvider {
   }
 }
 
+/**
+ * Networks whose threaded build failed to start in this page. Remembered for
+ * the page's lifetime so every later session goes straight to the build that
+ * works instead of failing once more first.
+ */
+const threadedBuildFailed = new Set<StockfishNetwork>();
+
+/** For tests: forget the cached manifest and any threaded-build failure. */
+export function resetStockfishProviderState(): void {
+  manifestPromise = null;
+  threadedBuildFailed.clear();
+}
+
 function selectBuild(builds: readonly EngineBuild[]): EngineBuild | undefined {
-  if (supportsThreads()) {
+  const network = builds[0] ? networkOf(builds[0]) : 'lite';
+  if (supportsThreads() && !threadedBuildFailed.has(network)) {
     const threaded = builds.find((build) => build.threads);
     if (threaded) return threaded;
   }

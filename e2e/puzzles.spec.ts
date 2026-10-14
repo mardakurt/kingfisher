@@ -170,3 +170,55 @@ test('a hint leaves the puzzle playable while keeping the rated attempt unsolved
   );
   await expect(page.locator('[data-puzzle-record]')).toContainText('1 attempt · 0 solved');
 });
+
+/**
+ * The verdict is drawn on the board, on the square the move landed on, as
+ * Lichess and Chess.com draw it: a red cross while a wrong move stands, a
+ * green tick until the reply, and the tick kept on the move that solves.
+ */
+test('a tick or a cross marks the square each move landed on', async ({ page }) => {
+  const board = page.locator('[data-puzzle-board]');
+  const badge = board.locator('[data-move-badge]');
+  let wrong: string | null = null;
+  let solutionMoves: string[] = [];
+  for (const [id, , moves] of puzzlesWith('r1600', 2).slice(0, 8)) {
+    solutionMoves = moves.split(' ').slice(1);
+    const solution = solutionMoves[0]!;
+    await open(page, id);
+    await board.getByRole('gridcell', { name: new RegExp(`^${solution.slice(0, 2)},`) }).click();
+    await expect(board.locator('[data-target="true"]').first()).toBeVisible();
+    const targets = await board
+      .locator('[data-target="true"]')
+      .evaluateAll((cells) =>
+        cells.map((cell) => (cell.getAttribute('aria-label') ?? '').slice(0, 2)),
+      );
+    wrong = targets.find((square) => square !== solution.slice(2, 4)) ?? null;
+    if (wrong) break;
+  }
+  expect(wrong, 'one of eight puzzles offers a second destination').not.toBeNull();
+  await expect(badge).toHaveCount(0);
+
+  // Wrong: a cross on the square it went to, gone when the move is taken back.
+  await board.getByRole('gridcell', { name: new RegExp(`^${wrong},`) }).click();
+  await expect(badge).toHaveAttribute('data-move-badge', 'wrong');
+  await expect(badge).toHaveAttribute('data-move-badge-square', wrong!);
+  await expect(board.getByRole('img', { name: 'Wrong move' })).toBeVisible();
+  await expect(page.locator('[data-puzzle-message="solving"]')).toBeVisible();
+  await expect(badge).toHaveCount(0);
+
+  // Right: a tick on its square, gone when the reply is played.
+  const first = solutionMoves[0]!;
+  await playMove(page, first);
+  await expect(badge).toHaveAttribute('data-move-badge', 'correct');
+  await expect(badge).toHaveAttribute('data-move-badge-square', first.slice(2, 4));
+  await expect(board.getByRole('img', { name: 'Correct move' })).toBeVisible();
+  await expect(page.locator('[data-puzzle-message="solving"]')).toBeVisible();
+  await expect(badge).toHaveCount(0);
+
+  // The solving move keeps its tick.
+  const last = solutionMoves[2]!;
+  await playMove(page, last);
+  await expect(page.locator('[data-puzzle-message="solved"]')).toBeVisible();
+  await expect(badge).toHaveAttribute('data-move-badge', 'correct');
+  await expect(badge).toHaveAttribute('data-move-badge-square', last.slice(2, 4));
+});

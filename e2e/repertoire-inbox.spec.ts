@@ -101,7 +101,8 @@ test('the inbox lists where your games left your line, and reopens on new eviden
   );
 
   // A second game with the same departure is new evidence: the item is open again.
-  await page.getByRole('button', { name: 'Close' }).click();
+  // Exact: the tab strip's own buttons are "Close <tab>" once two tabs are open.
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
   await importMine(page, myGame('Club 2', 'Nc3'));
   await page.reload();
   await page.locator(READY).waitFor();

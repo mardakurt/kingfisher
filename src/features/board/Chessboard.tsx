@@ -7,6 +7,7 @@ import { boardSquares, squareColor } from '@/chess/board';
 import { parseFen } from '@/chess/fen';
 import { FILES, RANKS } from '@/chess/types';
 import type { Color, Fen, Piece, PromotionPiece, Square } from '@/chess/types';
+import { Check, Close } from '@/components/icons';
 import { cn } from '@/lib/cn';
 
 import { BoardShapes } from './BoardShapes';
@@ -20,7 +21,7 @@ import {
 } from './layout';
 import { PieceIcon, pieceLabel } from './pieces';
 import { boardTheme, boardThemeVariables } from './themes';
-import type { ChessboardProps } from './types';
+import type { ChessboardProps, MoveBadge } from './types';
 
 /**
  * A flipped board does not travel.
@@ -110,6 +111,7 @@ export function Chessboard({
   emphasis = [],
   engineArrows = [],
   referenceArrows,
+  moveBadge = null,
   className,
 }: ChessboardProps) {
   const outsideCoordinates = coordinates === 'outside';
@@ -666,6 +668,8 @@ export function Chessboard({
           orientation={orientation}
         />
 
+        {moveBadge && <MoveBadgeLayer badge={moveBadge} orientation={orientation} />}
+
         {pendingPromotion && (
           <PromotionPicker
             square={pendingPromotion.to}
@@ -676,6 +680,44 @@ export function Chessboard({
           />
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * The tick or cross on the square a move landed on. One square-sized box,
+ * placed the way the piece layer places a piece, with the badge in its
+ * top-right corner: above the piece, so it is read without moving the eyes
+ * off the board, and under a piece being dragged.
+ */
+function MoveBadgeLayer({
+  badge,
+  orientation,
+}: {
+  readonly badge: MoveBadge;
+  readonly orientation: Color;
+}) {
+  const offset = squareOffset(badge.square, orientation);
+  const correct = badge.verdict === 'correct';
+  return (
+    <div
+      className="pointer-events-none absolute left-0 top-0 h-[12.5%] w-[12.5%]"
+      style={{ transform: `translate(${offset.x}%, ${offset.y}%)`, zIndex: 20 }}
+      data-move-badge={badge.verdict}
+      data-move-badge-square={badge.square}
+    >
+      <span
+        role="img"
+        aria-label={correct ? 'Correct move' : 'Wrong move'}
+        className="absolute right-[3%] top-[3%] flex h-[36%] w-[36%] items-center justify-center rounded-full text-white shadow-[0_1px_3px_rgb(0_0_0/0.45)] ring-2 ring-white animate-rise"
+        style={{ background: correct ? 'var(--positive)' : 'var(--negative)' }}
+      >
+        {correct ? (
+          <Check className="h-[70%] w-[70%]" strokeWidth={3} />
+        ) : (
+          <Close className="h-[64%] w-[64%]" strokeWidth={3} />
+        )}
+      </span>
     </div>
   );
 }

@@ -16,7 +16,7 @@ import { workspaceRestored } from '@/features/persistence/useWorkspacePersistenc
 import { stableId } from '@/persistence/ids';
 import { getRepositories } from '@/persistence/repositories';
 import type { DraftRecord, TabDraftId } from '@/persistence/types';
-import { selectDirty, useAnalysis } from '@/stores/analysis-store';
+import { selectDirty, useAnalysis, type OpenDocumentInput } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 import { openingIndexIfLoaded } from '@/theory/openings';
 import { classifyPath } from '@/theory/useOpeningClassification';
@@ -95,13 +95,125 @@ function boardRisk(record: {
   return null;
 }
 
-/** Write the active tab's place, title and board work before leaving it. */
-async function captureActive(): Promise<void> {
+/**
+ * Work a replacement just took off the board, kept so it can be put back.
+ *
+ * Twenty modules open things on the shared board, and most replace what is
+ * there: a Library game, a search hit, a file from Finder, the "+" next to
+ * Save. Over an analysis nobody had saved, each of them dropped it without a
+ * word, with nothing in Recent or undo to bring it back. Rather than asking
+ * every caller to remember, the board itself is watched: a replacement that
+ * loses nodes from work at risk leaves a copy here and says so, and the copy
+ * opens in a tab of its own. Tab switches are not watched — they write the
+ * work to its tab before swapping it.
+ */
+export function displacedWork(
+  previous: ReturnType<typeof useAnalysis.getState>,
+  next: ReturnType<typeof useAnalysis.getState>,
+): OpenDocumentInput | null {
+  if (previous.generation === next.generation) return null;
+  if (useTabs.getState().switching) return null;
+  if (!boardRisk({ ...previous, unsaved: selectDirty(previous) })) return null;
+  // The same chapter reloaded (a write-back, the other tab's version chosen)
+  // is that chapter's business, not a displacement.
+  const before = previous.document;
+  const after = next.document;
+  if (
+    before.kind === 'study-chapter' &&
+    after.kind === 'study-chapter' &&
+    before.chapterId === after.chapterId
+  ) {
+    return null;
+  }
+  const kept = Object.keys(previous.tree.nodes).every((id) => id in next.tree.nodes);
+  if (kept) return null;
+  return {
+    tree: previous.tree,
+    document: previous.document,
+    currentId: previous.currentId,
+    orientation: previous.orientation,
+    // Back on the board it is still unsaved: autosave and the tab's close
+    // question treat it exactly as before it was displaced.
+    clean: false,
+  };
+}
+
+/**
+ * Keep every displaced piece of work, until the page goes away.
+ *
+ * The work becomes a tab of its own in the strip, written to that tab's
+ * draft, so it is one click away and survives a reload. An earlier version
+ * offered it back with a notice that stayed until used: on the board's
+ * lower edge it covered the controls there ("Open position page"), which
+ * is worse than a notice that goes. With twelve tabs open there is no room
+ * in the strip, and only then does the offer wait for the person.
+ */
+export function watchDisplacedWork(navigate: Navigate): () => void {
+  return useAnalysis.subscribe((next, previous) => {
+    const work = displacedWork(previous, next);
+    if (!work) return;
+    void keepDisplaced(work, navigate).catch((error: unknown) =>
+      failed(error, 'The replaced analysis could not be kept in a tab.'),
+    );
+  });
+}
+
+async function keepDisplaced(work: OpenDocumentInput, navigate: Navigate): Promise<void> {
+  const untitled = work.document.kind === 'untitled';
+  const what = untitled ? 'The unsaved analysis' : `Unsaved edits to “${work.document.title}”`;
+  const was = untitled ? 'was' : 'were';
+  if (useTabs.getState().tabs.length >= MAX_TABS) {
+    useUi.getState().notify({
+      tone: 'info',
+      message: `${what} on the board ${was} replaced.`,
+      detail: 'Twelve tabs are open, so it is not in the strip; it can still be opened.',
+      action: {
+        label: 'Open it in a new tab',
+        run: () => {
+          void openInNewTab(navigate, () => useAnalysis.getState().openDocument(work));
+        },
+      },
+    });
+    return;
+  }
+  const id = stableId('tab');
+  const repositories = await getRepositories();
+  await repositories.drafts.save({
+    id: draftId(id),
+    document: work.document,
+    tree: work.tree,
+    currentId: work.currentId ?? work.tree.rootId,
+    orientation: work.orientation ?? 'w',
+    updatedAt: Date.now(),
+    unsaved: true,
+  });
+  const title = untitled ? 'Unsaved analysis' : work.document.title;
+  useTabs.getState().adopt([{ id, title }]);
+  useUi.getState().notify({
+    tone: 'info',
+    message: `${what} ${was} kept in a tab of its own: “${title}”.`,
+  });
+}
+
+/** Would replacing the board in place lose work nobody has saved? */
+export function boardHoldsWork(): boolean {
+  const state = useAnalysis.getState();
+  return boardRisk({ ...state, unsaved: selectDirty(state) }) !== null;
+}
+
+/**
+ * Write the active tab's place, title and board work before leaving it.
+ *
+ * `href` overrides the place recorded: a page that has already been
+ * navigated to when it decides to move the board's work aside knows the
+ * work belongs somewhere else than the address now shown.
+ */
+async function captureActive(href: string = here()): Promise<void> {
   const tabs = useTabs.getState();
   const tab = activeTab(tabs);
   if (!tab) return;
   const state = useAnalysis.getState();
-  tabs.update(tab.id, { href: here(), title: currentTitle() });
+  tabs.update(tab.id, { href, title: currentTitle() });
   const repositories = await getRepositories();
   await repositories.drafts.save({
     id: draftId(tab.id),
@@ -230,7 +342,12 @@ export function newTab(navigate: Navigate, options: { duplicate?: boolean } = {}
  * document in the store once the active tab's work has been written to its
  * own draft. Resolves to false, having said why, when no tab could be opened.
  */
-export function openInNewTab(navigate: Navigate, apply: () => void): Promise<boolean> {
+export function openInNewTab(
+  navigate: Navigate,
+  apply: () => void,
+  options: { readonly href?: string; readonly leaving?: string } = {},
+): Promise<boolean> {
+  const href = options.href ?? NEW_TAB_HREF;
   let opened = false;
   return guarded('A new tab could not be opened.', async () => {
     const tabs = useTabs.getState();
@@ -241,12 +358,13 @@ export function openInNewTab(navigate: Navigate, apply: () => void): Promise<boo
       });
       return;
     }
-    await captureActive();
+    await captureActive(options.leaving);
     const id = stableId('tab');
-    useTabs.getState().open({ id, href: NEW_TAB_HREF, title: 'Analysis board' });
+    useTabs.getState().open({ id, href, title: 'Analysis board' });
     useTabs.getState().publish(null);
     apply();
-    navigate.push(NEW_TAB_HREF);
+    // As in `enter`: no navigation to the address already shown.
+    if (href !== here()) navigate.push(href);
     await writeBoardDraft(selectDirty(useAnalysis.getState()));
     opened = true;
   }).then(() => opened);

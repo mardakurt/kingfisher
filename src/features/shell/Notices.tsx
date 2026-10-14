@@ -31,6 +31,18 @@ export function Notices() {
             {notice.detail && (
               <p className="mt-0.5 text-2xs leading-relaxed text-tertiary">{notice.detail}</p>
             )}
+            {notice.action && (
+              <button
+                type="button"
+                onClick={() => {
+                  dismiss(notice.id);
+                  notice.action?.run();
+                }}
+                className="pointer-events-auto mt-1.5 rounded-[var(--radius-control)] border border-line px-2 py-0.5 text-2xs font-medium text-accent-ink transition-colors hover:bg-surface-3"
+              >
+                {notice.action.label}
+              </button>
+            )}
           </div>
           <button
             type="button"
