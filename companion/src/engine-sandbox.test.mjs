@@ -375,42 +375,51 @@ describe('a running engine', () => {
     expect(replayed.some((line) => String(line).includes('pv e2e4'))).toBe(false);
   });
 
-  it('stops the engine after its last subscriber leaves, and keeps it if one returns', async () => {
-    host = new EngineHost(
-      install("console.log('pid ' + process.pid);\nsetInterval(() => {}, 1000);\n"),
-    );
-    const session = host.start('fake');
-    let pid = 0;
-    let unsubscribe = () => {};
-    await new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('no pid')), 5000);
-      unsubscribe = host.subscribe(session.id, (line) => {
-        if (!String(line).startsWith('pid ')) return;
-        pid = Number(String(line).split(' ')[1]);
-        clearTimeout(timer);
-        resolve();
+  it(
+    'stops the engine after its last subscriber leaves, and keeps it if one returns',
+    async () => {
+      host = new EngineHost(
+        install("console.log('pid ' + process.pid);\nsetInterval(() => {}, 1000);\n"),
+      );
+      const session = host.start('fake');
+      let pid = 0;
+      let unsubscribe = () => {};
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('no pid')), 5000);
+        unsubscribe = host.subscribe(session.id, (line) => {
+          if (!String(line).startsWith('pid ')) return;
+          pid = Number(String(line).split(' ')[1]);
+          clearTimeout(timer);
+          resolve();
+        });
       });
-    });
-    expect(pid).toBeGreaterThan(0);
-    expect(() => process.kill(pid, 0)).not.toThrow();
+      expect(pid).toBeGreaterThan(0);
+      expect(() => process.kill(pid, 0)).not.toThrow();
 
-    unsubscribe();
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    // Immediate stop deletes the session before the process has died. Grace
-    // leaves it registered, which is what a reconnect within the window finds.
-    expect(host.list().some((entry) => entry.id === session.id)).toBe(true);
-    expect(() => process.kill(pid, 0)).not.toThrow();
+      unsubscribe();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Immediate stop deletes the session before the process has died. Grace
+      // leaves it registered, which is what a reconnect within the window finds.
+      expect(host.list().some((entry) => entry.id === session.id)).toBe(true);
+      expect(() => process.kill(pid, 0)).not.toThrow();
 
-    const again = host.subscribe(session.id, () => {});
-    await new Promise((resolve) => setTimeout(resolve, SUBSCRIBER_GRACE_MS + 400));
-    expect(() => process.kill(pid, 0)).not.toThrow();
-    expect(host.list().some((entry) => entry.id === session.id)).toBe(true);
+      const again = host.subscribe(session.id, () => {});
+      await new Promise((resolve) => setTimeout(resolve, SUBSCRIBER_GRACE_MS + 400));
+      expect(() => process.kill(pid, 0)).not.toThrow();
+      expect(host.list().some((entry) => entry.id === session.id)).toBe(true);
 
-    again();
-    await waitUntilGone(pid, SUBSCRIBER_GRACE_MS + 1500);
-    expect(() => process.kill(pid, 0)).toThrow();
-    expect(host.list().some((entry) => entry.id === session.id)).toBe(false);
-  });
+      again();
+      await waitUntilGone(pid, SUBSCRIBER_GRACE_MS + 1500);
+      expect(() => process.kill(pid, 0)).toThrow();
+      expect(host.list().some((entry) => entry.id === session.id)).toBe(false);
+      /*
+      The budget is the test's own waits: the spawn (up to 5 s), the grace
+      period sat through twice, and a margin. On Vitest's default 5 s it ran
+      4.9 s on an idle machine and failed whenever anything else was running.
+    */
+    },
+    5_000 + 50 + (SUBSCRIBER_GRACE_MS + 400) + (SUBSCRIBER_GRACE_MS + 1_500) + 2_000,
+  );
 
   it('does not resolve stop until an engine that ignores quit has exited', async () => {
     host = new EngineHost(

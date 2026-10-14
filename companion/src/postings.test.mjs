@@ -244,7 +244,8 @@ describe('the posting layout', { timeout: 120_000 }, () => {
     postings.insertGames(first);
     expect(postings.aggregateIntegrity().aggregateRows).toBe(0);
     expect(firstDifference(rows, postings, distinctKeys(rowsFile))).toBeNull();
-  });
+    // Builds and compares two full layouts: 4.8 s idle, against a 5 s default.
+  }, 20_000);
 
   it('answers the same once hot aggregates exist, and keeps them exact through an import', () => {
     postings.rebuildAggregates();
