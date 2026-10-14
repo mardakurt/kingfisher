@@ -138,18 +138,35 @@ export function displacedWork(
   };
 }
 
-/** Offer every displaced piece of work back, until the page goes away. */
+/**
+ * Keep every displaced piece of work, until the page goes away.
+ *
+ * The work becomes a tab of its own in the strip, written to that tab's
+ * draft, so it is one click away and survives a reload. An earlier version
+ * offered it back with a notice that stayed until used: on the board's
+ * lower edge it covered the controls there ("Open position page"), which
+ * is worse than a notice that goes. With twelve tabs open there is no room
+ * in the strip, and only then does the offer wait for the person.
+ */
 export function watchDisplacedWork(navigate: Navigate): () => void {
   return useAnalysis.subscribe((next, previous) => {
     const work = displacedWork(previous, next);
     if (!work) return;
+    void keepDisplaced(work, navigate).catch((error: unknown) =>
+      failed(error, 'The replaced analysis could not be kept in a tab.'),
+    );
+  });
+}
+
+async function keepDisplaced(work: OpenDocumentInput, navigate: Navigate): Promise<void> {
+  const untitled = work.document.kind === 'untitled';
+  const what = untitled ? 'The unsaved analysis' : `Unsaved edits to “${work.document.title}”`;
+  const was = untitled ? 'was' : 'were';
+  if (useTabs.getState().tabs.length >= MAX_TABS) {
     useUi.getState().notify({
       tone: 'info',
-      message:
-        work.document.kind === 'untitled'
-          ? 'The unsaved analysis on the board was replaced.'
-          : `Unsaved edits to “${work.document.title}” were replaced.`,
-      detail: 'Nothing is lost: it can be opened again in a tab of its own.',
+      message: `${what} on the board ${was} replaced.`,
+      detail: 'Twelve tabs are open, so it is not in the strip; it can still be opened.',
       action: {
         label: 'Open it in a new tab',
         run: () => {
@@ -157,6 +174,24 @@ export function watchDisplacedWork(navigate: Navigate): () => void {
         },
       },
     });
+    return;
+  }
+  const id = stableId('tab');
+  const repositories = await getRepositories();
+  await repositories.drafts.save({
+    id: draftId(id),
+    document: work.document,
+    tree: work.tree,
+    currentId: work.currentId ?? work.tree.rootId,
+    orientation: work.orientation ?? 'w',
+    updatedAt: Date.now(),
+    unsaved: true,
+  });
+  const title = untitled ? 'Unsaved analysis' : work.document.title;
+  useTabs.getState().adopt([{ id, title }]);
+  useUi.getState().notify({
+    tone: 'info',
+    message: `${what} ${was} kept in a tab of its own: “${title}”.`,
   });
 }
 

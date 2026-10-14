@@ -1,24 +1,24 @@
 /**
- * The board never drops an unsaved analysis without saying so and offering
- * it back. Before this, the "+" beside Save, a Library game, a search hit or
- * the Scoresheet each replaced an unsaved analysis silently, and nothing in
- * Recent or undo could bring it back. Real analysis, tab and notice stores.
+ * Which replacements of the board lose unsaved work. Before the guard, the
+ * "+" beside Save, a Library game, a search hit or the Scoresheet each
+ * replaced an unsaved analysis silently, and nothing in Recent or undo could
+ * bring it back. Real analysis and tab stores; what is kept, and where, is
+ * `e2e/displaced-work.spec.ts`.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { START_FEN } from '@/chess/fen';
 import { createTree } from '@/chess/tree/tree';
 import type { GameId } from '@/persistence/types';
-import { useAnalysis } from '@/stores/analysis-store';
-import { useUi } from '@/stores/ui-store';
+import { useAnalysis, type OpenDocumentInput } from '@/stores/analysis-store';
 
-import { watchDisplacedWork } from './tab-actions';
+import { displacedWork } from './tab-actions';
 import { useTabs } from './tab-store';
 
-const pushed: string[] = [];
+let kept: OpenDocumentInput[] = [];
 let stop: () => void = () => {};
 
-const offers = () => useUi.getState().notices.filter((notice) => notice.action);
+const offers = () => kept;
 
 function playLine(...sans: string[]) {
   for (const san of sans) {
@@ -29,25 +29,30 @@ function playLine(...sans: string[]) {
 
 beforeEach(() => {
   useAnalysis.getState().newGame(START_FEN);
-  useUi.setState({ notices: [] });
   useTabs.getState().setSwitching(false);
-  pushed.length = 0;
-  stop = watchDisplacedWork({ push: (href) => pushed.push(href) });
+  kept = [];
+  stop = useAnalysis.subscribe((next, previous) => {
+    const work = displacedWork(previous, next);
+    if (work) kept.push(work);
+  });
 });
 
 afterEach(() => {
   stop();
-  useUi.setState({ notices: [] });
 });
 
 describe('displaced work', () => {
-  it('offers back an unsaved analysis that "New analysis" replaced', () => {
+  it('keeps an unsaved analysis that "New analysis" replaced', () => {
     playLine('e4', 'e5', 'Nf3');
+    const before = useAnalysis.getState();
     useAnalysis.getState().newGame(START_FEN);
 
-    const [offer] = offers();
-    expect(offer?.message).toBe('The unsaved analysis on the board was replaced.');
-    expect(offer?.action?.label).toBe('Open it in a new tab');
+    const [work] = offers();
+    // The work itself, where it was left, and still unsaved.
+    expect(work?.tree).toBe(before.tree);
+    expect(work?.currentId).toBe(before.currentId);
+    expect(work?.document.kind).toBe('untitled');
+    expect(work?.clean).toBe(false);
   });
 
   it('offers it back when a game from a list replaces it', () => {

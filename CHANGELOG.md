@@ -11,9 +11,9 @@ real users notice.
   one until the reply, and the solving move keeps its tick.
 
 - An unsaved analysis is never replaced without a way back. Opening the
-  Scoresheet keeps it in its own tab; the "+" beside Save, a Library game
-  or a search hit that replaces it leaves a notice with **Open it in a new
-  tab**, which stays until used or dismissed.
+  Scoresheet keeps it in its own tab; when the "+" beside Save, a Library
+  game or a search hit replaces it, it is kept as a tab of its own named
+  “Unsaved analysis”, and a short notice says so.
 - When a browser cannot start the multi-threaded Stockfish build, analysis
   falls back to the single-threaded build instead of reporting “Engine
   error”. The engine panel shows the one thread it runs with.
