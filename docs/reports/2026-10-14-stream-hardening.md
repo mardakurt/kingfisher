@@ -25,13 +25,33 @@ analyse are all present.
 
 ## Defects found by use, and fixed
 
-| Defect                                                                                                                               | Found by                                    | Fix                                                                          | Proof it can fail                                  |
-| ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------- |
-| `master`'s unit suite was red: the install-page test hard-coded the macOS 13 floor; 1.5.1's descriptor says 14                       | `npm test` on the starting commit           | Fixture pins the floor, checks two values                                    | —                                                  |
-| The threaded WASM Stockfish failed in an embedded Chromium ("Uncaught [object Event]"); the board said "Engine error"; no fallback   | Using `/analysis` in the app's browser pane | Provider falls back to the single-threaded build, remembers it for the page  | `provider.test.ts` fails without it                |
-| Clicking **Scoresheet** in the sidebar replaced an unsaved analysis with a blank board, silently                                     | Route sweep, 21 routes, 3 moves each        | Unsaved work moves to its own tab first                                      | `scoresheet.spec.ts` fails without it              |
-| The **+** (New analysis) beside Save, a Library game, a search hit and other openers replaced an unsaved analysis with no way back   | Same sweep, then the openers                | Central guard on the board: notice with **Open it in a new tab**, until used | `displaced-work.test.ts`, `displaced-work.spec.ts` |
-| A companion test took 4.9 s of a 5 s limit and failed under load; three desktop-service tests and one postings test sat at 4.1–4.8 s | A full unit run failing once; duration scan | Budgets derived from each test's own waits; no assertion changed             | —                                                  |
+| Defect                                                                                                                               | Found by                                    | Fix                                                                         | Proof it can fail                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
+| `master`'s unit suite was red: the install-page test hard-coded the macOS 13 floor; 1.5.1's descriptor says 14                       | `npm test` on the starting commit           | Fixture pins the floor, checks two values                                   | —                                                  |
+| The threaded WASM Stockfish failed in an embedded Chromium ("Uncaught [object Event]"); the board said "Engine error"; no fallback   | Using `/analysis` in the app's browser pane | Provider falls back to the single-threaded build, remembers it for the page | `provider.test.ts` fails without it                |
+| Clicking **Scoresheet** in the sidebar replaced an unsaved analysis with a blank board, silently                                     | Route sweep, 21 routes, 3 moves each        | Unsaved work moves to its own tab first                                     | `scoresheet.spec.ts` fails without it              |
+| The **+** (New analysis) beside Save, a Library game, a search hit and other openers replaced an unsaved analysis with no way back   | Same sweep, then the openers                | Central guard on the board: the work is kept as a tab of its own            | `displaced-work.test.ts`, `displaced-work.spec.ts` |
+| A companion test took 4.9 s of a 5 s limit and failed under load; three desktop-service tests and one postings test sat at 4.1–4.8 s | A full unit run failing once; duration scan | Budgets derived from each test's own waits; no assertion changed            | —                                                  |
+
+## Found by the final full browser run, and fixed
+
+The first final-source run (stopped at 373 of 544) failed three cases:
+
+- **Position page** — mine. The first version of the guard offered displaced
+  work back in a notice that stayed until clicked; at the bottom of the
+  window it covered "Open position page", and the click never landed. A
+  notice that blocks controls is worse than one that goes, so displaced work
+  is now kept as a tab of its own automatically, with an ordinary notice.
+  The sticky offer remains only when twelve tabs leave no room in the strip.
+- **Repertoire coverage** and **model game** — the test server, not the
+  application. The trace of one shows Fast Refresh rebuilding mid-test with
+  no file written; the screenshot of the other shows Next's "Compiling…"
+  badge when the 10 s assertion expired. Next's development server keeps
+  five compiled routes for 60 s and recompiles the rest; the suite now keeps
+  every route it has compiled for the run (`onDemandEntries`, under
+  `KINGFISHER_E2E` only — the shipped build is unchanged).
+
+All three passed afterwards with the related specs (31/31, zero retries).
 
 ## Added at the owner's request
 
