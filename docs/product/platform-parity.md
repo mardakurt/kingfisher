@@ -1,5 +1,14 @@
 # Platform parity — the web application and the macOS application
 
+**Published revision check (2026-10-14, 1.5.2).** The public Mac download is
+1.5.2 build 1179 from `b6b938f1f04e255237917304c639043c9aa67218`, stable and
+clean at packaging; Developer ID signed, app and DMG notarised and stapled,
+trust GREEN (29 code objects), minimum macOS 14.0. `desktop:certify` passed
+all 11 steps against that bundle and DMG, including the unit step
+(4,293/4,293). The public DMG and ZIP were downloaded and are byte-identical
+to the certified files. See the
+[stream-hardening report](../reports/2026-10-14-stream-hardening.md).
+
 **Source revision check (2026-10-09, 1.5.1).** Puzzle retries and feedback,
 backup and profile fixes, and chess/data/engine correctness changes are
 Mac-facing source changes. The installed 1.5.0 build 1164 was tested separately;

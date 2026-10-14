@@ -111,11 +111,38 @@ feasibility experiment, whose verdict is to keep Kingfisher's own parser.
 Keeping compiled routes for the run also cut the suite from about three
 hours to one.
 
+## Merge and publication (owner's instruction)
+
+- PR [mardakurt/kingfisher#5](https://github.com/mardakurt/kingfisher/pull/5)
+  merged as `b6b938f1`. GitHub CI (Quality, Production build) green on the PR
+  and on master — master's first green CI since the 1.5.1 commit, which had
+  been red on the install-page test. The checks were still running when the
+  merge was made; both finished green.
+- Dependabot alert 14 (`sprintf-js` ≤ 1.1.3, moderate) dismissed as tolerable
+  risk with the reason recorded: build-time only, through `electron-builder`;
+  no file of it in the packaged app; no patched version exists.
+- Release preflight GREEN. `KINGFISHER_DESKTOP_CHANNEL=stable npm run
+desktop:dist`: build 1179 from `b6b938f1`, clean, signed, app notarised and
+  stapled, fresh boot and post-boot signature verified.
+  `release:mac:notarize` (submission `38950b96-f194-4ec6-8f29-83dc8773350c`,
+  Accepted), `release:mac:appcast` (Sparkle 1179, EdDSA-signed).
+- `desktop:trust:verify` GREEN: 29 code objects, both tickets, Gatekeeper
+  "Notarized Developer ID" for app and DMG.
+- `desktop:certify` on that bundle and DMG: 11/11 — smoke 17/17, chrome
+  109/109, restart 7/7, engines 25/25, suspend 14/14, killed, walks with 0
+  findings, DMG, zero skips, unit 4,293/4,293.
+- `release:mac:publish v1.5.2`: tag at `b6b938f1`; six assets. Downloaded
+  back: every `SHA256SUMS` line OK, DMG and ZIP byte-identical (`cmp`) to the
+  certified files. `/releases/latest/download/appcast.xml` resolves to v1.5.2.
+- Public DMG: SHA-256
+  `8acc63437405d7ce772f6e329b5060aa968c2971fb3778e630f15f87a989a063`,
+  191,957,256 bytes. The descriptor, install guide and claims now name it.
+
 ## Not done, and why
 
-- **No public release.** Publishing a 1.5.2 DMG means notarising, a GitHub
-  release and a Sparkle feed update, which is outward-facing and the owner's
-  call; the descriptor therefore still names 1.5.1.
+- **No live Sparkle update round trip** from an installed 1.5.1 to 1.5.2
+  (`desktop:update:real -- --public-feed`) was run; the feed was checked on
+  the wire only.
 - **Lichess rating classes for signed-in accounts** remain unverified live
   (needs the owner's Lichess session), as in 1.5.0.
 - **Windows Edge, the 10M-game import and the eight-hour session** listed as
