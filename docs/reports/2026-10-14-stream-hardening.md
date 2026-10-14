@@ -90,11 +90,26 @@ work on the board.
 Build 1171 predates the puzzle badge and the version bump. Final-candidate
 results follow below.
 
-## Final candidate
+## Final candidate (source `03a7248e` plus the inbox test fix)
 
-Pending at the time of writing: the full Playwright suite on the final
-source, a 1.5.2 desktop bundle with `desktop:certify`, and `npm run
-benchmark`. Results are added here only once run.
+| Command                                                         | Result                                                                                                          |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `npm test`                                                      | 4,293/4,293, 423 files, 0 skipped                                                                               |
+| `npm run typecheck`, `lint`, `format:check`, `git diff --check` | pass                                                                                                            |
+| `npm run docs:check`                                            | 363/363                                                                                                         |
+| `npm run test:e2e`                                              | 543/544 in 59.6 min, zero retries; the one failure below                                                        |
+| `e2e/repertoire-inbox.spec.ts` after fix                        | 1/1; fails again with the old selector                                                                          |
+| `npm run benchmark`                                             | exit 0; parser 2,667 games/s; 100,000 games, 1,000,000 positions indexed; heaviest route /studies 540.2 kB gzip |
+
+The inbox failure was the test, not the application: with an unsaved
+analysis kept as a second tab (correctly — Repertoire had replaced nine
+unsaved moves), the strip shows "Close <tab>" buttons, and the test's
+`{ name: 'Close' }` substring matched three. It now names the dialog's
+button exactly. The benchmark's one FAIL line is its standing chess.js
+feasibility experiment, whose verdict is to keep Kingfisher's own parser.
+
+Keeping compiled routes for the run also cut the suite from about three
+hours to one.
 
 ## Not done, and why
 
