@@ -144,6 +144,8 @@ async function setUp(context: BrowserContext, challenges: string[], exchanges: E
       return json(route, 200, session());
     }
     if (url.pathname === '/auth/v1/token') return json(route, 200, session());
+    if (url.pathname === '/auth/v1/settings')
+      return json(route, 200, { external: { email: true, google: true } });
     if (url.pathname === '/auth/v1/user') return json(route, 200, user);
     if (url.pathname === '/auth/v1/logout')
       return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*' } });

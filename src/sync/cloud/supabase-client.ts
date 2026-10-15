@@ -123,6 +123,38 @@ export function getCloudClient(): Promise<SupabaseClient | null> {
   return client;
 }
 
+let providers: Promise<ReadonlySet<string>> | undefined;
+
+/**
+ * The sign-in providers the project has switched on, from its own public
+ * settings endpoint. A "Continue with Google" button for a project that has
+ * not enabled Google leads to an error page on Supabase's domain, so the
+ * screens offer only what this returns. Empty when unconfigured or
+ * unreachable: offering nothing is the safe failure.
+ */
+export function enabledProviders(): Promise<ReadonlySet<string>> {
+  if (providers) return providers;
+  if (typeof window === 'undefined') return Promise.resolve(new Set());
+  const override = developmentOverride();
+  const read = override ? readCloudConfig(override) : readCloudConfig();
+  if ('problem' in read) return (providers = Promise.resolve(new Set()));
+  providers = fetch(`${read.config.url}/auth/v1/settings`, {
+    headers: { apikey: read.config.publishableKey },
+  })
+    .then((response) => (response.ok ? response.json() : { external: {} }))
+    .then((settings: { external?: Record<string, unknown> }) => {
+      const enabled = Object.entries(settings.external ?? {})
+        .filter(([, on]) => on === true)
+        .map(([name]) => name);
+      return new Set(enabled);
+    })
+    .catch(() => {
+      providers = undefined;
+      return new Set<string>();
+    });
+  return providers;
+}
+
 export function cloudConfigProblem(): CloudConfigProblem | null {
   const override = typeof window === 'undefined' ? null : developmentOverride();
   const read = override ? readCloudConfig(override) : readCloudConfig();

@@ -173,7 +173,7 @@ const json = (route: Route, status: number, body: unknown, headers: Record<strin
 async function serveCloud(
   context: BrowserContext,
   cloud: StubCloud,
-  options: { confirmSignUp?: boolean } = {},
+  options: { confirmSignUp?: boolean; google?: boolean } = {},
 ) {
   await context.addInitScript(
     ([url]) => {
@@ -215,6 +215,9 @@ async function serveCloud(
       return options.confirmSignUp
         ? json(route, 200, { ...user, email_confirmed_at: null, confirmed_at: null })
         : json(route, 200, session());
+    }
+    if (path === '/auth/v1/settings') {
+      return json(route, 200, { external: { email: true, google: options.google ?? false } });
     }
     if (path === '/auth/v1/user') return json(route, 200, user);
     if (path === '/auth/v1/logout')
@@ -282,6 +285,25 @@ test.describe('accounts', () => {
       'That email and password do not match an account.',
     );
     await expect(page).toHaveURL(/\/sign-in/);
+  });
+
+  test('Google is offered only when the project has switched it on', async ({ browser }) => {
+    for (const google of [false, true]) {
+      const context = await browser.newContext();
+      await serveCloud(context, new StubCloud(), { google });
+      const page = await context.newPage();
+      const settings = page.waitForResponse((response) =>
+        response.url().endsWith('/auth/v1/settings'),
+      );
+      await page.goto('/sign-in');
+      await expect(page.getByLabel('Email')).toBeVisible();
+      const button = page.getByRole('button', { name: 'Continue with Google' });
+      // Absence is only meaningful once the settings have answered.
+      await settings;
+      if (google) await expect(button).toBeVisible();
+      else await expect(button).toHaveCount(0);
+      await context.close();
+    }
   });
 
   test('the account page sends a signed-out visitor to sign in', async ({ context, page }) => {

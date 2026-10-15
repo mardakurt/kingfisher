@@ -256,6 +256,28 @@ describe('push_user_records', () => {
   });
 });
 
+describe('trigger functions', () => {
+  it('cannot be executed by any API role', async () => {
+    const privileges = await harness.db.query<{ fn: string; role: string; can: boolean }>(
+      `select p.proname as fn, r.role, has_function_privilege(r.role, p.oid, 'execute') as can
+         from pg_proc p, (values ('anon'), ('authenticated')) as r(role)
+        where p.pronamespace = 'public'::regnamespace
+          and p.proname in ('handle_new_user', 'user_records_stamp')`,
+    );
+    expect(privileges.rows).toHaveLength(4);
+    expect(privileges.rows.filter((row) => row.can)).toEqual([]);
+  });
+
+  it('still run as triggers: sign-up creates a profile', async () => {
+    const id = '00000000-0000-4000-8000-0000000000c3';
+    await harness.createUser(id, { name: 'Carol' });
+    const rows = await harness.as({ role: 'authenticated', sub: id }, (tx) =>
+      tx.query<{ display_name: string }>('select display_name from public.profiles'),
+    );
+    expect(rows.rows).toEqual([{ display_name: 'Carol' }]);
+  });
+});
+
 describe('delete_my_account', () => {
   it('removes the caller’s account and rows, and only the caller’s', async () => {
     await harness.as(bob, (tx) => tx.query('select public.delete_my_account()'));
@@ -269,7 +291,8 @@ describe('delete_my_account', () => {
     const users = await harness.db.query<{ id: string }>('select id from auth.users');
     expect(bobRows.rows).toHaveLength(0);
     expect(aliceRows.rows.length).toBeGreaterThan(0);
-    expect(users.rows.map((row) => row.id)).toEqual([ALICE]);
+    expect(users.rows.map((row) => row.id)).not.toContain(BOB);
+    expect(users.rows.map((row) => row.id)).toContain(ALICE);
   });
 
   it('cannot be called anonymously', async () => {

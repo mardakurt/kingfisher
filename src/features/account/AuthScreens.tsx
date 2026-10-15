@@ -8,7 +8,7 @@ import { BrandMark } from '@/features/shell/BrandMark';
 import { isDesktop } from '@/desktop/bridge';
 import { cn } from '@/lib/cn';
 import { useAccount } from '@/stores/account-store';
-import { cloudConfigProblem } from '@/sync/cloud/supabase-client';
+import { cloudConfigProblem, enabledProviders } from '@/sync/cloud/supabase-client';
 
 import {
   cancelGoogleSignIn,
@@ -219,6 +219,27 @@ function GoogleButton({ next, label }: { next: string; label: string }) {
   );
 }
 
+/** Google, and the "or" under it, only when the project has Google switched on. */
+function GoogleChoice({ next, label }: { next: string; label: string }) {
+  const [google, setGoogle] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void enabledProviders().then((enabled) => {
+      if (live) setGoogle(enabled.has('google'));
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+  if (!google) return null;
+  return (
+    <>
+      <GoogleButton next={next} label={label} />
+      <Divider />
+    </>
+  );
+}
+
 function Divider() {
   return (
     <div className="my-5 flex items-center gap-3 text-xs text-tertiary" aria-hidden>
@@ -296,8 +317,7 @@ function SignInInner() {
         </>
       }
     >
-      <GoogleButton next={next} label="Continue with Google" />
-      <Divider />
+      <GoogleChoice next={next} label="Continue with Google" />
       <form onSubmit={submit} className="space-y-4" noValidate={false}>
         <Field label="Email" type="email" value={email} onChange={setEmail} autoComplete="email" />
         <Field
@@ -379,8 +399,7 @@ function SignUpInner() {
         </>
       }
     >
-      <GoogleButton next={next} label="Sign up with Google" />
-      <Divider />
+      <GoogleChoice next={next} label="Sign up with Google" />
       <form onSubmit={submit} className="space-y-4">
         <Field label="Email" type="email" value={email} onChange={setEmail} autoComplete="email" />
         <Field
