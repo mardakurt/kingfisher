@@ -9,7 +9,9 @@ real users notice.
 - **Opening map.** The Explorer can draw the next three moves of a local
   source as nested blocks — width is how often each move was played, shade
   is White's score — and a click plays the whole line. It says which source,
-  how many games, and what it left out.
+  how many games, and what it left out. Preparation draws the same map from
+  an opponent's own games, shaded by how _they_ scored, and a click walks
+  the report there.
 - One open tab no longer costs every page a row: the tab strip appears when
   a second tab opens, and _New tab_ sits in the header until then.
 - Recent: the page's own header comes first, and empty sections are one

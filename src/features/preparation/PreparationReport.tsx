@@ -30,6 +30,9 @@ import type {
   RepertoireComparison,
 } from '@/preparation';
 import { buildStyleReport, type StyleReport } from '@/preparation/style';
+import { openingMapFromTree } from '@/preparation/opening-map';
+import { OPENING_MAP_DEFAULTS, type OpeningMapNode } from '@/database/opening-map';
+import { OpeningMapView } from '@/features/explorer/OpeningMapView';
 import {
   buildDossier,
   openingFamilyOf,
@@ -73,6 +76,8 @@ export interface PreparationReportProps {
   /** The game-day sheet, when a session is open. */
   readonly sheet?: ReactNode;
   readonly onSelectMove: (key: string, san: San) => void;
+  /** Several moves at once, from the opening map; never empty. */
+  readonly onSelectLine: (steps: readonly { key: string; san: San }[]) => void;
   readonly onBack: () => void;
   readonly onPrepare: (edge: PreparationEdge) => void;
   readonly onOpenPosition: () => void;
@@ -328,6 +333,7 @@ function OpeningsView(props: PreparationReportProps) {
             onPrepare={props.onPrepare}
           />
         </div>
+        <PlayerMap {...props} />
         <PriorityQueue priorities={priorities} onPrepare={props.onPrepare} />
       </section>
 
@@ -388,6 +394,59 @@ function OpeningsView(props: PreparationReportProps) {
         ) : null}
       </aside>
     </div>
+  );
+}
+
+/**
+ * The player's next moves from here as an opening map, on request: where
+ * they go, how often, and how they scored (`src/preparation/opening-map.ts`).
+ * A click walks the report to that position, with Back undoing it a move at
+ * a time.
+ */
+function PlayerMap({ tree, node, name, onSelectLine }: PreparationReportProps) {
+  const [open, setOpen] = useState(false);
+  const map = useMemo(
+    () => (open ? openingMapFromTree(tree, node.positionKey, name) : null),
+    [open, tree, node.positionKey, name],
+  );
+  const select = (target: OpeningMapNode) => {
+    const steps: { key: string; san: San }[] = [];
+    let key = node.positionKey;
+    for (const uci of target.line) {
+      const edge = tree.nodes.get(key)?.edges.find((entry) => entry.uci === uci);
+      if (!edge) return;
+      steps.push({ key: edge.resultingKey, san: edge.san });
+      key = edge.resultingKey;
+    }
+    if (steps.length > 0) onSelectLine(steps);
+  };
+  return (
+    <section className="mt-3" aria-label="Opening map" data-opening-map>
+      <div className="flex items-center gap-2">
+        <h3 className="text-xs font-semibold text-primary">Opening map</h3>
+        <span className="min-w-0 flex-1 truncate text-[11px] text-tertiary">
+          The next {OPENING_MAP_DEFAULTS.depth} moves from here in {name}’s games
+        </span>
+        <Button size="sm" variant="subtle" onClick={() => setOpen((value) => !value)}>
+          {open ? 'Hide map' : 'Show map'}
+        </Button>
+      </div>
+      {open && map && map.totalGames > 0 ? (
+        <div className="mt-2">
+          <OpeningMapView
+            map={map}
+            label={`Opening map of ${name}’s games`}
+            denominator="the games that continue from its position"
+            verb="Show"
+            onSelectLine={select}
+          />
+        </div>
+      ) : open ? (
+        <p className="mt-2 text-[11px] text-tertiary">
+          No game in the selected set continues from here.
+        </p>
+      ) : null}
+    </section>
   );
 }
 

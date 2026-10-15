@@ -37,9 +37,8 @@ export interface OpeningMapNode {
   readonly fen: Fen;
   /** Games that played this move from its parent position, in the source. */
   readonly games: number;
-  readonly white: number;
-  readonly draws: number;
-  readonly black: number;
+  /** The score after this move, 0–1, for the side the map names in `scoreFor`. */
+  readonly score: number;
   /** Games at the parent position, by any move order: this move's denominator. */
   readonly ofGames: number;
   /** This move's share of its parent's width, 0–1. */
@@ -53,6 +52,8 @@ export interface OpeningMap {
   readonly fen: Fen;
   readonly source: { readonly id: string; readonly name: string };
   readonly totalGames: number;
+  /** Whose score `score` is: "White" for a source, the player for a dossier. */
+  readonly scoreFor: string;
   readonly depth: number;
   readonly minShare: number;
   readonly children: readonly OpeningMapNode[];
@@ -76,8 +77,8 @@ export interface OpeningMapOptions {
 export const OPENING_MAP_DEFAULTS = { depth: 3, minShare: 0.03, maxBranches: 6 } as const;
 
 /** White's score after a move: wins plus half the draws, over its games. */
-export function whiteScore(node: Pick<OpeningMapNode, 'games' | 'white' | 'draws'>): number {
-  return node.games > 0 ? (node.white + node.draws / 2) / node.games : 0.5;
+export function whiteScore(move: Pick<DatabaseMove, 'games' | 'white' | 'draws'>): number {
+  return move.games > 0 ? (move.white + move.draws / 2) / move.games : 0.5;
 }
 
 /** The moves worth drawing at a position, and the games in the rest. */
@@ -139,9 +140,7 @@ export async function buildOpeningMap(options: OpeningMapOptions): Promise<Openi
           sanLine: nextSan,
           fen: after,
           games: move.games,
-          white: move.white,
-          draws: move.draws,
-          black: move.black,
+          score: whiteScore(move),
           ofGames: total,
           share: move.games / total,
           children: grown.children,
@@ -158,6 +157,7 @@ export async function buildOpeningMap(options: OpeningMapOptions): Promise<Openi
     fen: options.fen,
     source: root.source,
     totalGames: root.moves.reduce((sum, move) => sum + move.games, 0),
+    scoreFor: 'White',
     depth,
     minShare,
     children: grown.children,

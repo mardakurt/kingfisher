@@ -301,4 +301,38 @@ test.describe('the preparation report', () => {
     await expect(tabs(page)).toHaveCount(2);
     await expect(tabs(page).first()).toContainText('Preparation against Opponent, O');
   });
+
+  test("the opening map draws the player's games, and walks the report to a block", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await seed(page);
+    await page.goto('/preparation');
+    await ready(page);
+    await page.getByLabel('Player name').fill('Opponent, O');
+    await page.locator('[data-opponent-search]').getByRole('button', { name: 'Prepare' }).click();
+    await expect(page.locator('[data-player-card]')).toContainText('Opponent, O');
+
+    const section = page.getByRole('region', { name: 'Opening map' });
+    await section.getByRole('button', { name: 'Show map' }).click();
+    const map = section.getByRole('group', { name: 'Opening map of Opponent, O’s games' });
+    // Two of the three games open 1.e4, one 1.d4; the shade is the player's.
+    await expect(map.locator('[data-opening-map-block="e4"]')).toHaveAttribute(
+      'aria-label',
+      /^Show 1\.e4: 2 games, 67% of 3 at this position; Opponent, O scored 50%$/,
+    );
+    await expect(map.locator('[data-opening-map-block="d4"]')).toBeVisible();
+
+    await map.locator('[data-opening-map-block="e4 c5"]').click();
+    const line = page.locator('[data-preparation-line]');
+    await expect(line).toHaveText('1.e4 c5');
+    // Back, beside the line, undoes the walk a move at a time.
+    const back = line.locator('xpath=..').getByRole('button', { name: 'Back' });
+    await back.click();
+    await expect(line).toHaveText('1.e4');
+    // The position, not only the words: two games reached 1.e4.
+    await expect(line.locator('xpath=..')).toContainText('2 games here');
+    await back.click();
+    await expect(line).toHaveText('Starting position');
+  });
 });

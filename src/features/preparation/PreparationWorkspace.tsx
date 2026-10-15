@@ -504,6 +504,13 @@ export function PreparationWorkspace({
         setCurrentKey(key);
         setLine((moves) => [...moves, san]);
       }}
+      onSelectLine={(steps) => {
+        // Each step's position goes on the Back stack, as if clicked one by one.
+        const passed = [effectiveKey, ...steps.slice(0, -1).map((step) => step.key)];
+        setHistory((items) => [...items, ...passed]);
+        setCurrentKey(steps.at(-1)!.key);
+        setLine((moves) => [...moves, ...steps.map((step) => step.san)]);
+      }}
       onBack={() => {
         const previous = history.at(-1);
         if (previous === undefined) return;

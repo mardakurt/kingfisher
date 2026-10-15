@@ -4,7 +4,7 @@ import { Position } from '@/chess/position';
 import { isOk } from '@/chess/result';
 import type { Fen, San, Uci } from '@/chess/types';
 
-import { buildOpeningMap, layoutOpeningMap, whiteScore, type OpeningMapNode } from './opening-map';
+import { buildOpeningMap, layoutOpeningMap, whiteScore } from './opening-map';
 import type { DatabaseMove, ExplorerResult } from './types';
 
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' as Fen;
@@ -175,7 +175,15 @@ describe('layoutOpeningMap', () => {
 
 describe('whiteScore', () => {
   it('is wins and half the draws over the games', () => {
-    expect(whiteScore({ games: 10, white: 5, draws: 2 } as OpeningMapNode)).toBeCloseTo(0.6);
-    expect(whiteScore({ games: 0, white: 0, draws: 0 } as OpeningMapNode)).toBe(0.5);
+    expect(whiteScore({ games: 10, white: 5, draws: 2 })).toBeCloseTo(0.6);
+    expect(whiteScore({ games: 0, white: 0, draws: 0 })).toBe(0.5);
+  });
+
+  it("is each node's score in a source's map, said to be White's", async () => {
+    const { explore } = source(TABLE);
+    const map = await buildOpeningMap({ fen: START, depth: 1, explore });
+    expect(map.scoreFor).toBe('White');
+    // 1.e4: 30 wins and 10 draws of 60.
+    expect(map.children[0]!.score).toBeCloseTo(35 / 60);
   });
 });
