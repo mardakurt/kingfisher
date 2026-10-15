@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
+import { PageHeader } from '@/features/shell/PageHeader';
 import { cn } from '@/lib/cn';
 import type { SyncConflictRecord } from '@/persistence/sync-state';
 import { DEVICE_ONLY_STORES } from '@/sync/cloud/scope';
@@ -359,146 +360,155 @@ export function AccountRoute() {
 
   if (account.status === 'unconfigured') {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-10">
-        <h1 className="text-2xl font-semibold text-primary">Account</h1>
-        <p className="mt-3 text-sm leading-relaxed text-secondary">
-          Accounts are not set up in this build. Everything you make is saved on this device, and
-          Settings → Backup exports it as a file you can move anywhere.
+      <div className="flex min-h-0 flex-1 flex-col">
+        <PageHeader title="Account" subtitle="Accounts are not set up in this build" />
+        <p className="mx-auto w-full max-w-4xl px-5 py-8 text-sm leading-relaxed text-secondary sm:px-8">
+          Everything you make is saved on this device, and Settings → Backup exports it as a file
+          you can move anywhere.
         </p>
       </div>
     );
   }
   if (account.status !== 'signed-in' || !account.user) {
-    return <div className="px-6 py-10 text-sm text-secondary">Loading your account…</div>;
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <PageHeader title="Account" subtitle="Loading your account…" />
+      </div>
+    );
   }
 
   const user = account.user;
   const headline = syncHeadline(account);
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-5 pb-16 sm:px-8">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line-subtle pt-8 pb-6">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold text-primary">Account</h1>
-          <p className="mt-1 truncate text-sm text-secondary">{user.email}</p>
-        </div>
-        <div
-          className="flex items-center gap-2 text-sm text-secondary"
-          role="status"
-          aria-live="polite"
-        >
-          <SyncDot tone={headline.tone} />
-          <span>{headline.text}</span>
-        </div>
-      </header>
-
-      <Section
-        title="Sync"
-        description="Your work is saved on this device first, then copied to your account within a few seconds. Open Kingfisher anywhere you sign in and it is there."
-      >
-        <dl>
-          <Row label="Last synced">{relativeTime(account.lastSyncedAt)}</Row>
-          <Row label="This device">
-            {typeof window !== 'undefined'
-              ? (localStorage.getItem('kingfisher.device-id') ?? '—')
-              : '—'}
-          </Row>
-          {account.lastError && account.phase !== 'idle' && (
-            <Row label="Last problem">
-              <span className="text-negative">{account.lastError}</span>
-            </Row>
-          )}
-        </dl>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button
-            variant="subtle"
-            size="sm"
-            onClick={() => void account.syncNow({ reconcile: true })}
-            disabled={account.phase === 'syncing'}
+    <div className="flex min-h-0 flex-1 flex-col">
+      <PageHeader
+        title="Account"
+        subtitle={user.email ?? undefined}
+        actions={
+          <span
+            className="inline-flex items-center gap-2 px-2 text-sm text-secondary"
+            role="status"
+            aria-live="polite"
           >
-            {account.phase === 'syncing' ? 'Syncing…' : 'Sync now'}
-          </Button>
-        </div>
-        <details className="mt-5 text-[13px] text-secondary">
-          <summary className="cursor-pointer text-primary">
-            What syncs, and what stays on this device
-          </summary>
-          <div className="mt-3 space-y-2 leading-relaxed">
-            <p>
-              <strong className="font-medium text-primary">Syncs:</strong> studies and chapters with
-              every variation, comment and annotation; unsaved analysis; repertoires; training cards
-              and progress; preparation; opening files; journal, decisions and review; saved
-              searches; pinned lines; stored engine results; puzzle history; and your display, board
-              and engine preferences.
-            </p>
-            <p>
-              <strong className="font-medium text-primary">Stays here:</strong> imported game
-              collections and reference packs (large, and re-importable), engines and tablebases,
-              secrets such as API tokens, settings that describe this machine (threads, memory,
-              installed sources), and {Object.values(DEVICE_ONLY_STORES).length} kinds of
-              in-progress engine job.
-            </p>
-          </div>
-        </details>
-      </Section>
-
-      {account.conflicts.length > 0 && (
-        <Section
-          title="To review"
-          description="When the same thing was changed in two places, the account’s version is used everywhere and yours is kept here until you decide."
-        >
-          <ul className="space-y-3">
-            {account.conflicts.map((conflict) => (
-              <ConflictRow key={conflict.id} conflict={conflict} />
-            ))}
-          </ul>
-        </Section>
-      )}
-
-      <Section title="Profile">
-        <dl>
-          <Row label="Email">
-            {user.email}{' '}
-            {!user.emailConfirmed && <span className="ml-1 text-caution">(not confirmed)</span>}
-          </Row>
-          <Row label="Signs in with">
-            {user.provider === 'google' ? 'Google' : 'Email and password'}
-          </Row>
-          <Row label="Name">
-            <ProfileName initial={user.displayName} />
-          </Row>
-        </dl>
-      </Section>
-
-      <Section title="Security">
-        <PasswordChange email={user.email} provider={user.provider} />
-      </Section>
-
-      <Section title="Session" description="Signing out never deletes anything from your account.">
-        <div className="flex flex-wrap gap-2">
-          <Button variant="subtle" onClick={() => setSigningOut(true)}>
-            Sign out
-          </Button>
-        </div>
-      </Section>
-
-      <Section
-        title="Delete account"
-        description={
-          <>
-            Removes the account and its copy of your work. Export a backup first from{' '}
-            <Link href="/settings" className="text-accent hover:underline">
-              Settings
-            </Link>{' '}
-            if you want one.
-          </>
+            <SyncDot tone={headline.tone} />
+            <span>{headline.text}</span>
+          </span>
         }
-      >
-        <Button variant="danger" onClick={() => setDeleting(true)}>
-          Delete account…
-        </Button>
-      </Section>
+      />
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-4xl px-5 pb-16 sm:px-8">
+          <Section
+            title="Sync"
+            description="Your work is saved on this device first, then copied to your account within a few seconds. Open Kingfisher anywhere you sign in and it is there."
+          >
+            <dl>
+              <Row label="Last synced">{relativeTime(account.lastSyncedAt)}</Row>
+              <Row label="This device">
+                {typeof window !== 'undefined'
+                  ? (localStorage.getItem('kingfisher.device-id') ?? '—')
+                  : '—'}
+              </Row>
+              {account.lastError && account.phase !== 'idle' && (
+                <Row label="Last problem">
+                  <span className="text-negative">{account.lastError}</span>
+                </Row>
+              )}
+            </dl>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                variant="subtle"
+                size="sm"
+                onClick={() => void account.syncNow({ reconcile: true })}
+                disabled={account.phase === 'syncing'}
+              >
+                {account.phase === 'syncing' ? 'Syncing…' : 'Sync now'}
+              </Button>
+            </div>
+            <details className="mt-5 text-[13px] text-secondary">
+              <summary className="cursor-pointer text-primary">
+                What syncs, and what stays on this device
+              </summary>
+              <div className="mt-3 space-y-2 leading-relaxed">
+                <p>
+                  <strong className="font-medium text-primary">Syncs:</strong> studies and chapters
+                  with every variation, comment and annotation; unsaved analysis; repertoires;
+                  training cards and progress; preparation; opening files; journal, decisions and
+                  review; saved searches; pinned lines; stored engine results; puzzle history; and
+                  your display, board and engine preferences.
+                </p>
+                <p>
+                  <strong className="font-medium text-primary">Stays here:</strong> imported game
+                  collections and reference packs (large, and re-importable), engines and
+                  tablebases, secrets such as API tokens, settings that describe this machine
+                  (threads, memory, installed sources), and{' '}
+                  {Object.values(DEVICE_ONLY_STORES).length} kinds of in-progress engine job.
+                </p>
+              </div>
+            </details>
+          </Section>
 
+          {account.conflicts.length > 0 && (
+            <Section
+              title="To review"
+              description="When the same thing was changed in two places, the account’s version is used everywhere and yours is kept here until you decide."
+            >
+              <ul className="space-y-3">
+                {account.conflicts.map((conflict) => (
+                  <ConflictRow key={conflict.id} conflict={conflict} />
+                ))}
+              </ul>
+            </Section>
+          )}
+
+          <Section title="Profile">
+            <dl>
+              <Row label="Email">
+                {user.email}{' '}
+                {!user.emailConfirmed && <span className="ml-1 text-caution">(not confirmed)</span>}
+              </Row>
+              <Row label="Signs in with">
+                {user.provider === 'google' ? 'Google' : 'Email and password'}
+              </Row>
+              <Row label="Name">
+                <ProfileName initial={user.displayName} />
+              </Row>
+            </dl>
+          </Section>
+
+          <Section title="Security">
+            <PasswordChange email={user.email} provider={user.provider} />
+          </Section>
+
+          <Section
+            title="Session"
+            description="Signing out never deletes anything from your account."
+          >
+            <div className="flex flex-wrap gap-2">
+              <Button variant="subtle" onClick={() => setSigningOut(true)}>
+                Sign out
+              </Button>
+            </div>
+          </Section>
+
+          <Section
+            title="Delete account"
+            description={
+              <>
+                Removes the account and its copy of your work. Export a backup first from{' '}
+                <Link href="/settings" className="text-accent hover:underline">
+                  Settings
+                </Link>{' '}
+                if you want one.
+              </>
+            }
+          >
+            <Button variant="danger" onClick={() => setDeleting(true)}>
+              Delete account…
+            </Button>
+          </Section>
+        </div>
+      </div>
       <SignOutDialog open={signingOut} onClose={() => setSigningOut(false)} />
       <DeleteAccountDialog open={deleting} onClose={() => setDeleting(false)} />
     </div>

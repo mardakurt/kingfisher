@@ -10,6 +10,7 @@ import { publicUrl } from '@/release/public-urls';
 
 import { studioAutoOpenScript } from '@/features/shell/studio-entry';
 
+import { LandingAccount } from './LandingAccount';
 import { StudioEntry } from './StudioEntry';
 import './landing.css';
 
@@ -48,6 +49,51 @@ const RESEARCH_ALT =
   "The Explorer on the Najdorf after 5...a6, comparing the Kingfisher Starter Reference with the Recent Theory Reference: the same candidate moves, each source's own game count and frequency in its own column, and no combined figure";
 const ENGINES_ALT =
   'The engine panel with Stockfish 18 Lite running in the browser on the Italian Game: five ranked lines with their evaluations, the depth reached, and the best move drawn as an arrow on the board beside it';
+
+/**
+ * "Coming from ChessBase?" — each row a ChessBase workflow and what
+ * Kingfisher does for it, backed by the module named in the comment. The
+ * rows that say "not offered" are there on purpose: a reader moving years
+ * of work deserves to know the gaps before the first import, not after.
+ */
+const SWITCH_ROWS: readonly { readonly from: string; readonly to: string; readonly gap?: true }[] =
+  [
+    {
+      // src/database/chessbase/, src/features/databases/ChessBaseImportDialog.tsx
+      from: 'Your .cbh and .cbv databases',
+      to: 'Opened directly, in the browser or the Mac app. Read and never written; every game keeps the name of the database it came from.',
+    },
+    {
+      // src/database/query/ (and/or/not, saved queries), natural.ts
+      from: 'The search mask',
+      to: 'The same header and move conditions, combined with and, or and not, saved with your backups — or typed as a sentence: “Carlsen as Black in the Najdorf since 2018”.',
+    },
+    {
+      // src/features/explorer/, the Opening Report
+      from: 'Opening Report and the reference tree',
+      to: 'An Opening Report from a population you name, with every source in its own column and its own game count. Never one blended figure.',
+    },
+    {
+      // src/repertoire/, the repertoire inbox
+      from: 'Repertoire database',
+      to: 'A repertoire keyed by position, so transpositions are the same line, with an inbox for new games, surprises and stale evidence.',
+    },
+    {
+      // src/preparation/, src/features/preparation/
+      from: 'Player preparation and the blunder check',
+      to: 'Preparation against a named opponent, their repertoire against yours, and a costly-moves report over a game or a whole collection.',
+    },
+    {
+      from: 'Mega Database',
+      to: 'Not offered. Open, licensed populations instead — over-the-board broadcasts and high-rated online play — each kept separate.',
+      gap: true,
+    },
+    {
+      from: 'Let’s Check and Engine Cloud',
+      to: 'Not offered. Engines run on your machine: Stockfish 18 in the browser, native engines in the Mac app.',
+      gap: true,
+    },
+  ];
 
 const studioPathOf = (url: string): string => {
   try {
@@ -147,7 +193,7 @@ export function LandingPage(): JSX.Element {
         name: 'Do I need an account to use Kingfisher Chess?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'No. Kingfisher Chess is local-first. Open the web app or download the macOS application and your work lives in the browser or on the machine you installed it on. There is no sign-up and no profile. You can optionally connect a Lichess or Chess.com account from Settings to study your own games.',
+          text: 'No. Kingfisher Chess is local-first: open the web app or download the macOS application and your work lives in the browser or on the machine you installed it on, with every feature available signed out. Optional accounts — to keep the same work on several devices — are built into the open-source code but are not switched on at kingfisherchess.app yet. You can also connect a Lichess or Chess.com account from Settings to study your own games.',
         },
       },
       {
@@ -229,11 +275,13 @@ export function LandingPage(): JSX.Element {
           <nav className="nav-links" aria-label="Primary">
             <a href="#why">Why</a>
             <a href="#research">Research</a>
+            <a href="#switch">From ChessBase</a>
             <a href="#engines">Engines</a>
             <a href="#local">Local-first</a>
             <a href="#macos">macOS</a>
           </nav>
           <div className="nav-actions">
+            <LandingAccount />
             <a className="nav-cta" href={studioUrl} rel="noopener">
               Open Studio
             </a>
@@ -244,6 +292,7 @@ export function LandingPage(): JSX.Element {
               <nav className="nav-menu-list" aria-label="Sections">
                 <a href="#why">Why</a>
                 <a href="#research">Research</a>
+                <a href="#switch">From ChessBase</a>
                 <a href="#engines">Engines</a>
                 <a href="#local">Local-first</a>
                 <a href="#macos">macOS</a>
@@ -350,7 +399,7 @@ export function LandingPage(): JSX.Element {
             </div>
             <div className="hero-strip-item">
               <span className="hero-strip-num">0</span>
-              <span className="hero-strip-label">Accounts · cookies · subscriptions</span>
+              <span className="hero-strip-label">Accounts required · cookies · subscriptions</span>
             </div>
           </div>
         </section>
@@ -449,6 +498,27 @@ export function LandingPage(): JSX.Element {
               ))}
             </div>
           </div>
+        </section>
+
+        <section id="switch" className="section section-switch" aria-labelledby="switch-title">
+          <div className="section-head">
+            <p className="section-eyebrow">Coming from ChessBase?</p>
+            <h2 id="switch-title" className="section-title">
+              Bring your databases. Keep your habits.
+            </h2>
+            <p className="section-lede">
+              What you do in ChessBase today, and where it lives in Kingfisher — including what it
+              does not have.
+            </p>
+          </div>
+          <dl className="switch-table">
+            {SWITCH_ROWS.map((row) => (
+              <div key={row.from} className={row.gap ? 'switch-row switch-row-gap' : 'switch-row'}>
+                <dt>{row.from}</dt>
+                <dd>{row.to}</dd>
+              </div>
+            ))}
+          </dl>
         </section>
 
         <section id="engines" className="section section-engines">
@@ -640,10 +710,12 @@ export function LandingPage(): JSX.Element {
                 </span>
               </summary>
               <p>
-                No. Kingfisher is local-first. Open the web app or download the macOS application
-                and your work lives in the browser or on the machine you installed it on. There is
-                no sign-up and no profile. You can optionally connect a Lichess or Chess.com account
-                from Settings to study your own games.
+                No. Kingfisher is local-first: open the web app or download the macOS application
+                and your work lives in the browser or on the machine you installed it on, with every
+                feature available signed out. Optional accounts — to keep the same work on several
+                devices — are built into the open-source code but are not switched on at
+                kingfisherchess.app yet. You can also connect a Lichess or Chess.com account from
+                Settings to study your own games.
               </p>
             </details>
             <details className="faq-item">

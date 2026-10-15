@@ -33,6 +33,11 @@ const EXCLUDED = new Set([
   '/data-licences',
   '/terms',
   '/settings', // the Settings dialog itself
+  // Sign-in, sign-up and recovery stand apart from the workspace, as the
+  // public pages do: someone arriving from an email link has no Studio yet.
+  '/sign-in',
+  '/sign-up',
+  '/forgot-password',
 ]);
 
 const routes = (() => {

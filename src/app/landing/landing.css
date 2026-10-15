@@ -1080,3 +1080,62 @@
     scroll-behavior: auto !important;
   }
 }
+
+/*
+  Coming from ChessBase: a two-column definition list, the workflow a reader
+  knows on the left and where it lives here on the right. Rows that name a
+  gap are set in the tertiary ink, so they read as information, not as an
+  apology, and are not lost among the rest.
+*/
+.kf-landing .switch-table {
+  max-width: 980px;
+  margin: 36px 0 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.kf-landing .switch-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 280px) 1fr;
+  gap: 8px 40px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.kf-landing .switch-row dt {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.kf-landing .switch-row dd {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+.kf-landing .switch-row-gap dt,
+.kf-landing .switch-row-gap dd {
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 720px) {
+  .kf-landing .switch-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* A quiet text link beside the primary action, as a Mac toolbar sets one. */
+.kf-landing .nav-account {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--radius-button);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.kf-landing .nav-account:hover {
+  background: var(--surface-2);
+  text-decoration: none;
+}
