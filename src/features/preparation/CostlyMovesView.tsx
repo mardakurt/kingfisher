@@ -22,6 +22,8 @@ import {
 import { ENDGAME_PIECES } from '@/preparation/style';
 import { COST_THRESHOLDS, type CostThreshold } from '@/review/annotate';
 import { useCostlyMoves } from '@/stores/costly-moves-store';
+
+import { TrainCostlyMoves } from './TrainCostlyMoves';
 import { usePreferences } from '@/stores/preferences-store';
 
 const GAME_COUNTS = [10, 20, 40] as const;
@@ -177,6 +179,8 @@ export function CostlyMovesView({
             />
             of win chance given up in one move.
           </div>
+
+          <TrainCostlyMoves name={name} moves={report.costly} />
 
           <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4" data-costly-summary>
             <Tile

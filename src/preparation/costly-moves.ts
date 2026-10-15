@@ -61,6 +61,10 @@ export interface CostlyMove {
   readonly cost: number;
   readonly phase: Phase;
   readonly colour: 'w' | 'b';
+  /** The position the move was played from — what a drill puts on the board. */
+  readonly fenBefore?: Fen;
+  /** The depth the engine reached on that position, for the drill's provenance. */
+  readonly depth?: number;
 }
 
 export interface Tally {
@@ -191,6 +195,8 @@ export async function evaluateGame(
       cost: costOf(before.score, after.score, colour),
       phase: phaseOf(move.before),
       colour,
+      fenBefore: move.before,
+      depth: before.depth,
     });
   }
   return { entries, unanswered };
