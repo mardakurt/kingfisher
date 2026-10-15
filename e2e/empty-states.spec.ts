@@ -41,3 +41,11 @@ test('an empty Review offers nothing to reveal or mark until a game is open', as
 
   // With a game open both come back; phase8.spec.ts drives that path.
 });
+
+test('an empty Training says where training cards come from', async ({ page }) => {
+  await page.goto('/training');
+  await page.locator(READY).waitFor();
+  await expect(page.getByText('Nothing to train yet.')).toBeVisible();
+  await expect(page.getByText(/Preparation → Costly moves → Train these positions/)).toBeVisible();
+  await expect(page.getByText('The review queue is empty.')).toHaveCount(0);
+});

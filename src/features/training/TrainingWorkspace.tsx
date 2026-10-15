@@ -329,7 +329,19 @@ export function TrainingWorkspace() {
           </div>
         ) : undefined
       }
-      empty={current ? undefined : <EmptyState title="The review queue is empty." />}
+      /*
+        There is no card only when there are no positions at all (in this
+        set, or anywhere). "The review queue is empty" named the wrong page and
+        left a person nowhere to go; this says where cards come from.
+      */
+      empty={
+        current ? undefined : (
+          <EmptyState
+            title={selectedSet ? 'This set has no positions yet.' : 'Nothing to train yet.'}
+            description="A training card is a position you chose, with the move you mean to find. Make one from the board with Create position, from a repertoire line, or from Preparation → Costly moves → Train these positions."
+          />
+        )
+      }
       contextLabel="Answer"
       contextPanel={details}
       /*
