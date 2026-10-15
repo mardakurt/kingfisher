@@ -98,6 +98,7 @@ import {
   type ResearchFilter,
 } from './research-filters';
 import { SAVED_QUERIES_KEY, SavedQueries, saveQuery } from './SavedQueries';
+import { DescribeSearch } from './DescribeSearch';
 import { filtersFromQuery, queryFromFilters, type GameQuery } from '@/database/query/ast';
 
 type SortField = NonNullable<GameSearchQuery['sortBy']>;
@@ -165,6 +166,7 @@ export function GamesWorkspace() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [queryToSave, setQueryToSave] = useState<{ query: GameQuery; source: string } | null>(null);
+  const [describing, setDescribing] = useState(false);
   const closeFilters = () => {
     setFiltersOpen(false);
     document.getElementById('library-filters-trigger')?.focus();
@@ -576,6 +578,9 @@ export function GamesWorkspace() {
     setMinRating(values.minRating?.toString() ?? '');
     setHeader(headerMaskFrom(values));
     setEco(values.eco ?? '');
+    // A saved query's opening condition was dropped here on every re-apply,
+    // so "Najdorf, 2700+" came back as "2700+".
+    setOpening(values.opening ?? '');
     setSortBy(values.sortBy ?? 'importedAt');
     setSortDirection(values.sortDirection ?? 'desc');
     setPage(0);
@@ -842,6 +847,15 @@ export function GamesWorkspace() {
           />
         ) : null}
         <Button
+          active={describing}
+          aria-expanded={describing}
+          onClick={() => setDescribing((open) => !open)}
+          title="Describe the games in a sentence"
+          data-describe-trigger
+        >
+          Describe
+        </Button>
+        <Button
           id="library-filters-trigger"
           active={filtersOpen || filtersActive}
           aria-expanded={filtersOpen}
@@ -852,6 +866,16 @@ export function GamesWorkspace() {
           Filters{chips.length ? ` ${chips.length}` : ''}
         </Button>
       </div>
+      {describing ? (
+        <DescribeSearch
+          onClose={() => setDescribing(false)}
+          onApply={(query) => {
+            setText('');
+            setPage(0);
+            applyQuery(query);
+          }}
+        />
+      ) : null}
       {chips.length ? (
         <div
           className="flex shrink-0 flex-wrap items-center gap-1.5 px-3 pb-2 sm:px-4"
