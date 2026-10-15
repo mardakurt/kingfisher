@@ -440,7 +440,7 @@ export function useWorkspacePersistence(): void {
       const state = useAnalysis.getState();
       if (state.document.kind !== 'study-chapter') return;
       if (state.document.chapterId !== message.chapterId) return;
-      if (message.revision <= state.document.revision) return;
+      if (!message.replaced && message.revision <= state.document.revision) return;
 
       if (selectDirty(state) || state.saving) {
         useAnalysis.getState().reportConflict({

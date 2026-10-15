@@ -26,6 +26,7 @@ import { BrandMark } from './BrandMark';
 import { TitleBarSafeCorner } from './TitleBarSafeArea';
 import { NAV_GROUPS, sectionsInGroup } from './navigation';
 import { SidebarDatabases } from './SidebarDatabases';
+import { SidebarAccount } from '@/features/account/SidebarAccount';
 
 import { TITLEBAR_BAND_CLASS } from '@/features/workspace/breakpoints';
 
@@ -304,6 +305,7 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
           without matching on that punctuation. The name is now just what the
           control does, and the platform announces the key.
         */}
+        <SidebarAccount compact={compact} onNavigate={onClose} />
         <button
           type="button"
           aria-label="Settings"

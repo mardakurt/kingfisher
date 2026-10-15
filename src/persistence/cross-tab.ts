@@ -24,6 +24,13 @@ export interface ChapterSavedMessage {
   readonly revision: number;
   /** So a tab ignores the echo of its own write. */
   readonly origin: string;
+  /**
+   * Cloud sync replaced the chapter with another device's version. Revisions
+   * are counted per device, so a replacement can carry a number no higher
+   * than the one this tab holds while being different content; the receiver
+   * must not discard it on the number alone.
+   */
+  readonly replaced?: boolean;
 }
 
 export type CrossTabMessage = ChapterSavedMessage;
@@ -76,6 +83,33 @@ export function announceChapterSaved(chapterId: ChapterId, revision: number): vo
   }
 }
 
+/**
+ * Announce a chapter that cloud sync just replaced with another device's
+ * version — to this tab as well as the others.
+ *
+ * A channel does not deliver to the object that posted, so the shared one
+ * would tell every tab but this one. A short-lived second channel delivers to
+ * all of them, and the origin is not this tab's, so the listener here treats
+ * it exactly like a write from elsewhere: the revision check decides.
+ */
+export function announceChapterReplaced(chapterId: ChapterId, revision: number): void {
+  if (typeof BroadcastChannel === 'undefined') return;
+  try {
+    const sender = new BroadcastChannel(CHANNEL_NAME);
+    const message: ChapterSavedMessage = {
+      kind: 'chapter-saved',
+      chapterId,
+      revision,
+      origin: 'cloud-sync',
+      replaced: true,
+    };
+    sender.postMessage(message);
+    sender.close();
+  } catch {
+    // As above: a courtesy, not the guarantee.
+  }
+}
+
 /** Subscribe to writes made by *other* tabs. Returns an unsubscribe function. */
 export function subscribeCrossTab(listener: (message: CrossTabMessage) => void): () => void {
   const target = open();
@@ -97,6 +131,7 @@ function isChapterSaved(value: unknown): value is ChapterSavedMessage {
     typeof message.chapterId === 'string' &&
     typeof message.origin === 'string' &&
     typeof message.revision === 'number' &&
-    Number.isFinite(message.revision)
+    Number.isFinite(message.revision) &&
+    (message.replaced === undefined || typeof message.replaced === 'boolean')
   );
 }

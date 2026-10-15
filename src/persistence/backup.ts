@@ -355,7 +355,9 @@ export async function restoreWorkspaceBackup(
  * user just asked to apply. A collision the list does not name still aborts
  * the transaction; nothing is left half-applied.
  */
-const UNIQUE_KEY: Partial<Record<StoreName, (record: Record<string, unknown>) => string | null>> = {
+export const UNIQUE_KEY: Partial<
+  Record<StoreName, (record: Record<string, unknown>) => string | null>
+> = {
   [STORE_NAMES.repertoirePositions]: (record) =>
     typeof record.repertoireId === 'string' && typeof record.positionKey === 'string'
       ? `${record.repertoireId}\u001f${record.positionKey}`
@@ -420,6 +422,21 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const invalid = (detail: string): Error => new Error(`Backup rejected: ${detail}`);
+
+/**
+ * Whether one record is valid for its store, by the same rules a restore applies.
+ *
+ * Cloud sync applies records another device wrote; they pass through exactly the
+ * check a backup file does before they reach IndexedDB.
+ */
+export function isValidStoreRecord(store: StoreName, value: unknown): boolean {
+  try {
+    validateRecord(store, value, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function validateRecord(store: StoreName, value: unknown, index: number): void {
   const valid = (() => {

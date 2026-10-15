@@ -3,6 +3,7 @@ import type { AppRepositories } from '../types';
 import { openPersistenceDatabase, type PersistenceDatabase } from '../indexeddb/database';
 import { MemoryPersistenceDatabase } from '../indexeddb/memory';
 import { withWriteTracking } from '../write-tracker';
+import { withChangeFeed } from '../change-feed';
 import { LocalDraftRepository } from './draft-repository';
 import { LocalGameRepository } from './game-repository';
 import { LocalModelGameRepository, LocalProfileRepository } from './library-repository';
@@ -63,6 +64,7 @@ const fromDatabase = (database: PersistenceDatabase): AppRepositories => ({
 });
 
 let repositories: Promise<AppRepositories> | null = null;
+let syncDatabase: PersistenceDatabase | null = null;
 
 export function getRepositories(): Promise<AppRepositories> {
   repositories ??= openPersistenceDatabase().then((database) => {
@@ -75,7 +77,14 @@ export function getRepositories(): Promise<AppRepositories> {
       whether the user has any unsaved work in flight.
     */
     const tracked = withWriteTracking(database);
-    const resolved = fromDatabase(tracked);
+    /*
+      Every write the application makes is announced to cloud sync after it
+      commits. Sync's own writes — records another device made — go through
+      `tracked` directly: still covered by the save barrier, but not announced,
+      so applying a remote change does not schedule a pointless upload of it.
+    */
+    syncDatabase = tracked;
+    const resolved = fromDatabase(withChangeFeed(tracked));
     if (process.env.NODE_ENV !== 'production' && typeof globalThis !== 'undefined') {
       (
         globalThis as { __kingfisher?: AppRepositories & { importGames: typeof importGames } }
@@ -86,10 +95,21 @@ export function getRepositories(): Promise<AppRepositories> {
   return repositories;
 }
 
+/**
+ * The database cloud sync reads and writes: the same one the repositories use,
+ * write-tracked, but outside the change feed.
+ */
+export async function getSyncDatabase(): Promise<PersistenceDatabase> {
+  await getRepositories();
+  if (!syncDatabase) throw new Error('Local storage did not open.');
+  return syncDatabase;
+}
+
 export function createMemoryRepositories(): AppRepositories {
   return fromDatabase(new MemoryPersistenceDatabase());
 }
 
 export function resetRepositorySingletonForTests(): void {
   repositories = null;
+  syncDatabase = null;
 }

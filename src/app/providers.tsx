@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { usePreferences } from '@/stores/preferences-store';
 import { enforceExplorerCacheLimit } from '@/database/cache';
 import { PwaBootstrap } from '@/pwa/PwaBootstrap';
+import { AccountBootstrap } from '@/features/account/AccountBootstrap';
 
 /**
  * Server/cache state lives in TanStack Query, not in Zustand.
@@ -91,6 +92,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={client}>
       <PwaBootstrap />
+      <AccountBootstrap />
       {children}
     </QueryClientProvider>
   );

@@ -9,6 +9,7 @@ import { MoveContextMenu } from '@/features/movetree/MoveContextMenu';
 import { useWorkspacePersistence } from '@/features/persistence/useWorkspacePersistence';
 import { ShortcutsDialog } from '@/features/shell/ShortcutsDialog';
 import { FirstRunTour } from '@/features/shell/FirstRunTour';
+import { ImportLocalWorkDialog } from '@/features/account/ImportLocalWorkDialog';
 import { useCompanionSync } from '@/companion/useCompanion';
 import { useBrowserEngineDiscovery } from '@/engine/use-engines';
 import { useDesktopIntegration } from '@/desktop/useDesktop';
@@ -242,6 +243,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <CommandPalette />
         <ShortcutsDialog />
         <FirstRunTour />
+        <ImportLocalWorkDialog />
         {settingsOpen ? <SettingsDialog /> : null}
         {jobsOpen ? <AnalysisJobsDialog onClose={() => setJobsOpen(false)} /> : null}
         {importOpen ? <ImportDialog /> : null}
