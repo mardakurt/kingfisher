@@ -74,8 +74,11 @@ let client: Promise<SupabaseClient | null> | undefined;
  */
 function developmentOverride(): Record<string, string | undefined> | null {
   if (process.env.NODE_ENV === 'production') return null;
-  const override = (window as { __kingfisherCloudConfig?: { url?: string; key?: string } })
+  const override = (window as { __kingfisherCloudConfig?: { url?: string; key?: string } | false })
     .__kingfisherCloudConfig;
+  // `false` names no project at all, so a machine whose `.env.local` has one
+  // can still render the unconfigured screens.
+  if (override === false) return {};
   if (!override) return null;
   return {
     NEXT_PUBLIC_SUPABASE_URL: override.url,
