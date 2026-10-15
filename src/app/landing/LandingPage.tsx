@@ -81,7 +81,7 @@ const SWITCH_ROWS: readonly { readonly from: string; readonly to: string; readon
     {
       // src/preparation/, src/features/preparation/
       from: 'Player preparation and the blunder check',
-      to: 'Preparation against a named opponent, their repertoire against yours, and a costly-moves report over a game or a whole collection.',
+      to: 'Preparation against a named opponent, their repertoire against yours and drawn as an opening map, and a costly-moves report you can train from.',
     },
     {
       from: 'Mega Database',
@@ -458,10 +458,11 @@ export function LandingPage(): JSX.Element {
               <p className="section-eyebrow">Research</p>
               <h2 className="section-title">Open the line, not just the next move.</h2>
               <p className="section-lede">
-                A moves history is the games that played it. The Explorer queries the source you
+                A move’s history is the games that played it. The Explorer queries the source you
                 name, returns the count and the trend, and keeps the line, the result, the rating
                 and the licence on the row next to the data — not in a separate document you have to
-                remember to read.
+                remember to read. Its opening map draws the next three moves at once, each branch as
+                wide as it was played and shaded by how it scored; a click plays the line.
               </p>
               <ul className="research-list">
                 <li>
