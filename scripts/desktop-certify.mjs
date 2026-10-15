@@ -20,7 +20,7 @@
  *   npm run desktop:certify -- --quick               # skip the walk and the engine fleet
  *
  * Steps:
- *   1. smoke      launch, bridge, isolation, companion, PGN, tablebase, quit — 17 checks
+ *   1. smoke      launch, bridge, isolation, companion, PGN, tablebase, Google sign-in, quit — 23 checks
  *   2. chrome     the window buttons against every layout — 107 checks
  *   3. restart    quit and reopen; the work is still there
  *   4. engines    every managed engine installed and searched in the bundle (skipped with --quick)

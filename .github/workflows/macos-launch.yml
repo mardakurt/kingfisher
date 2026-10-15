@@ -4,8 +4,8 @@
 # downloads the published ZIP of a release onto GitHub's Apple-silicon macOS
 # runners — real machines with a window server — checks its signature and
 # Gatekeeper assessment, and drives it with the same packaged smoke harness
-# (`scripts/desktop-smoke.mjs`, 17 checks: launch, bridge, companion, PGN,
-# tablebase, quit). macOS 13, the documented floor, has no Apple-silicon
+# (`scripts/desktop-smoke.mjs`, 23 checks: launch, bridge, companion, PGN,
+# tablebase, Google sign-in's loopback return, quit). macOS 13, the documented floor, has no Apple-silicon
 # hosted runner; this workflow does not and cannot claim it.
 name: macOS launch
 

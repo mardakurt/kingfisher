@@ -749,7 +749,7 @@ session started.
 npm run desktop:install    # once: the shell's own dependencies
 npm run desktop            # build the web bundle and launch it
 npm run desktop:dist       # Kingfisher.app and a .dmg
-npm run desktop:smoke      # drive the real application and check seventeen things
+npm run desktop:smoke      # drive the real application and check twenty-three things
 npm run desktop:chrome     # the macOS window buttons, against every layout the app has
 npm run desktop:engines    # install and search with every managed engine, inside the bundle
 npm run desktop:suspend    # stop every Kingfisher process for 20 s, then resume it
@@ -775,7 +775,7 @@ implied. Every "yes" names the command that produced it against the packaged
 
 |                                     |                                                                                                                                                                                                                                          |
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| macOS arm64 — builds, installs, run | **yes** — `npm run desktop:smoke -- --packaged`, 17 checks, window in about 3 s                                                                                                                                                          |
+| macOS arm64 — builds, installs, run | **yes** — `npm run desktop:smoke -- --packaged`, 23 checks, window in about 3 s                                                                                                                                                          |
 | macOS x64, Windows, Linux           | **not built**; the configuration is `arm64` only and `desktop/src/builder-config.test.mjs` pins it                                                                                                                                       |
 | Code signed                         | **yes** — `Developer ID Application` (team 3B5CYF9DQ4), Hardened Runtime, five entitlements, every nested code object; `npm run desktop:sign:verify`                                                                                     |
 | Accepted by Gatekeeper elsewhere    | **yes** — `spctl --assess` answers "accepted, source=Notarized Developer ID" for the app and the DMG; a quarantined copy assesses the same                                                                                               |

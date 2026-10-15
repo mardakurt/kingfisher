@@ -693,8 +693,9 @@ Four rules hold here and are the ones to keep:
 - **A platform claim needs evidence — from the packaged bundle.**
   `npm run desktop:certify` drives the real `Kingfisher.app` electron-builder
   produced, through Playwright, and checks the things only the shell can be
-  wrong about: the smoke's seventeen (launch, bridge, isolation, companion,
-  a PGN from the command line, a tablebase probe, nothing survives the quit),
+  wrong about: the smoke's twenty-three (launch, bridge, isolation, companion,
+  a PGN from the command line, a tablebase probe, Google sign-in's
+  loopback return, nothing survives the quit),
   the window chrome, restart, the engine fleet, suspend, a seeded walk with
   invariants, and the DMG. The checkout shell is a development convenience.
   Every packaged build from Phase 35 to Phase 45 launched and exited before

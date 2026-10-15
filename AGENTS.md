@@ -260,7 +260,7 @@ returns `null` in a browser. Five rules hold, and each has cost something:
   by the same harness. `docs/design/macos-window-chrome.md` states the four
   regions and why each number is what it is.
 - **A platform claim needs evidence.** "Builds" is not "runs". `npm run
-desktop:smoke` drives the real application and checks the seventeen things
+desktop:smoke` drives the real application and checks the twenty-three things
   only the shell can be wrong about; README states which platforms it has
   actually been run on, and which it has not.
 
