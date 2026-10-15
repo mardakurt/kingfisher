@@ -1,8 +1,10 @@
 {
   "$comment": "What the public site at kingfisherchess.app actually runs, as opposed to what the code can do. Flip `accounts.enabledOnPublicSite` only after the Supabase project is provisioned, its migrations applied, and NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are set on the production deployment (docs/operations/supabase-setup.md). `npm run docs:check` holds SECURITY.md and the privacy page to this value.",
   "accounts": {
-    "enabledOnPublicSite": false,
+    "enabledOnPublicSite": true,
     "provider": "Supabase",
-    "region": null
+    "region": "ap-northeast-2",
+    "regionName": "Seoul, South Korea",
+    "emailProvider": "Resend"
   }
 }

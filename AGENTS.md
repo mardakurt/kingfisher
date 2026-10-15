@@ -687,7 +687,8 @@ Optional. Signed out — or on a build without `NEXT_PUBLIC_SUPABASE_URL` and
 `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — Kingfisher is exactly the
 local-first application above, and the account pages say accounts are not
 set up. `src/release/public-services.json` records whether the public site
-offers them (it does not yet); `docs:check` holds SECURITY.md and the
+offers them (it does, since 2026-10-15: project `mwrljfsnreplhmvzdhzl`,
+Seoul, email through Resend); `docs:check` holds SECURITY.md and the
 privacy page to it.
 
 - **IndexedDB stays the working copy.** The cloud is a replica in one

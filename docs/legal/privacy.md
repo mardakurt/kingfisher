@@ -10,15 +10,16 @@ privacy policy. The technical security policy is at
 Kingfisher is **local-first**. Studies, repertoire, training,
 notes, recent work and preferences are stored in the browser
 profile or in the desktop application's local profile directory.
-Nothing about you or your work is sent to a Kingfisher server,
-because there is no Kingfisher server.
+Signed out, nothing about you or your work leaves your machine.
+Signed in to the optional account, a copy of your authored work is
+kept in that account so it reaches your other devices — nothing
+else, and only yours to read.
 
 - **No account required.** Everything works without signing in,
   and signed out the application does not know who you are. An
-  optional account, for keeping your work on more than one device,
-  exists in the code but is **not offered on kingfisherchess.app
-  yet**; when it is, the section _Optional account_ below says
-  exactly what it stores, and this line will say so.
+  optional account keeps your work on more than one device; the
+  section _Optional account_ below says exactly what it stores and
+  where.
 - **Page views and load times are counted, and that is all.** The
   website uses Vercel Web Analytics and Vercel Speed Insights. For
   each page view it records the page path, the referrer, and what
@@ -52,12 +53,11 @@ inside the application for the exact redaction list.
 
 ## In detail
 
-### Optional account (not yet offered on the public site)
+### Optional account
 
-When a Kingfisher build is connected to an account service — none
-of the public builds is today — you may create an account with an
-email address and password, or with Google. Then, and only while
-you are signed in:
+You may create an account on kingfisherchess.app with an email
+address and password (and with Google where the sign-in page offers
+it). Then, and only while you are signed in:
 
 - **Stored in your account:** your email address and, with Google,
   the name Google supplies; and a copy of your authored work —
@@ -71,8 +71,12 @@ you are signed in:
 - **Who can read it:** only you. Every row is tied to your account
   and the database refuses everyone else, enforced by the database
   itself (row-level security), not by the application.
-- **Where:** Supabase, the service that runs the account database.
-  The region will be named here when the service is enabled.
+- **Where:** Supabase, the service that runs the account database,
+  in its Seoul, South Korea region (`ap-northeast-2`).
+- **Account emails** — confirming your address, resetting a
+  password — are sent through Resend from
+  `accounts@kingfisherchess.app`. Resend receives your email address
+  and the message, nothing else.
 - **Your session** is kept in the browser's local storage, not in
   a cookie.
 - **Deleting your account** (_Account → Delete account_) removes

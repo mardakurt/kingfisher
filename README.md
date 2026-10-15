@@ -87,10 +87,11 @@ locked out of strong data.
 
 Authored work — studies, repertoires, training, notes — is stored in this
 browser. **Settings → Backup** downloads a JSON file the same browser can
-re-import. No cloud sync is required. Optional accounts that keep authored
-work in a person's Supabase-backed account are implemented
-(`src/sync/cloud/`) but **not enabled on kingfisherchess.app**; turning
-them on is [`docs/operations/supabase-setup.md`](docs/operations/supabase-setup.md).
+re-import. No cloud sync is required. An optional free account on
+kingfisherchess.app keeps authored work in the person's Supabase-backed
+account and on every device they sign in on (`src/sync/cloud/`); how the
+project is configured is
+[`docs/operations/supabase-setup.md`](docs/operations/supabase-setup.md).
 
 ## At a glance
 

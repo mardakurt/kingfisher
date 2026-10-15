@@ -193,7 +193,7 @@ export function LandingPage(): JSX.Element {
         name: 'Do I need an account to use Kingfisher Chess?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'No. Kingfisher Chess is local-first: open the web app or download the macOS application and your work lives in the browser or on the machine you installed it on, with every feature available signed out. Optional accounts — to keep the same work on several devices — are built into the open-source code but are not switched on at kingfisherchess.app yet. You can also connect a Lichess or Chess.com account from Settings to study your own games.',
+          text: 'No. Kingfisher Chess is local-first: open the web app or download the macOS application and your work lives in the browser or on the machine you installed it on, with every feature available signed out. An optional free account keeps the same studies, repertoires and analysis on every device you sign in on. You can also connect a Lichess or Chess.com account from Settings to study your own games.',
         },
       },
       {
@@ -201,7 +201,7 @@ export function LandingPage(): JSX.Element {
         name: 'Where is my chess work saved?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: "In your browser's IndexedDB on the web, or in ~/Library/Application Support/kingfisher-desktop/ on the macOS application. The full data lives on your machine, never on a Kingfisher server. To move work between machines, use Settings → Database → Export backup / Import backup. The backup is a portable JSON file you control.",
+          text: "In your browser's IndexedDB on the web, or in ~/Library/Application Support/kingfisher-desktop/ on the macOS application. The full data lives on your machine. Sign in to the optional account and a copy follows you to every device you sign in on; without one, Settings → Database → Export backup / Import backup moves it as a portable JSON file you control.",
         },
       },
       {
@@ -559,8 +559,9 @@ export function LandingPage(): JSX.Element {
             <p className="section-eyebrow">Local-first</p>
             <h2 className="section-title">Your chess. Your machine.</h2>
             <p className="section-lede">
-              Your studies, repertoire and notes stay on your machine. Reference data installs once
-              and works offline. No account required. No cookies. Chess on your terms.
+              Your studies, repertoire and notes live on your machine, and sign-in is optional —
+              when you use it, your work follows you to every device. Reference data installs once
+              and works offline. No cookies. Chess on your terms.
             </p>
           </div>
         </section>
@@ -712,10 +713,9 @@ export function LandingPage(): JSX.Element {
               <p>
                 No. Kingfisher is local-first: open the web app or download the macOS application
                 and your work lives in the browser or on the machine you installed it on, with every
-                feature available signed out. Optional accounts — to keep the same work on several
-                devices — are built into the open-source code but are not switched on at
-                kingfisherchess.app yet. You can also connect a Lichess or Chess.com account from
-                Settings to study your own games.
+                feature available signed out. An optional free account keeps the same studies,
+                repertoires and analysis on every device you sign in on. You can also connect a
+                Lichess or Chess.com account from Settings to study your own games.
               </p>
             </details>
             <details className="faq-item">
@@ -728,10 +728,10 @@ export function LandingPage(): JSX.Element {
               <p>
                 In your browser&apos;s IndexedDB on the web, or in{' '}
                 <code>~/Library/Application Support/kingfisher-desktop/</code> on the macOS
-                application. The full data lives on your machine, never on a Kingfisher server. To
-                move work between machines, use{' '}
-                <em>Settings → Database → Export backup / Import backup</em>. The backup is a
-                portable JSON file you control.
+                application. The full data lives on your machine. Sign in to the optional account
+                and a copy follows you to every device you sign in on; without one,{' '}
+                <em>Settings → Database → Export backup / Import backup</em> moves it as a portable
+                JSON file you control.
               </p>
             </details>
             <details className="faq-item">

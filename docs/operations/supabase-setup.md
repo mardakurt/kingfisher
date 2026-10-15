@@ -1,5 +1,12 @@
 # Turning on accounts: the Supabase and Google set-up
 
+> **State on 2026-10-15:** steps 1–6 and 8 are done for project
+> `mwrljfsnreplhmvzdhzl` (Seoul) — migrations, email with custom SMTP
+> and the five templates, redirect URLs, Vercel variables — except the
+> Google client in step 5. Step 7's `cloud:verify` needs the secret key
+> and is the owner's to run; the evidence used instead is in
+> `docs/product/2026-10-15-overhaul-report.md` §8.
+
 Kingfisher's optional accounts are implemented in the repository and
 **off** until a Supabase project is connected. This is the runbook for
 the steps only the project owner can take — they need your Supabase and

@@ -239,5 +239,11 @@ Seoul**). Done in the dashboard with the owner signed in, and checked:
 | Branded templates                         | **Confirm sign up** saved and read back byte-identical (`12ba6115…`) with subject "Confirm your email for Kingfisher". Reset password, change email, magic link and reauthentication **not yet** pasted — the dashboard session ended                                                             |
 
 `.env.local` (gitignored) holds the project URL and publishable key for
-local development. The public site is unchanged: `public-services.json`
-still says accounts are off, and no Vercel variable was set.
+local development.
+
+**Still open:** Google (the consent screen is configured in the owner's
+Google Cloud project; accepting Google's API Services User Data Policy
+and creating the client need the owner), Realtime across two live
+devices, and `npm run cloud:verify` with the secret key. Until Google is
+enabled the sign-in pages do not show it (they read the project's
+settings).

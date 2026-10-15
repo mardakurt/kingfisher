@@ -211,17 +211,12 @@ in the running deployment.
 
 ### What the product deliberately does **not** do
 
-- **Accounts are optional, and off on the public site today.** The
-  code for optional Supabase accounts — sign-in with email and
-  password or Google, and a copy of a person's authored work kept in
-  their account — is in this repository
-  (`src/sync/cloud/`, `supabase/migrations/`). Whether the public
-  site at kingfisherchess.app offers it is recorded in
-  `src/release/public-services.json`, and at present it does not: no
-  project is provisioned, so nothing leaves the browser profile and
-  the documented way to move work between machines remains
-  _Settings → Database → Export backup_. Signed out — or on a build
-  without a project — Kingfisher is fully local.
+- **Accounts are optional.** kingfisherchess.app offers sign-in with
+  email and password (Google where the sign-in page shows it), and a
+  signed-in person's authored work is kept in their account in
+  Supabase's Seoul region (`src/release/public-services.json`).
+  Signed out — or on a build without a project — Kingfisher is fully
+  local and nothing leaves the browser profile.
 - **Page views and load times only, from this origin.** The website
   counts page views with Vercel Web Analytics and page load timings
   with Vercel Speed Insights, both served from `/_vercel/` on this

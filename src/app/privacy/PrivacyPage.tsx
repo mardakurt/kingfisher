@@ -6,16 +6,15 @@ export function PrivacyPage(): JSX.Element {
     <DocsLayout
       eyebrow="Privacy"
       title="What Kingfisher collects — and what it does not."
-      lede="Kingfisher is local-first. Your studies, repertoire, training, notes, recent work and preferences are stored in the browser profile or in the desktop application's local profile directory. Kingfisher does not run a server of its own. When you use a feature that talks to a third party — Lichess, Chess.com, the reference-data mirror — this page tells you what is sent and why."
+      lede="Kingfisher is local-first. Your studies, repertoire, training, notes, recent work and preferences are stored in the browser profile or in the desktop application's local profile directory. Signed out, nothing about you or your work leaves your machine; signed in to the optional account, a copy of your authored work is kept there for your other devices. When you use a feature that talks to a third party — Lichess, Chess.com, the reference-data mirror — this page tells you what is sent and why."
     >
       <h2 id="short">Short version</h2>
       <ul>
         <li>
           <strong>No account required.</strong> Everything works without signing in, and signed out
           Kingfisher does not know who you are. There is no mailing list and no email capture. An
-          optional account for keeping your work on several devices exists in the code but is not
-          offered on kingfisherchess.app yet; <a href="#account">Optional account</a> says what it
-          will store when it is.
+          optional account keeps your work on several devices;{' '}
+          <a href="#account">Optional account</a> says exactly what it stores and where.
         </li>
         <li>
           <strong>Page views and load times are counted, and that is all.</strong> The website uses
@@ -56,11 +55,10 @@ export function PrivacyPage(): JSX.Element {
         </li>
       </ul>
 
-      <h2 id="account">Optional account (not yet offered on the public site)</h2>
+      <h2 id="account">Optional account</h2>
       <p>
-        When a build is connected to an account service — none of the public builds is today — you
-        may create an account with an email address and password, or with Google. Then, and only
-        while you are signed in:
+        You may create an account with an email address and password (and with Google where the
+        sign-in page offers it). Then, and only while you are signed in:
       </p>
       <ul>
         <li>
@@ -79,8 +77,13 @@ export function PrivacyPage(): JSX.Element {
           account (row-level security), not just the application.
         </li>
         <li>
-          <strong>Where:</strong> Supabase, which runs the account database. The region will be
-          named here when the service is enabled.
+          <strong>Where:</strong> Supabase, which runs the account database, in its Seoul, South
+          Korea region (<code>ap-northeast-2</code>).
+        </li>
+        <li>
+          <strong>Account emails</strong> — confirming your address, resetting a password — are sent
+          through Resend from accounts@kingfisherchess.app. Resend receives your email address and
+          the message, nothing else.
         </li>
         <li>
           <strong>Your session</strong> is kept in local storage, not in a cookie.

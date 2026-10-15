@@ -12,11 +12,11 @@ real users notice.
   did not, and fills the ordinary filters. Offline and deterministic.
 - Re-applying a saved query kept every condition except its opening; it
   keeps the opening now.
-- **Optional accounts** (email and password, or Google) and **sync** of
-  studies, repertoires, analysis, training, preparation and preferences
-  between devices, with conflicts kept for review rather than overwritten.
-  Built and tested; switched on for kingfisherchess.app only once its
-  account service is provisioned. Without an account nothing changes.
+- **Optional accounts** and **sync** of studies, repertoires, analysis,
+  training, preparation and preferences between devices, with conflicts
+  kept for review rather than overwritten. Sign in with email and
+  password on kingfisherchess.app; Google is offered once it is enabled.
+  Account emails come from Kingfisher. Without an account nothing changes.
 - The landing page answers "Coming from ChessBase?" — what moves across
   and what Kingfisher does not have.
 
