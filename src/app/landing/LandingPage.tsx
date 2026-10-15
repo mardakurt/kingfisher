@@ -118,7 +118,7 @@ export function LandingPage(): JSX.Element {
       'Local-first persistence (IndexedDB)',
       'Reference data with verified provenance',
       'Repertoire, training, review',
-      'No account, no cookies, no subscription',
+      'No account required, no cookies, no subscription',
     ],
   };
 
@@ -490,7 +490,7 @@ export function LandingPage(): JSX.Element {
             <h2 className="section-title">Your chess. Your machine.</h2>
             <p className="section-lede">
               Your studies, repertoire and notes stay on your machine. Reference data installs once
-              and works offline. No account. No cookies. Chess on your terms.
+              and works offline. No account required. No cookies. Chess on your terms.
             </p>
           </div>
         </section>

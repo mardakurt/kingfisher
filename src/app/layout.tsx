@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     template: '%s · Kingfisher Chess',
   },
   description:
-    'Kingfisher Chess is a local-first chess analysis and repertoire workstation for serious players. Stockfish 18 in the browser, native chess engines on macOS, opening explorer, large personal chess database, repertoire and review. No account. No cookies.',
+    'Kingfisher Chess is a local-first chess analysis and repertoire workstation for serious players. Stockfish 18 in the browser, native chess engines on macOS, opening explorer, large personal chess database, repertoire and review. No account required. No cookies.',
   applicationName: 'Kingfisher Chess',
   keywords: [
     'kingfisher chess',
@@ -91,7 +91,7 @@ export const metadata: Metadata = {
     siteName: 'Kingfisher Chess',
     title: 'Kingfisher Chess — chess research workspace',
     description:
-      'Chess analysis, opening explorer, personal chess database, repertoire and review. Stockfish 18 in the browser, native engines on macOS. Local-first. No account. No cookies.',
+      'Chess analysis, opening explorer, personal chess database, repertoire and review. Stockfish 18 in the browser, native engines on macOS. Local-first. No account required. No cookies.',
     url: LANDING,
     locale: 'en',
     images: [
@@ -109,7 +109,7 @@ export const metadata: Metadata = {
     creator: '@kingfisher',
     title: 'Kingfisher Chess — chess research workspace',
     description:
-      'Chess analysis, opening explorer, personal chess database, repertoire and review. Stockfish 18 in the browser, native engines on macOS. Local-first. No account. No cookies.',
+      'Chess analysis, opening explorer, personal chess database, repertoire and review. Stockfish 18 in the browser, native engines on macOS. Local-first. No account required. No cookies.',
     images: [OG_IMAGE],
   },
   appleWebApp: { capable: true, title: 'Kingfisher', statusBarStyle: 'default' },

@@ -172,14 +172,46 @@ in the running deployment.
   the previous engine (`electron-updater`) and continue to be offered
   the next stable release through it.
 
+### Accounts and synced data (when enabled)
+
+- **Isolation is enforced by Postgres, not by the client.** Every
+  table holding account data has Row Level Security that admits only
+  the row's owner; nothing is granted to the anonymous role; a row
+  cannot be moved to another owner (policy `with check` and a
+  trigger). `src/sync/cloud/rls.test.ts` runs the real migration in
+  Postgres under the roles and JWT claims Supabase uses and asserts
+  that one account can neither read, change, delete nor plant rows
+  in another's — each assertion checked against a deliberately
+  broken policy.
+- **Only the publishable key reaches the browser.** A service-role
+  or `sb_secret_` key placed in a public variable is refused at
+  start-up (`src/sync/cloud/supabase-client.ts`).
+- **No silent overwrite.** Uploads are compare-and-swap on a server
+  revision (`push_user_records`); when two devices changed the same
+  record, the account's version wins everywhere and the losing local
+  version is kept on that device until the person restores or
+  dismisses it.
+- **Records from the account are validated** by the same rules a
+  backup restore applies before they reach local storage.
+- **Secrets never sync.** API tokens and keys stay in the device's
+  preferences and are excluded from the synced set.
+- **Sign-in uses PKCE**; the session is kept in the browser's local
+  storage, not a cookie. Deleting the account removes the auth user
+  and, by cascade, every row it owns.
+
 ### What the product deliberately does **not** do
 
-- **No cross-device Sync.** Studies, repertoire, training, notes
-  and preferences are local to one browser profile. There is no
-  account, no cloud copy, no replication to a server. The
-  documented way to move work between machines is
-  _Settings → Database → Export backup_ and Import on the other
-  side.
+- **Accounts are optional, and off on the public site today.** The
+  code for optional Supabase accounts — sign-in with email and
+  password or Google, and a copy of a person's authored work kept in
+  their account — is in this repository
+  (`src/sync/cloud/`, `supabase/migrations/`). Whether the public
+  site at kingfisherchess.app offers it is recorded in
+  `src/release/public-services.json`, and at present it does not: no
+  project is provisioned, so nothing leaves the browser profile and
+  the documented way to move work between machines remains
+  _Settings → Database → Export backup_. Signed out — or on a build
+  without a project — Kingfisher is fully local.
 - **Page views and load times only, from this origin.** The website
   counts page views with Vercel Web Analytics and page load timings
   with Vercel Speed Insights, both served from `/_vercel/` on this
@@ -316,9 +348,11 @@ The maintainer aims to:
   GitHub issue, a discussion, a tweet, a Reddit post, or a
   Lichess forum thread.
 - **Do not** run a fuzzer against the public web or the public
-  data mirror without coordination. Kingfisher has no accounts
-  to hand out; for research that benefits the project the
-  maintainer can arrange a local-only endpoint.
+  data mirror without coordination. Do not create accounts in
+  bulk or probe another person's account; for research on the
+  account boundary, the migration runs locally in the test suite
+  (`src/sync/cloud/rls.test.ts`) and the maintainer can arrange a
+  separate project.
 - **Do not** publish a working exploit before a fix is in
   users' hands.
 

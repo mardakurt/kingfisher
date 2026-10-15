@@ -6,10 +6,31 @@
 
 ## Status
 
-**Proposed**, not yet implemented. The application remains
-local-first and account-free by default. This ADR is the design
-record for what would be built if the owner authorises Phase 28 to
-proceed.
+**Accepted and implemented** (2026-10-15), not yet enabled on the
+public site — `src/release/public-services.json` records that. The
+application remains local-first and fully usable signed out.
+
+What was built differs from the proposal below in four places, each
+for a reason:
+
+- **One record table, not one table per domain.** `user_records`
+  holds each portable record opaquely by (owner, store, key). The
+  record schemas are owned, validated and migrated in TypeScript;
+  mirroring them as SQL tables would give every schema two owners.
+- **Server wins a conflict, and the loser is kept on the device**
+  rather than both versions being shown side by side at once: every
+  device converges immediately, and the person restores their
+  version from _Account → To review_ if they want it.
+- **Email and password plus Google**, not magic links, as the owner
+  asked.
+- **Tombstones are kept indefinitely** rather than for 30 days: they
+  are a few hundred bytes, and purging them reintroduces the
+  resurrection problem the proposal describes.
+
+The implementation: `supabase/migrations/`, `src/sync/cloud/`,
+`src/persistence/sync-state.ts`, `src/stores/account-store.ts`,
+`src/features/account/`. The runbook for turning it on is
+`docs/operations/supabase-setup.md`. The original proposal follows.
 
 ## Context
 

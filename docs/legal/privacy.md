@@ -13,8 +13,12 @@ profile or in the desktop application's local profile directory.
 Nothing about you or your work is sent to a Kingfisher server,
 because there is no Kingfisher server.
 
-- **No account.** You do not sign in. There is no sign-in to
-  sign in with. The application does not know who you are.
+- **No account required.** Everything works without signing in,
+  and signed out the application does not know who you are. An
+  optional account, for keeping your work on more than one device,
+  exists in the code but is **not offered on kingfisherchess.app
+  yet**; when it is, the section _Optional account_ below says
+  exactly what it stores, and this line will say so.
 - **Page views and load times are counted, and that is all.** The
   website uses Vercel Web Analytics and Vercel Speed Insights. For
   each page view it records the page path, the referrer, and what
@@ -47,6 +51,35 @@ identify you or your accounts; see [Settings → Diagnostics]
 inside the application for the exact redaction list.
 
 ## In detail
+
+### Optional account (not yet offered on the public site)
+
+When a Kingfisher build is connected to an account service — none
+of the public builds is today — you may create an account with an
+email address and password, or with Google. Then, and only while
+you are signed in:
+
+- **Stored in your account:** your email address and, with Google,
+  the name Google supplies; and a copy of your authored work —
+  studies and chapters, unsaved analysis, repertoires, training
+  cards and progress, preparation, opening files, journal and
+  review, saved searches, pinned lines, stored engine results,
+  puzzle history — and your display, board and engine preferences.
+- **Never stored there:** imported game collections, reference
+  packs, engines, API tokens and keys, and settings that describe
+  your machine.
+- **Who can read it:** only you. Every row is tied to your account
+  and the database refuses everyone else, enforced by the database
+  itself (row-level security), not by the application.
+- **Where:** Supabase, the service that runs the account database.
+  The region will be named here when the service is enabled.
+- **Your session** is kept in the browser's local storage, not in
+  a cookie.
+- **Deleting your account** (_Account → Delete account_) removes
+  the account and every copy of your work stored in it. Work on
+  your own device stays there.
+- Before anything on a device is uploaded for the first time, you
+  are asked.
 
 ### Local storage
 

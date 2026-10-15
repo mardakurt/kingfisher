@@ -104,6 +104,7 @@
     "release:manifest": "node scripts/release-manifest.mjs",
     "public:check": "node scripts/public-link-check.mjs",
     "docs:check": "node scripts/docs-check.mjs",
+    "cloud:verify": "node scripts/cloud-verify.mjs",
     "publish:site": "node scripts/publish-site.mjs",
     "publish:data": "node scripts/publish-data.mjs",
     "publish:release-manifest": "node scripts/publish-release-manifest.mjs",

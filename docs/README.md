@@ -444,6 +444,7 @@ date should make that obvious. If a current file goes stale, fix the file. Do
 not add a "last updated" line; `git log` already says.
 
 - [Large databases and external storage](operations/large-databases.md)
+- [Turning on accounts: the Supabase and Google set-up](operations/supabase-setup.md) — the owner's steps, and `npm run cloud:verify` for the live account boundary.
 - [Independent ChessBase acceptance](operations/independent-chessbase-acceptance.md)
 
 - [`reports/2026-10-03-1.4.4-release-handover.md`](reports/2026-10-03-1.4.4-release-handover.md) — 1.4.4: public release identity, source and packaged gates, update evidence, coverage limits.

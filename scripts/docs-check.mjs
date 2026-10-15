@@ -606,6 +606,10 @@ if (descriptor) {
   }
 }
 
+const services = JSON.parse(
+  readFileSync(join(REPO_ROOT, 'src/release/public-services.json'), 'utf8'),
+);
+
 // 6. SECURITY.md forbids inventing things that don't exist.
 {
   const content = mustExist('SECURITY.md');
@@ -615,11 +619,27 @@ if (descriptor) {
       /1\.0\.0-rc\./,
       'SECURITY.md still names a release candidate as current',
     );
-    mustNotMatch(
-      'SECURITY.md',
-      /Sync is active|cloud sync|cross-device sync is enabled|sync across/i,
-      'SECURITY.md must not claim cross-device Sync is active',
-    );
+    // Accounts exist in the code; whether the public site offers them is a
+    // fact about the deployment, recorded in src/release/public-services.json.
+    // The page follows the descriptor, whichever way it goes.
+    if (services.accounts.enabledOnPublicSite) {
+      mustNotMatch(
+        'SECURITY.md',
+        /off on the public site|not offered on kingfisherchess\.app/i,
+        'SECURITY.md still says accounts are off, but the descriptor says they are enabled',
+      );
+    } else {
+      mustMatch(
+        'SECURITY.md',
+        /Accounts are optional, and off on the public site today/,
+        'SECURITY.md says accounts are off on the public site, as the descriptor records',
+      );
+      mustNotMatch(
+        'SECURITY.md',
+        /Sync is active|cross-device sync is enabled|accounts are (now )?enabled/i,
+        'SECURITY.md must not claim accounts or sync are live while the descriptor says they are not',
+      );
+    }
     // SECURITY.md's notarisation claim must agree with the descriptor,
     // whichever way it goes: the descriptor is written from the published
     // bytes after `desktop:notary:verify`, and the page follows it.
@@ -653,7 +673,24 @@ if (descriptor) {
 {
   const content = mustExist('docs/legal/privacy.md');
   if (content !== null) {
-    mustMatch('docs/legal/privacy.md', /No account/, 'privacy page says "no account"');
+    mustMatch(
+      'docs/legal/privacy.md',
+      /No account required/,
+      'privacy page says no account is required',
+    );
+    if (!services.accounts.enabledOnPublicSite) {
+      mustMatch(
+        'docs/legal/privacy.md',
+        /not offered on kingfisherchess\.app\s+yet/,
+        'privacy page says the optional account is not offered on the public site yet',
+      );
+    } else {
+      mustMatch(
+        'docs/legal/privacy.md',
+        new RegExp(String(services.accounts.region ?? '\u0000')),
+        'privacy page names the region the account data is stored in',
+      );
+    }
     mustMatch(
       'docs/legal/privacy.md',
       /Page views and load times are counted, and that is all/,

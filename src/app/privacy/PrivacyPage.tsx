@@ -11,10 +11,11 @@ export function PrivacyPage(): JSX.Element {
       <h2 id="short">Short version</h2>
       <ul>
         <li>
-          <strong>No Kingfisher account.</strong> You do not sign in to Kingfisher. There is no
-          Kingfisher-controlled email capture, mailing list, profile or backend. The local profile
-          that holds a display name you picked (Phase 55) lives in IndexedDB on the web and in the
-          desktop profile directory on macOS; nothing about it leaves your machine.
+          <strong>No account required.</strong> Everything works without signing in, and signed out
+          Kingfisher does not know who you are. There is no mailing list and no email capture. An
+          optional account for keeping your work on several devices exists in the code but is not
+          offered on kingfisherchess.app yet; <a href="#account">Optional account</a> says what it
+          will store when it is.
         </li>
         <li>
           <strong>Page views and load times are counted, and that is all.</strong> The website uses
@@ -52,6 +53,42 @@ export function PrivacyPage(): JSX.Element {
           <strong>No client-side fingerprinting.</strong> No canvas fingerprint, no font
           enumeration, no hardware concurrency probes, no timezone sniff, no IP-to-country map, no
           “we know its you because of your machine.”
+        </li>
+      </ul>
+
+      <h2 id="account">Optional account (not yet offered on the public site)</h2>
+      <p>
+        When a build is connected to an account service — none of the public builds is today — you
+        may create an account with an email address and password, or with Google. Then, and only
+        while you are signed in:
+      </p>
+      <ul>
+        <li>
+          <strong>Stored in your account:</strong> your email address (and, with Google, the name
+          Google supplies), and a copy of your authored work — studies and chapters, unsaved
+          analysis, repertoires, training progress, preparation, opening files, journal and review,
+          saved searches, pinned lines, stored engine results, puzzle history — with your display,
+          board and engine preferences.
+        </li>
+        <li>
+          <strong>Never stored there:</strong> imported game collections, reference packs, engines,
+          API tokens and keys, and settings that describe your machine.
+        </li>
+        <li>
+          <strong>Who can read it:</strong> only you. The database itself refuses every other
+          account (row-level security), not just the application.
+        </li>
+        <li>
+          <strong>Where:</strong> Supabase, which runs the account database. The region will be
+          named here when the service is enabled.
+        </li>
+        <li>
+          <strong>Your session</strong> is kept in local storage, not in a cookie.
+        </li>
+        <li>
+          <strong>Deleting the account</strong> removes it and every copy of your work stored in it.
+          Work on your own device stays there. Nothing on a device is uploaded the first time until
+          you say so.
         </li>
       </ul>
 

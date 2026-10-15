@@ -10,7 +10,7 @@ import { LandingPage } from './landing/LandingPage';
 export const metadata = {
   title: 'Kingfisher Chess — chess research workspace',
   description:
-    'Kingfisher Chess is a local-first chess analysis and repertoire workstation for serious players. Stockfish 18 in the browser, native chess engines on macOS, opening explorer, large personal chess database, repertoire and review. No account. No cookies.',
+    'Kingfisher Chess is a local-first chess analysis and repertoire workstation for serious players. Stockfish 18 in the browser, native chess engines on macOS, opening explorer, large personal chess database, repertoire and review. No account required. No cookies.',
 };
 
 export default function Home() {
