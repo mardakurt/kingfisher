@@ -13,51 +13,62 @@ import { publicUrl } from '@/release/public-urls';
  * with every release, the legal pages change rarely. The
  * Studio does not appear here and never will.
  */
-const LANDING_UPDATED = '2026-09-16';
-const INSTALL_UPDATED = '2026-09-16';
-const LEGAL_UPDATED = '2026-09-16';
+/*
+  The date each page's content last changed, from `git log -1 -- <page>`.
+  Google reads `lastmod` only while it stays accurate, so a date that
+  never moves is a date it learns to ignore: change the matching line
+  when you change the page.
+*/
+const UPDATED = {
+  landing: '2026-10-15',
+  install: '2026-10-14',
+  privacy: '2026-10-15',
+  security: '2026-10-14',
+  dataLicences: '2026-10-04',
+  terms: '2026-09-28',
+} as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = publicUrl.landing;
   return [
     {
       url: `${base}/`,
-      lastModified: new Date(LANDING_UPDATED),
+      lastModified: new Date(UPDATED.landing),
       changeFrequency: 'weekly',
       priority: 1,
       alternates: undefined,
     },
     {
       url: `${base}/install`,
-      lastModified: new Date(INSTALL_UPDATED),
+      lastModified: new Date(UPDATED.install),
       changeFrequency: 'weekly',
       priority: 0.9,
       alternates: undefined,
     },
     {
       url: `${base}/privacy`,
-      lastModified: new Date(LEGAL_UPDATED),
+      lastModified: new Date(UPDATED.privacy),
       changeFrequency: 'monthly',
       priority: 0.5,
       alternates: undefined,
     },
     {
       url: `${base}/security`,
-      lastModified: new Date(LEGAL_UPDATED),
+      lastModified: new Date(UPDATED.security),
       changeFrequency: 'monthly',
       priority: 0.5,
       alternates: undefined,
     },
     {
       url: `${base}/data-licences`,
-      lastModified: new Date(LEGAL_UPDATED),
+      lastModified: new Date(UPDATED.dataLicences),
       changeFrequency: 'monthly',
       priority: 0.5,
       alternates: undefined,
     },
     {
       url: `${base}/terms`,
-      lastModified: new Date(LEGAL_UPDATED),
+      lastModified: new Date(UPDATED.terms),
       changeFrequency: 'monthly',
       priority: 0.5,
       alternates: undefined,

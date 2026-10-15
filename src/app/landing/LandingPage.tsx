@@ -169,6 +169,21 @@ export function LandingPage(): JSX.Element {
   };
 
   /*
+   * WebSite is what Google reads for the site name it prints above a
+   * result. Without it, a result for this origin can be headed with the
+   * bare domain or a guess, and "Kingfisher" alone names a bird, a film
+   * and a retailer before it names this. One name and one alternate,
+   * both of which the page already uses.
+   */
+  const websiteJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Kingfisher Chess',
+    alternateName: 'Kingfisher',
+    url: `${publicUrl.landing}/`,
+  };
+
+  /*
    * FAQPage schema mirrors the FAQ section below. Google can render the
    * matching questions as a FAQ rich result, which earns a search-result
    * that occupies more vertical space and ranks "kingfisher chess" style
@@ -890,6 +905,10 @@ export function LandingPage(): JSX.Element {
         // `faqJsonLd` constant — so the structured data and the
         // page body cannot drift.
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
       />
     </div>
   );

@@ -105,8 +105,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@kingfisher',
-    creator: '@kingfisher',
+    // No `site` or `creator`: Kingfisher has no X account, and the handle
+    // that stood here (`@kingfisher`) belongs to somebody else.
     title: 'Kingfisher Chess — chess research workspace',
     description:
       'Chess analysis, opening explorer, personal chess database, repertoire and review. Stockfish 18 in the browser, native engines on macOS. Local-first. No account required. No cookies.',
