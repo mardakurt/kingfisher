@@ -401,6 +401,85 @@ async function main() {
     }
   }
 
+  /*
+    5c. Google sign-in, in the person's browser, returned to this window.
+
+    Google refuses OAuth inside an application window, so the shell opens the
+    authorize URL in the default browser and listens on loopback for the
+    redirect (desktop/src/browser-sign-in.mjs). What only the packaged shell
+    can get wrong is the wiring: the IPC, the preload's surface, the listener
+    actually binding inside the bundle, and the code arriving back in the
+    renderer. The browser is stood in for twice — `shell.openExternal` is
+    replaced in the main process so nothing opens on the machine, and this
+    process plays the browser's redirect with fetch. No Supabase is involved:
+    the exchange is the renderer's, and e2e/account-google-desktop.spec.ts
+    runs it with the real supabase-js.
+  */
+  const stubbed = await app.evaluate(({ shell }) => {
+    const opened = [];
+    const stand = async (target) => {
+      opened.push(target);
+    };
+    shell.openExternal = stand;
+    globalThis.__kingfisherSmokeOpened = opened;
+    return shell.openExternal === stand;
+  });
+  if (!check('the browser can be stood in for', stubbed)) {
+    console.log('  · Google sign-in not driven — opening a real browser is not a smoke test');
+  } else {
+    const opened = () => app.evaluate(() => [...globalThis.__kingfisherSmokeOpened]);
+    const begin = () => window.evaluate(() => window.kingfisher.browserSignIn?.begin() ?? null);
+    const authorizeFor = (redirectUri) =>
+      'https://smoke.invalid/auth/v1/authorize?provider=google' +
+      `&redirect_to=${encodeURIComponent(redirectUri)}` +
+      '&code_challenge=c21va2UtY2hhbGxlbmdl&code_challenge_method=s256&skip_http_redirect=true';
+
+    const refusedAt = await begin();
+    const refused = await window.evaluate(
+      () => window.kingfisher.browserSignIn?.open('https://example.com/not-a-sign-in') ?? null,
+    );
+    check(
+      'Google sign-in refuses to open a page that is not its own',
+      refusedAt !== null && refused?.status === 'refused' && (await opened()).length === 0,
+      refused?.status ?? 'no bridge call',
+    );
+
+    const begun = await begin();
+    const redirectUri = begun?.redirectUri ?? '';
+    const listener = /^http:\/\/127\.0\.0\.1:(\d+)\/auth\/desktop\/[0-9a-f]{48}$/.exec(redirectUri);
+    check(
+      'Google sign-in listens on loopback, on a port of its own',
+      Boolean(listener) && listener[1] !== new URL(url).port,
+      redirectUri.replace(/:\d+\//, ':<port>/').replace(/[0-9a-f]{48}$/, '<nonce>'),
+    );
+    if (listener) {
+      const authorize = authorizeFor(redirectUri);
+      await window.evaluate((target) => {
+        window.__kingfisherSmokeSignIn = window.kingfisher.browserSignIn.open(target);
+      }, authorize);
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      const sent = await opened();
+      check(
+        'the authorize URL goes to the browser, once',
+        sent.length === 1 && sent[0] === authorize,
+        `${sent.length} opened`,
+      );
+      const stray = await fetch(`${redirectUri.replace(/[0-9a-f]{48}$/, '0'.repeat(48))}?code=x`);
+      const page = await fetch(`${redirectUri}?code=smoke-code`);
+      const returned = await window.evaluate(() => window.__kingfisherSmokeSignIn);
+      check(
+        "the browser's redirect brings the code back to the window",
+        stray.status === 404 && page.status === 200 && returned?.code === 'smoke-code',
+        `wrong nonce ${stray.status}, redirect ${page.status}, renderer got ${returned?.status ?? '—'}`,
+      );
+      const closed = await fetch(`${redirectUri}?code=again`).then(
+        () => false,
+        () => true,
+      );
+      check('the listener closes once the sign-in returns', closed);
+    }
+  }
+
   // 6. What the shell says about itself.
   const diagnostics = await window.evaluate(() => window.kingfisher.diagnostics());
   check(

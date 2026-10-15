@@ -115,6 +115,18 @@ contextBridge.exposeInMainWorld('kingfisher', {
   openLogs: () => ipcRenderer.invoke('kingfisher:open-logs'),
 
   /**
+   * Google sign-in for a Kingfisher account, in the person's own browser
+   * (see browser-sign-in.mjs). The renderer keeps the PKCE verifier; the shell
+   * opens only an authorize URL that returns to the listener it started, and
+   * hands back the code that arrives there.
+   */
+  browserSignIn: {
+    begin: () => ipcRenderer.invoke('kingfisher:browser-sign-in:begin'),
+    open: (url) => ipcRenderer.invoke('kingfisher:browser-sign-in:open', String(url)),
+    cancel: () => ipcRenderer.send('kingfisher:browser-sign-in:cancel'),
+  },
+
+  /**
    * Phase 35: the renderer-facing surface of the desktop update service.
    * See `src/desktop/bridge.ts` for the full contract and the rationale
    * for what is and is not exposed here. The engine is Sparkle, and

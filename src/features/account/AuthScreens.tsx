@@ -11,6 +11,7 @@ import { useAccount } from '@/stores/account-store';
 import { cloudConfigProblem } from '@/sync/cloud/supabase-client';
 
 import {
+  cancelGoogleSignIn,
   safeNext,
   sendPasswordReset,
   signInWithGoogle,
@@ -176,12 +177,17 @@ function GoogleMark() {
 function GoogleButton({ next, label }: { next: string; label: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /*
+    In the Mac app the sign-in happens in the person's browser, so the wait
+    is theirs to end: say where to look, and offer a way out. A successful
+    sign-in leaves `busy` set — the signed-in redirect takes the page away.
+  */
   const desktop = typeof window !== 'undefined' && isDesktop();
   return (
     <div className="space-y-2">
       <button
         type="button"
-        disabled={busy || desktop}
+        disabled={busy}
         onClick={async () => {
           setBusy(true);
           setError(null);
@@ -194,11 +200,18 @@ function GoogleButton({ next, label }: { next: string; label: string }) {
         className="inline-flex h-10 w-full items-center justify-center gap-2.5 rounded-[var(--radius-control)] border border-line bg-surface-1 px-4 text-[15px] font-medium text-primary transition-colors hover:bg-surface-2 disabled:opacity-60"
       >
         <GoogleMark />
-        {busy ? 'Opening Google…' : label}
+        {busy ? (desktop ? 'Waiting for your browser…' : 'Opening Google…') : label}
       </button>
-      {desktop && (
-        <p className="text-xs text-tertiary">
-          Google sign-in works on kingfisherchess.app. In the Mac app, use your email and password.
+      {desktop && busy && (
+        <p className="text-xs text-tertiary" role="status">
+          Finish signing in with Google in your browser, then come back here.{' '}
+          <button
+            type="button"
+            onClick={cancelGoogleSignIn}
+            className="font-medium text-accent hover:underline"
+          >
+            Cancel
+          </button>
         </p>
       )}
       {error && <Notice tone="error">{error}</Notice>}

@@ -98,6 +98,12 @@ export interface WindowChrome {
   readonly safe: { readonly width: number; readonly height: number };
 }
 
+/** How a browser sign-in ended, as the shell saw it. */
+export type BrowserSignInOutcome =
+  | { readonly status: 'code'; readonly code: string }
+  | { readonly status: 'error'; readonly message: string }
+  | { readonly status: 'canceled' | 'timeout' | 'refused' };
+
 export interface DesktopBridge {
   readonly platform: 'desktop';
   readonly os: string;
@@ -132,6 +138,23 @@ export interface DesktopBridge {
    * `readFile(path)` existing at all.
    */
   openLogs(): Promise<boolean>;
+  /**
+   * Sign in to a Kingfisher account with Google, in the person's own browser.
+   *
+   * Google refuses OAuth inside an application window, so the shell opens the
+   * authorize URL in the default browser and listens on loopback for the
+   * redirect (`desktop/src/browser-sign-in.mjs`). `begin` starts the listener
+   * and returns the redirect URI to give Supabase; `open` takes the authorize
+   * URL supabase-js produced — the shell refuses any other — and resolves when
+   * the browser comes back. The PKCE verifier never leaves the renderer: the
+   * shell carries a code that is useless without it. Absent from a shell
+   * built before it existed.
+   */
+  readonly browserSignIn?: {
+    begin(): Promise<{ readonly redirectUri: string } | null>;
+    open(url: string): Promise<BrowserSignInOutcome>;
+    cancel(): void;
+  };
   onOpenDocument(listener: (document: DesktopDocument) => void): () => void;
   onShowDiagnostics(listener: () => void): () => void;
   onShowSettings(listener: () => void): () => void;

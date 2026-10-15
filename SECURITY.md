@@ -198,6 +198,16 @@ in the running deployment.
 - **Sign-in uses PKCE**; the session is kept in the browser's local
   storage, not a cookie. Deleting the account removes the auth user
   and, by cascade, every row it owns.
+- **Google sign-in in the Mac application uses the system browser and a
+  loopback redirect** (RFC 8252), because Google refuses OAuth in an
+  embedded window. For each sign-in the shell listens on `127.0.0.1`
+  on an ephemeral port, at a path carrying a 192-bit random nonce,
+  answers only `GET` requests whose `Host` is that address, and closes
+  after one result or ten minutes. It opens in the browser only a
+  Supabase `/auth/v1/authorize` URL for Google with a PKCE challenge
+  that returns to that listener. The verifier never leaves the
+  renderer, so a code intercepted on loopback cannot be exchanged
+  (`desktop/src/browser-sign-in.mjs`).
 
 ### What the product deliberately does **not** do
 

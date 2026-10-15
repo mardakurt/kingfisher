@@ -165,10 +165,11 @@ All in `docs/operations/supabase-setup.md`, step by step:
 - **Not verified against a hosted Supabase project** — none exists. The
   live check is one command once it does. Google OAuth, real email
   delivery and Realtime have not been exercised end to end.
-- **Google sign-in in the Mac app.** Google refuses OAuth in embedded
-  windows; the app offers email and password and says so. Needs the
-  system-browser flow with a callback into the shell — a change to
-  `desktop/`, which must then pass `desktop:certify`.
+- **Google sign-in in the Mac app** — done after this report: the
+  sign-in opens in the system browser and returns over a loopback
+  listener (`desktop/src/browser-sign-in.mjs`; redirect URL in
+  `docs/operations/supabase-setup.md` §4). Like the rest of accounts,
+  it has not been run against a hosted Supabase project.
 - **Packaged macOS gates were not run** for this work; the changes are in
   the shared web build, but `desktop:smoke -- --packaged` against a new
   bundle is required before a release that contains them.
@@ -213,6 +214,6 @@ gate, Firefox/WebKit matrix (`KF_E2E_MATRIX`), and the visual baselines.
 
 - Contrast audit for `/sign-in`, `/sign-up`, `/forgot-password` (excluded
   from `route-audit.spec.ts` because they sit outside the Studio shell).
-- Google sign-in in the Mac app (system-browser flow; `desktop/` change).
+- ~~Google sign-in in the Mac app~~ — done (system browser + loopback; see §6).
 - `desktop:smoke -- --packaged` and `desktop:certify` on a bundle that
   contains this work, before it ships in a release.

@@ -9,7 +9,7 @@
 
 import type { AuthError } from '@supabase/supabase-js';
 
-import { isDesktop } from '@/desktop/bridge';
+import { desktop, isDesktop } from '@/desktop/bridge';
 import { publicUrl } from '@/release/public-urls';
 import { getCloudClient } from '@/sync/cloud/supabase-client';
 
@@ -116,18 +116,73 @@ export async function signUpWithPassword(
 export async function signInWithGoogle(next: string): Promise<AuthResult> {
   const client = await getCloudClient();
   if (!client) return unavailable;
-  if (isDesktop()) {
-    return {
-      ok: false,
-      message:
-        'Google sign-in is available on kingfisherchess.app. In the Mac app, use your email and password.',
-    };
-  }
+  if (isDesktop()) return signInWithGoogleInBrowser();
   const { error } = await client.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: authRedirect(`/auth/callback?next=${encodeURIComponent(next)}`) },
   });
   return error ? { ok: false, message: describeAuthError(error) } : { ok: true };
+}
+
+/**
+ * Google sign-in from the Mac application.
+ *
+ * Google refuses OAuth in an embedded window, so the sign-in happens in the
+ * person's own browser and returns to a loopback listener the shell starts
+ * for it (`desktop/src/browser-sign-in.mjs`). The PKCE verifier is generated
+ * and kept here, by supabase-js, exactly as on the web; the shell only
+ * carries the code back, and the exchange happens in this window, which is
+ * why the session lands in this window's storage and nowhere else.
+ *
+ * `ok: true` here means signed in — the caller navigates — whereas on the web
+ * it means the page is on its way to Google.
+ */
+async function signInWithGoogleInBrowser(): Promise<AuthResult> {
+  const client = await getCloudClient();
+  const flow = desktop()?.browserSignIn;
+  if (!client || !flow) {
+    return {
+      ok: false,
+      message:
+        'This version of the Mac app cannot sign in with Google. Update Kingfisher, or use your email and password.',
+    };
+  }
+  const started = await flow.begin();
+  if (!started) return { ok: false, message: 'Kingfisher could not start the sign-in. Try again.' };
+  const { data, error } = await client.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: started.redirectUri, skipBrowserRedirect: true },
+  });
+  if (error || !data.url) {
+    flow.cancel();
+    return { ok: false, message: describeAuthError(error) };
+  }
+  const outcome = await flow.open(data.url);
+  switch (outcome.status) {
+    case 'code': {
+      const flowId = (data as { flowId?: string | null }).flowId;
+      const exchanged = await client.auth.exchangeCodeForSession(
+        outcome.code,
+        flowId ? { flowId } : undefined,
+      );
+      return exchanged.error
+        ? { ok: false, message: describeAuthError(exchanged.error) }
+        : { ok: true };
+    }
+    case 'error':
+      return { ok: false, message: outcome.message };
+    case 'canceled':
+      return { ok: false, message: 'Google sign-in was cancelled.' };
+    case 'timeout':
+      return { ok: false, message: 'Google sign-in took too long. Try again.' };
+    case 'refused':
+      return { ok: false, message: 'Kingfisher refused to open that sign-in page.' };
+  }
+}
+
+/** Stop waiting for a browser sign-in (the Mac app only; nothing on the web). */
+export function cancelGoogleSignIn(): void {
+  desktop()?.browserSignIn?.cancel();
 }
 
 export async function sendPasswordReset(email: string): Promise<AuthResult> {

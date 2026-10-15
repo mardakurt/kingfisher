@@ -118,6 +118,14 @@ export const BRIDGE_CONTRACTS: readonly BridgeContract[] = [
     caller: 'features/shell/SettingsDialog.tsx',
   },
   {
+    method: 'browserSignIn',
+    purpose:
+      'Google sign-in for a Kingfisher account in the person’s own browser, which Google ' +
+      'requires: the shell opens only the matching Supabase authorize URL and returns the code ' +
+      'from a one-use loopback listener; the PKCE verifier stays in the renderer.',
+    caller: 'features/account/auth-actions.ts',
+  },
+  {
     method: 'onOpenDocument',
     purpose: 'Documents arriving from the Finder, a drop, or the File menu.',
     caller: 'desktop/useDesktop.ts',

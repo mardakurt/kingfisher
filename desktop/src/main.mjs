@@ -31,6 +31,7 @@ import {
   shell,
 } from 'electron';
 import { randomBytes } from 'node:crypto';
+import { createServer } from 'node:http';
 import { RevivalBudget } from './revival.mjs';
 import { createRequire } from 'node:module';
 import os from 'node:os';
@@ -38,6 +39,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { createBackgroundWork } from './background-work.mjs';
+import { createBrowserSignIn } from './browser-sign-in.mjs';
 import { readBuildIdentity } from './build-identity.mjs';
 import { log, logFile, openLog, redactInLog } from './log.mjs';
 import {
@@ -872,9 +874,51 @@ function requestSaveBarrier({ timeoutMs = SAVE_BARRIER_TIMEOUT_MS } = {}) {
   return saveBarrier.dispatch({ timeoutMs });
 }
 
+/*
+  Google sign-in for a Kingfisher account, in the person's own browser.
+
+  Google refuses OAuth in an embedded window, so this is not the Lichess
+  arrangement: the browser does the sign-in and a loopback listener started
+  for it returns the code to this window. The shell checks the URL it opens
+  and carries the code; the renderer generated the verifier and does the
+  exchange. See browser-sign-in.mjs.
+*/
+const browserSignIn = createBrowserSignIn({
+  createServer,
+  openExternal: (url) => shell.openExternal(url),
+  onReturn: () => {
+    const window = state.window;
+    if (!window || window.isDestroyed()) return;
+    if (window.isMinimized()) window.restore();
+    if (!window.isVisible()) window.show();
+    app.focus({ steal: true });
+    window.focus();
+  },
+  log: (tag, message) => log(tag, message),
+});
+
 // --- ipc -------------------------------------------------------------------
 
 function registerIpc() {
+  /*
+    The three calls of a browser sign-in, from the main window only: begin
+    (listen, and say where to return), open (check the authorize URL, open it
+    in the browser, resolve with the code), cancel.
+  */
+  const fromMainWindow = (event) =>
+    Boolean(state.window) &&
+    !state.window.isDestroyed() &&
+    event.sender === state.window.webContents;
+  ipcMain.handle('kingfisher:browser-sign-in:begin', (event) =>
+    fromMainWindow(event) ? browserSignIn.begin() : null,
+  );
+  ipcMain.handle('kingfisher:browser-sign-in:open', (event, url) =>
+    fromMainWindow(event) ? browserSignIn.open(url) : { status: 'refused' },
+  );
+  ipcMain.on('kingfisher:browser-sign-in:cancel', (event) => {
+    if (fromMainWindow(event)) browserSignIn.cancel();
+  });
+
   ipcMain.handle('kingfisher:open-pgn', () => chooseAndOpen('pgn'));
   ipcMain.handle('kingfisher:open-database', () => chooseAndOpen('database'));
 
@@ -1300,6 +1344,7 @@ if (!app.requestSingleInstanceLock()) {
     // update-service.mjs reads this); a download Sparkle has in flight is
     // its own, and it resumes it on the next check.
     state.quitting = true;
+    browserSignIn.cancel();
     log('quit', 'stopping services');
     void stopServices().finally(() => {
       log('quit', 'services stopped');

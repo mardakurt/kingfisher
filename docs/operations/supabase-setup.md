@@ -73,11 +73,22 @@ sign-up and reset emails will stop arriving under real use without it.
   - `https://kingfisherchess.app/auth/update-password`
   - `http://localhost:3210/auth/callback`
   - `http://localhost:3210/auth/update-password`
+  - The Mac application's Google sign-in:
+    `http://127.0.0.1:*/auth/desktop/*`
   - Vercel previews, if you want accounts there:
     `https://*-<your-vercel-team>.vercel.app/**`
 
 The Mac application sends email links to `kingfisherchess.app`, not to
-its loopback address, so it needs no entry of its own.
+its loopback address, so they need no entry of their own. Its Google
+sign-in is different: it opens in the person's own browser and returns
+to a listener the application starts for that one sign-in, on an
+ephemeral loopback port with a random nonce in the path —
+`http://127.0.0.1:<port>/auth/desktop/<nonce>`
+(`desktop/src/browser-sign-in.mjs`). The entry above admits exactly
+that shape: in Supabase's patterns `*` stops at `.` and `/`, so the
+first matches only the port and the second only the nonce, and
+nothing but `127.0.0.1` matches the host. Keep the query string out
+of it; Supabase appends `?code=…` itself.
 
 ## 5. Google sign-in
 
@@ -98,9 +109,10 @@ project for Kingfisher:
    In / Providers → Google**, and enable it.
 
 Google refuses OAuth inside embedded application windows, so the Mac
-application offers email and password and says Google works on the web.
-Supporting Google there needs the system-browser flow recorded as a
-follow-up in `docs/product/2026-10-15-overhaul-report.md`.
+application opens Google in the person's default browser and receives
+the result on loopback (step 4's `127.0.0.1` entry). Nothing changes in
+the Google console for it: Google still redirects only to Supabase's
+callback; Supabase is what redirects on to the application.
 
 ## 6. Connect the application
 
@@ -130,6 +142,12 @@ own account-deletion function. Every line must say `OK`.
 Then, in a browser: create an account on `/sign-up`, confirm the email,
 make a study, open the site in a private window, sign in, and see it
 arrive. Try Google on `/sign-in`. Try _Forgot your password?_.
+
+And in the Mac application, built with the same two variables
+(`npm run desktop:dist` reads `.env.local` like `next build` does):
+_Continue with Google_ should open your default browser, the browser
+should end on "You are signed in to Kingfisher", and the application
+should come to the front signed in.
 
 ## 8. Say so in public
 
