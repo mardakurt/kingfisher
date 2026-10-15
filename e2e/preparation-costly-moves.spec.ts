@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
@@ -17,7 +17,7 @@ const PGN = `[Event "Club"]
 1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6 4. Qxf7# 1-0
 `;
 
-async function runCostlyMoves(page: import('@playwright/test').Page) {
+async function runCostlyMoves(page: Page) {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/games');
   await page.locator('html[data-kingfisher-ready="true"]').waitFor();

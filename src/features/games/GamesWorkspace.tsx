@@ -193,8 +193,6 @@ export function GamesWorkspace() {
   */
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    // `?describe=1` opens the Describe bar: the command palette's way in.
-    if (params.get('describe') === '1') setDescribing(true);
     const q = params.get('q');
     const who = params.get('player');
     const against = params.get('opponent');
@@ -227,6 +225,8 @@ export function GamesWorkspace() {
     // read once here; setting state from it is the synchronisation itself.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (q) setText(q);
+    // `?describe=1` opens the Describe bar: the command palette's way in.
+    if (params.get('describe') === '1') setDescribing(true);
     if (db) setSourceId(db);
     if (who) setPlayer(who);
     if (against) setOpponent(against);

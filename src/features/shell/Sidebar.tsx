@@ -80,7 +80,22 @@ export function Sidebar({ variant = 'desktop', onClose }: SidebarProps) {
     if (!list) return;
     const measure = () => setOverflows(list.scrollHeight > list.clientHeight + 1);
     measure();
-    const observer = new ResizeObserver(measure);
+    /*
+      The list also shrinks after the page has loaded — the account row at the
+      foot of the sidebar arrives once the session is read — and a row brought
+      into view before that is pushed back out by it. So a change in the list's
+      own size brings the current section back into view too; `nearest` leaves
+      it alone when it is still visible.
+    */
+    let height = list.clientHeight;
+    const observer = new ResizeObserver(() => {
+      measure();
+      if (list.clientHeight === height) return;
+      height = list.clientHeight;
+      list
+        .querySelector('[data-nav-section][aria-current="page"]')
+        ?.scrollIntoView({ block: 'nearest' });
+    });
     observer.observe(list);
     return () => observer.disconnect();
   }, []);
