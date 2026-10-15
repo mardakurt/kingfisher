@@ -254,6 +254,14 @@ export function ReviewWorkspace() {
     </div>
   );
 
+  const nothingOpen =
+    document.kind === 'untitled' && tree.nodes[tree.rootId]?.children.length === 0;
+
+  /*
+    With nothing open there is no position to mark and no evidence to
+    reveal, so neither is offered: an accent Reveal on an empty board was the
+    page's most prominent control, and it did nothing a person could see.
+  */
   const actions = (
     <>
       <span className="hidden text-[10px] text-tertiary sm:inline">Evidence</span>
@@ -265,7 +273,7 @@ export function ReviewWorkspace() {
         value={selfAnalysis ? 'hidden' : 'visible'}
         onChange={(value) => setSelfAnalysis(value === 'hidden')}
       />
-      {markedItem ? (
+      {nothingOpen ? null : markedItem ? (
         <>
           {/*
             Compact at narrow widths: an icon-only chip with the full text
@@ -305,16 +313,13 @@ export function ReviewWorkspace() {
         <Button onClick={() => void markCritical()}>Mark for review</Button>
       )}
       <SuggestCandidatesButton />
-      {selfAnalysis && !revealed ? (
+      {selfAnalysis && !revealed && !nothingOpen ? (
         <Button variant="accent" onClick={() => reveal(key)}>
           Reveal
         </Button>
       ) : null}
     </>
   );
-
-  const nothingOpen =
-    document.kind === 'untitled' && tree.nodes[tree.rootId]?.children.length === 0;
 
   return (
     <WorkspaceFrame

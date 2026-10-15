@@ -31,3 +31,13 @@ test('an empty Studies page offers one Start a study, and no developer sentence'
   await expect(frame.getByRole('button', { name: 'Start a study' })).toHaveCount(1);
   await expect(page.getByText(/route context/i)).toHaveCount(0);
 });
+
+test('an empty Review offers nothing to reveal or mark until a game is open', async ({ page }) => {
+  await page.goto('/review');
+  await page.locator(READY).waitFor();
+  await expect(page.getByText('Nothing open to review.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Reveal', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Mark for review' })).toHaveCount(0);
+
+  // With a game open both come back; phase8.spec.ts drives that path.
+});
