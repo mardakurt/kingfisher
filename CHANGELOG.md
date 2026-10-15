@@ -6,6 +6,17 @@ real users notice.
 
 ## Unreleased
 
+- **Opening map.** The Explorer can draw the next three moves of a local
+  source as nested blocks — width is how often each move was played, shade
+  is White's score — and a click plays the whole line. It says which source,
+  how many games, and what it left out.
+- One open tab no longer costs every page a row: the tab strip appears when
+  a second tab opens, and _New tab_ sits in the header until then.
+- Recent: the page's own header comes first, and empty sections are one
+  line each instead of four empty cards.
+- The engine's 1–5 choice is labelled _Lines_.
+- Search results: accurate page dates in the sitemap, the site's name for
+  Google, and no social-card credit to an account Kingfisher does not own.
 - **Describe a search in a sentence.** The Library's _Describe_ bar reads
   "Carlsen as Black in the Najdorf since 2018, rated over 2700, blitz",
   shows each condition it understood before anything runs, lists words it

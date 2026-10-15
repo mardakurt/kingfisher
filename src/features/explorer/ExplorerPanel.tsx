@@ -21,6 +21,8 @@ import Link from 'next/link';
 
 import { formatScore } from '@/chess/evaluation';
 import { moveIntent } from '@/chess/moves';
+import { Position } from '@/chess/position';
+import type { Uci } from '@/chess/types';
 import { positionKey, START_FEN } from '@/chess/fen';
 import { useQuery } from '@tanstack/react-query';
 import { GAMES_READ, movePlayers, type MovePlayer } from '@/reference/move-players';
@@ -63,6 +65,7 @@ import { openInNewTab } from '@/features/tabs/tab-actions';
 import { useRouter } from 'next/navigation';
 
 import { DepartureSection } from './DepartureSection';
+import { OpeningMapSection } from './OpeningMapSection';
 import { RatingClassesSection } from './RatingClassesSection';
 import {
   applicableExplorerFilters,
@@ -319,6 +322,33 @@ export function ExplorerPanel() {
       }
       const played = play(moveIntent(legal.value));
       if (!played.ok) notify({ tone: 'error', message: played.error.message });
+    },
+    [notify, play, position],
+  );
+
+  /*
+    A line from the opening map, played move by move from here. Each move is
+    checked by the rules before it is played; the first one refused stops
+    the line and says so, rather than leaving half of it played silently.
+  */
+  const playLine = useCallback(
+    (line: readonly Uci[]) => {
+      let current = position;
+      for (const uci of line) {
+        const legal = current.playUci(uci);
+        if (!legal.ok) {
+          notify({ tone: 'error', message: `The map's move ${uci} is not legal here.` });
+          return;
+        }
+        const played = play(moveIntent(legal.value));
+        if (!played.ok) {
+          notify({ tone: 'error', message: played.error.message });
+          return;
+        }
+        const next = Position.fromFen(legal.value.after);
+        if (!next.ok) return;
+        current = next.value;
+      }
     },
     [notify, play, position],
   );
@@ -908,6 +938,17 @@ export function ExplorerPanel() {
                 fen={node.fen}
                 moves={query.data.moves}
                 onPlay={playMove}
+              />
+            ) : null}
+
+            {provider ? (
+              <OpeningMapSection
+                sourceId={provider.id}
+                sourceName={provider.name}
+                local={provider.capabilities.offline}
+                fen={node.fen}
+                filters={filters}
+                onPlayLine={playLine}
               />
             ) : null}
 
