@@ -58,10 +58,41 @@ devices sooner; sync works without it.
 email** on. **Authentication → Policies** (or Password settings):
 minimum length 8.
 
-For production, set up custom SMTP under **Authentication → Emails →
-SMTP settings** (Resend, Postmark, Amazon SES…). Supabase's built-in
-sender is for testing and is limited to a handful of messages an hour;
-sign-up and reset emails will stop arriving under real use without it.
+### Custom SMTP and Kingfisher's own emails
+
+Supabase's built-in sender is for testing: it sends as "Supabase Auth
+<noreply@mail.app.supabase.io>", adds "powered by Supabase", allows only a
+handful of messages an hour, and **locks the templates** until custom SMTP
+is set. So before real users:
+
+1. Create an account with an email provider — Resend is the simplest
+   (free tier: 3,000 emails a month) — and add the domain
+   `kingfisherchess.app`. It gives DNS records (SPF, DKIM, and a
+   return-path); add them where the domain's DNS is managed (Vercel →
+   Domains for this project) and wait for the provider to say verified.
+2. Create an SMTP credential (in Resend: an API key, used as the SMTP
+   password). It is a secret: it goes into the Supabase dashboard only.
+3. **Authentication → Emails → SMTP Settings**: enable custom SMTP. Sender
+   email `accounts@kingfisherchess.app`, sender name `Kingfisher`; host,
+   port and user from the provider (Resend: `smtp.resend.com`, `465`,
+   `resend`); password = the credential from step 2.
+4. **Authentication → Emails → Templates**: for each template, paste the
+   file's HTML as the body and set the subject:
+
+   | Template         | File                                       | Subject                               |
+   | ---------------- | ------------------------------------------ | ------------------------------------- |
+   | Confirm sign up  | `supabase/templates/confirm-signup.html`   | Confirm your email for Kingfisher     |
+   | Reset password   | `supabase/templates/reset-password.html`   | Reset your Kingfisher password        |
+   | Change email     | `supabase/templates/change-email.html`     | Confirm your new email for Kingfisher |
+   | Magic link       | `supabase/templates/magic-link.html`       | Your Kingfisher sign-in link          |
+   | Reauthentication | `supabase/templates/reauthentication.html` | Your Kingfisher verification code     |
+
+   The templates are table-based with inline styles so mail clients
+   render them, use the Studio's light palette, and load the mark from
+   `https://kingfisherchess.app/apple-icon.png`.
+
+5. Sign up with a second address and check the email arrives from
+   Kingfisher, not Supabase.
 
 ## 4. Redirect URLs
 

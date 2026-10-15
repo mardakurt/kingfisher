@@ -48,3 +48,7 @@ chessbase images for comparison/
 # Syzygy fixtures are binary tablebase files, verified byte for byte.
 *.rtbw
 *.rtbz
+
+# Supabase auth email templates: Go template variables must stay on one
+# line, and Prettier wraps them ({{ .Email }} became "{{" / ".Email }}").
+supabase/templates/

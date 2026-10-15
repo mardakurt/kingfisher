@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Your Kingfisher sign-in link</title>
+  </head>
+  <body style="margin: 0; padding: 0; background: #f2f2f5">
+    <!-- Kingfisher account email. Source: supabase/templates/ in the repository;
+     paste into Supabase → Authentication → Emails → Templates. Colours are the
+     Studio's light palette (src/ui/palette.json). -->
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      style="background: #f2f2f5"
+    >
+      <tr>
+        <td align="center" style="padding: 40px 16px">
+          <table
+            role="presentation"
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            style="
+              max-width: 520px;
+              background: #ffffff;
+              border: 1px solid #dedee4;
+              border-radius: 12px;
+            "
+          >
+            <tr>
+              <td style="padding: 28px 32px 0 32px">
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="vertical-align: middle; padding-right: 10px">
+                      <img
+                        src="https://kingfisherchess.app/apple-icon.png"
+                        width="32"
+                        height="32"
+                        alt=""
+                        style="display: block; border: 0; border-radius: 7px"
+                      />
+                    </td>
+                    <td
+                      style="
+                        vertical-align: middle;
+                        font-family:
+                          -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial,
+                          sans-serif;
+                        font-size: 16px;
+                        font-weight: 600;
+                        color: #1d1d1f;
+                      "
+                    >
+                      Kingfisher
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td
+                style="
+                  padding: 28px 32px 8px 32px;
+                  font-family:
+                    -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+                "
+              >
+                <h1
+                  style="
+                    margin: 0 0 12px 0;
+                    font-size: 22px;
+                    line-height: 1.3;
+                    font-weight: 600;
+                    color: #1d1d1f;
+                  "
+                >
+                  Sign in to Kingfisher
+                </h1>
+                <p style="margin: 0 0 24px 0; font-size: 15px; line-height: 1.6; color: #545459">
+                  Use the button below to sign in as {{ .Email }}. The link works once and expires
+                  in an hour.
+                </p>
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="border-radius: 8px; background: #1f64d6">
+                      <a
+                        href="{{ .ConfirmationURL }}"
+                        style="
+                          display: inline-block;
+                          padding: 12px 22px;
+                          font-family:
+                            -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial,
+                            sans-serif;
+                          font-size: 15px;
+                          font-weight: 600;
+                          color: #ffffff;
+                          text-decoration: none;
+                          border-radius: 8px;
+                        "
+                        >Sign in</a
+                      >
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin: 20px 0 0 0; font-size: 13px; line-height: 1.6; color: #68686f">
+                  If the button does not work, open this link:<br />
+                  <a href="{{ .ConfirmationURL }}" style="color: #1f64d6; word-break: break-all"
+                    >{{ .ConfirmationURL }}</a
+                  >
+                </p>
+                <p style="margin: 24px 0 0 0; font-size: 13px; line-height: 1.6; color: #68686f">
+                  If you did not try to sign in, ignore this email.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 24px 32px 28px 32px">
+                <div
+                  style="
+                    border-top: 1px solid #dedee4;
+                    padding-top: 16px;
+                    font-family:
+                      -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+                    font-size: 12px;
+                    line-height: 1.6;
+                    color: #68686f;
+                  "
+                >
+                  Kingfisher Chess — a research workspace for serious players.<br />
+                  <a
+                    href="https://kingfisherchess.app"
+                    style="color: #1f64d6; text-decoration: none"
+                    >kingfisherchess.app</a
+                  >
+                  &nbsp;·&nbsp;
+                  <a
+                    href="https://kingfisherchess.app/privacy"
+                    style="color: #1f64d6; text-decoration: none"
+                    >Privacy</a
+                  >
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
