@@ -38,6 +38,10 @@ const EXCLUDED = new Set([
   '/sign-in',
   '/sign-up',
   '/forgot-password',
+  // With an account service configured, /account sends a signed-out
+  // visitor to /sign-in (asserted in account-sync.spec.ts); signed out,
+  // there is no Studio header to find here.
+  '/account',
 ]);
 
 const routes = (() => {

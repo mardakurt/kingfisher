@@ -52,7 +52,9 @@ export type SyncPhase =
 export interface AccountUser {
   readonly id: string;
   readonly email: string | null;
+  /** The first way this account signed in; `providers` lists every linked one. */
   readonly provider: string;
+  readonly providers: readonly string[];
   readonly emailConfirmed: boolean;
   readonly displayName: string | null;
 }
@@ -136,6 +138,22 @@ function navigatorPlatform(): string {
   return 'web';
 }
 
+/**
+ * Every sign-in method linked to the account. Supabase links a Google sign-in
+ * to an existing email account with the same verified address, and
+ * `app_metadata.provider` keeps only the first, so a person who added Google
+ * was shown "Email and password" alone.
+ */
+function providersOf(user: User): string[] {
+  const listed = user.app_metadata.providers;
+  const fromMetadata = Array.isArray(listed)
+    ? listed.filter((p): p is string => typeof p === 'string')
+    : [];
+  const fromIdentities = (user.identities ?? []).map((identity) => identity.provider);
+  const all = [...new Set([...fromMetadata, ...fromIdentities])];
+  return all.length > 0 ? all : [(user.app_metadata.provider as string | undefined) ?? 'email'];
+}
+
 function toAccountUser(user: User): AccountUser {
   const metadata = user.user_metadata as Record<string, unknown>;
   const name = metadata.full_name ?? metadata.name;
@@ -143,6 +161,7 @@ function toAccountUser(user: User): AccountUser {
     id: user.id,
     email: user.email ?? null,
     provider: (user.app_metadata.provider as string | undefined) ?? 'email',
+    providers: providersOf(user),
     emailConfirmed: Boolean(user.email_confirmed_at ?? user.confirmed_at),
     displayName: typeof name === 'string' && name.trim() ? name.trim() : null,
   };

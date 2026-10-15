@@ -272,6 +272,16 @@ export function useCommands(): readonly Command[] {
         },
       },
       {
+        id: 'describe-games',
+        title: 'Describe the games to find…',
+        group: 'Data',
+        keywords:
+          'describe search sentence natural language find games player opening year rating library',
+        run: () => {
+          router.push('/games?describe=1');
+        },
+      },
+      {
         id: 'open-daily',
         title: "Open today's session",
         group: 'Improve',

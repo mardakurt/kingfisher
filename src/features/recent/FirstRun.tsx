@@ -25,9 +25,11 @@ import { DEFAULT_ENGINE_ID, engineDefinition } from '@/engine/registry';
 import { cn } from '@/lib/cn';
 import { BUNDLED_PACK_ID } from '@/reference/catalog';
 import { useReferenceSources } from '@/reference/use-references';
+import { useAccount } from '@/stores/account-store';
 import { useUi } from '@/stores/ui-store';
 
 export function FirstRun({ onDismiss }: { readonly onDismiss: () => void }) {
+  const accountStatus = useAccount((state) => state.status);
   const router = useRouter();
   const references = useReferenceSources();
   const openSettingsAt = useUi((state) => state.openSettingsAt);
@@ -77,7 +79,7 @@ export function FirstRun({ onDismiss }: { readonly onDismiss: () => void }) {
         <div className="min-w-0 flex-1">
           <h2 className="text-base font-semibold text-primary">Kingfisher is ready.</h2>
           <p className="mt-0.5 text-xs text-tertiary">
-            Nothing to download, no account, and no database to find first.
+            Nothing to download, no account needed, and no database to find first.
           </p>
 
           <dl className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -87,6 +89,11 @@ export function FirstRun({ onDismiss }: { readonly onDismiss: () => void }) {
 
           <p className="mt-4 text-[10px] font-semibold text-tertiary">Optional</p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {accountStatus === 'signed-out' ? (
+              <Optional icon={<Check />} onClick={() => router.push('/sign-in?next=/recent')}>
+                Sign in to keep your work on every device
+              </Optional>
+            ) : null}
             <Optional icon={<Players />} onClick={() => openSettingsAt('accounts')}>
               Connect Lichess or Chess.com
             </Optional>

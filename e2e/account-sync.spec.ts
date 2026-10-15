@@ -340,6 +340,10 @@ test.describe('accounts', () => {
     await dialog.getByRole('button', { name: 'Add to my account' }).click();
     await expect(page.getByRole('status').filter({ hasText: /^Synced/ })).toBeVisible();
     expect(cloud.live('studies').map((row) => row.record_key)).toEqual([before]);
+    // Signed in, /account is a Studio page: its header carries the shared controls.
+    const header = page.locator('[data-page-header]');
+    await expect(header.getByRole('button', { name: 'Search commands' })).toBeVisible();
+    await expect(header.getByRole('button', { name: 'Settings' })).toBeVisible();
     expect(cloud.live('preferences')).toHaveLength(0);
 
     // A write anywhere in the Studio reaches the account without a save button.

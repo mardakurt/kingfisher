@@ -42,6 +42,8 @@ const PUBLIC_ROUTES = new Set([
   '/sign-in',
   '/sign-up',
   '/forgot-password',
+  // Redirects a signed-out visitor to /sign-in when accounts are configured.
+  '/account',
 ]);
 
 /** Every directory under `src/app` that renders a `page.tsx`. */

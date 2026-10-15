@@ -193,6 +193,8 @@ export function GamesWorkspace() {
   */
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    // `?describe=1` opens the Describe bar: the command palette's way in.
+    if (params.get('describe') === '1') setDescribing(true);
     const q = params.get('q');
     const who = params.get('player');
     const against = params.get('opponent');

@@ -281,10 +281,20 @@ function ProfileName({ initial }: { initial: string | null }) {
   );
 }
 
-function PasswordChange({ email, provider }: { email: string | null; provider: string }) {
+const PROVIDER_NAME: Record<string, string> = { email: 'Email and password', google: 'Google' };
+const providerName = (provider: string) => PROVIDER_NAME[provider] ?? provider;
+
+function PasswordChange({
+  email,
+  providers,
+}: {
+  email: string | null;
+  providers: readonly string[];
+}) {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
-  if (provider !== 'email') {
+  if (!providers.includes('email')) {
+    const provider = providers[0] ?? 'google';
     return (
       <p className="text-sm text-secondary">
         You sign in with {provider === 'google' ? 'Google' : provider}. Your password is managed
@@ -467,9 +477,7 @@ export function AccountRoute() {
                 {user.email}{' '}
                 {!user.emailConfirmed && <span className="ml-1 text-caution">(not confirmed)</span>}
               </Row>
-              <Row label="Signs in with">
-                {user.provider === 'google' ? 'Google' : 'Email and password'}
-              </Row>
+              <Row label="Signs in with">{user.providers.map(providerName).join(' · ')}</Row>
               <Row label="Name">
                 <ProfileName initial={user.displayName} />
               </Row>
@@ -477,7 +485,7 @@ export function AccountRoute() {
           </Section>
 
           <Section title="Security">
-            <PasswordChange email={user.email} provider={user.provider} />
+            <PasswordChange email={user.email} providers={user.providers} />
           </Section>
 
           <Section
