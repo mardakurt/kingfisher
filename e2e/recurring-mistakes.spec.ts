@@ -11,9 +11,18 @@ async function ready(page: Page) {
   );
 }
 
+/*
+  Each game is dated a few days ago, never on a fixed calendar date.
+  Improvement's default period is the last 30 days, and fixed September
+  dates aged out of it one by one: on 2026-10-16 the first game fell
+  outside and the totals read four games instead of five.
+*/
+const daysAgo = (days: number) =>
+  new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10).replaceAll('-', '.');
+
 const pgn = (index: number, result: '1-0' | '0-1') => `[Event "Recurring facts"]
 [Site "Club"]
-[Date "2026.09.${String(15 + index).padStart(2, '0')}"]
+[Date "${daysAgo(10 - index)}"]
 [Round "${index}"]
 [White "Recurring Player"]
 [Black "Opponent ${index}"]
