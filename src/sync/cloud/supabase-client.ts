@@ -13,7 +13,7 @@
  * variable by mistake is refused here rather than used.
  */
 
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface CloudConfig {
   readonly url: string;
@@ -63,7 +63,7 @@ export function isSecretKey(key: string): boolean {
   }
 }
 
-let client: SupabaseClient | null | undefined;
+let client: Promise<SupabaseClient | null> | undefined;
 
 /**
  * Development and browser-test builds only: a page may name its own project
@@ -83,9 +83,17 @@ function developmentOverride(): Record<string, string | undefined> | null {
   };
 }
 
-export function getCloudClient(): SupabaseClient | null {
+/**
+ * The client, loaded on first use.
+ *
+ * supabase-js is imported dynamically: a build with no account service, and
+ * every page before anybody signs in, pays nothing for it. The configuration
+ * check is synchronous (`cloudConfigProblem`) so screens can decide what to
+ * show without waiting for the library.
+ */
+export function getCloudClient(): Promise<SupabaseClient | null> {
   if (client !== undefined) return client;
-  if (typeof window === 'undefined') return null;
+  if (typeof window === 'undefined') return Promise.resolve(null);
   const override = developmentOverride();
   const read = override ? readCloudConfig(override) : readCloudConfig();
   if ('problem' in read) {
@@ -94,18 +102,21 @@ export function getCloudClient(): SupabaseClient | null {
         'Kingfisher refused a Supabase secret key in a public variable. Use the publishable key.',
       );
     }
-    client = null;
+    client = Promise.resolve(null);
     return client;
   }
-  client = createClient(read.config.url, read.config.publishableKey, {
-    auth: {
-      flowType: 'pkce',
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-      storageKey: 'kingfisher.auth',
-    },
-  });
+  const { url, publishableKey } = read.config;
+  client = import('@supabase/supabase-js').then(({ createClient }) =>
+    createClient(url, publishableKey, {
+      auth: {
+        flowType: 'pkce',
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storageKey: 'kingfisher.auth',
+      },
+    }),
+  );
   return client;
 }
 

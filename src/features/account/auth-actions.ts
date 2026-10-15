@@ -77,7 +77,7 @@ const unavailable: AuthResult = {
 };
 
 export async function signInWithPassword(email: string, password: string): Promise<AuthResult> {
-  const client = getCloudClient();
+  const client = await getCloudClient();
   if (!client) return unavailable;
   const { error } = await client.auth.signInWithPassword({ email: email.trim(), password });
   return error ? { ok: false, message: describeAuthError(error) } : { ok: true };
@@ -88,7 +88,7 @@ export async function signUpWithPassword(
   password: string,
   next: string,
 ): Promise<AuthResult & { readonly confirm?: boolean }> {
-  const client = getCloudClient();
+  const client = await getCloudClient();
   if (!client) return unavailable;
   if (password.length < 8)
     return { ok: false, message: 'Choose a longer password: at least 8 characters.' };
@@ -114,7 +114,7 @@ export async function signUpWithPassword(
 }
 
 export async function signInWithGoogle(next: string): Promise<AuthResult> {
-  const client = getCloudClient();
+  const client = await getCloudClient();
   if (!client) return unavailable;
   if (isDesktop()) {
     return {
@@ -131,7 +131,7 @@ export async function signInWithGoogle(next: string): Promise<AuthResult> {
 }
 
 export async function sendPasswordReset(email: string): Promise<AuthResult> {
-  const client = getCloudClient();
+  const client = await getCloudClient();
   if (!client) return unavailable;
   const { error } = await client.auth.resetPasswordForEmail(email.trim(), {
     redirectTo: authRedirect('/auth/update-password'),
@@ -142,7 +142,7 @@ export async function sendPasswordReset(email: string): Promise<AuthResult> {
 }
 
 export async function updatePassword(password: string): Promise<AuthResult> {
-  const client = getCloudClient();
+  const client = await getCloudClient();
   if (!client) return unavailable;
   if (password.length < 8)
     return { ok: false, message: 'Choose a longer password: at least 8 characters.' };
@@ -153,7 +153,7 @@ export async function updatePassword(password: string): Promise<AuthResult> {
 }
 
 export async function updateDisplayName(name: string): Promise<AuthResult> {
-  const client = getCloudClient();
+  const client = await getCloudClient();
   if (!client) return unavailable;
   const trimmed = name.trim().slice(0, 120);
   const { data: user } = await client.auth.getUser();

@@ -36,6 +36,13 @@ const PUBLIC_ROUTES = new Set([
   '/security',
   '/data-licences',
   '/terms',
+  // Sign-in, sign-up and recovery stand outside the workspace shell, as the
+  // public pages do, and never set the workspace's ready marker. Their
+  // contrast is not audited here yet — recorded as a follow-up in
+  // docs/product/2026-10-15-overhaul-report.md.
+  '/sign-in',
+  '/sign-up',
+  '/forgot-password',
 ]);
 
 /** Every directory under `src/app` that renders a `page.tsx`. */

@@ -8,7 +8,7 @@ import { BrandMark } from '@/features/shell/BrandMark';
 import { isDesktop } from '@/desktop/bridge';
 import { cn } from '@/lib/cn';
 import { useAccount } from '@/stores/account-store';
-import { getCloudClient } from '@/sync/cloud/supabase-client';
+import { cloudConfigProblem } from '@/sync/cloud/supabase-client';
 
 import {
   safeNext,
@@ -497,8 +497,7 @@ function CallbackInner() {
   }, [status, next, router]);
 
   useEffect(() => {
-    const client = getCloudClient();
-    if (!client) return;
+    if (cloudConfigProblem()) return;
     // Give the automatic exchange time to finish before declaring it failed.
     const timer = setTimeout(() => setSettled(true), 4000);
     return () => clearTimeout(timer);

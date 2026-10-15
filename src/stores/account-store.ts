@@ -29,7 +29,7 @@ import {
 } from '@/persistence/sync-state';
 import { databaseSource } from '@/sync/cloud/local-sources';
 import { SYNCED_STORES } from '@/sync/cloud/scope';
-import { getCloudClient } from '@/sync/cloud/supabase-client';
+import { cloudConfigProblem, getCloudClient } from '@/sync/cloud/supabase-client';
 import { CloudRequestError, SupabaseRemote } from '@/sync/cloud/supabase-remote';
 import { CloudSyncEngine, type ImportSummary } from '@/sync/cloud/sync-engine';
 
@@ -331,18 +331,23 @@ export const useAccount = create<AccountState & AccountActions>()((set, get) => 
     init() {
       if (initialised) return;
       initialised = true;
-      const client = getCloudClient();
-      if (!client) {
+      if (cloudConfigProblem()) {
         set({ ...INITIAL, status: 'unconfigured' });
         return;
       }
-      void client.auth.getSession().then(({ data }) => adopt(client, data.session));
-      client.auth.onAuthStateChange((event, value) => {
-        if (event === 'PASSWORD_RECOVERY') set({ recovering: true });
-        if (event === 'USER_UPDATED' && value) set({ user: toAccountUser(value.user) });
-        // Defer: Supabase holds a lock during this callback, and the engine's
-        // first request would wait on it.
-        setTimeout(() => void adopt(client, value), 0);
+      void getCloudClient().then((client) => {
+        if (!client) {
+          set({ ...INITIAL, status: 'unconfigured' });
+          return;
+        }
+        void client.auth.getSession().then(({ data }) => adopt(client, data.session));
+        client.auth.onAuthStateChange((event, value) => {
+          if (event === 'PASSWORD_RECOVERY') set({ recovering: true });
+          if (event === 'USER_UPDATED' && value) set({ user: toAccountUser(value.user) });
+          // Defer: Supabase holds a lock during this callback, and the engine's
+          // first request would wait on it.
+          setTimeout(() => void adopt(client, value), 0);
+        });
       });
     },
 
@@ -373,7 +378,7 @@ export const useAccount = create<AccountState & AccountActions>()((set, get) => 
     },
 
     async signOut({ removeSyncedCopies }) {
-      const client = getCloudClient();
+      const client = await getCloudClient();
       let outcome = { removed: 0, kept: 0 };
       if (session) {
         // Upload what can be uploaded first, so "remove" removes as much as possible.
@@ -390,7 +395,7 @@ export const useAccount = create<AccountState & AccountActions>()((set, get) => 
     },
 
     async deleteAccount() {
-      const client = getCloudClient();
+      const client = await getCloudClient();
       if (!client) return;
       const { error } = await client.rpc('delete_my_account');
       if (error) throw new Error(error.message);
