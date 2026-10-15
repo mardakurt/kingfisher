@@ -12,6 +12,12 @@ real users notice.
   did not, and fills the ordinary filters. Offline and deterministic.
 - Re-applying a saved query kept every condition except its opening; it
   keeps the opening now.
+- **Train your costly moves.** Preparation → Costly moves now offers
+  "Train these positions": each costly move becomes a Training card — the
+  position before it, answered with the move the engine preferred — in a
+  set named after the player.
+- "Describe the games to find…" is in the command palette (⌘K).
+- Sign in with Google on kingfisherchess.app and in the Mac app.
 - **Optional accounts** and **sync** of studies, repertoires, analysis,
   training, preparation and preferences between devices, with conflicts
   kept for review rather than overwritten. Sign in with email and

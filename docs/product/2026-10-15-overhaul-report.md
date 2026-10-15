@@ -241,9 +241,33 @@ Seoul**). Done in the dashboard with the owner signed in, and checked:
 `.env.local` (gitignored) holds the project URL and publishable key for
 local development.
 
-**Still open:** Google (the consent screen is configured in the owner's
-Google Cloud project; accepting Google's API Services User Data Policy
-and creating the client need the owner), Realtime across two live
-devices, and `npm run cloud:verify` with the secret key. Until Google is
-enabled the sign-in pages do not show it (they read the project's
-settings).
+**Google sign-in (later the same day):** the owner accepted Google's API
+Services User Data Policy; the consent screen ("Kingfisher", support and
+developer email, home page, privacy and terms links, authorized domains
+`kingfisherchess.app` and the project's Supabase host), the web client
+"Kingfisher web" with the Supabase callback as its only redirect, and the
+Supabase provider were configured — the client secret entered by the
+owner. Checked: the project's settings report `google: true`, and
+`/auth/v1/authorize?provider=google` redirects to Google with that client
+id, the Supabase callback and only `email profile`. The owner signed in
+with Google and landed signed in on the Account page; `auth.identities`
+shows one user with `email` and `google` linked. The app was in Google's
+**Testing** status, which admits only listed test users; it was published
+to production (no review: no sensitive scopes).
+
+The first Google round trip returned to the Site URL instead of the local
+app: the redirect allow-list matched `/auth/callback` literally, and the
+`?next=` query made it miss. `https://kingfisherchess.app/**` and
+`http://localhost:3210/**` were added.
+
+**Google's consent screen still names the Supabase host** until branding
+is verified. Brand verification failed once — "home page not registered
+to you" — so `kingfisherchess.app` was verified in Google Search Console
+through a DNS TXT record added to Vercel (ownership verified). Google
+asks for 24 hours before re-verification: Google Cloud → Branding → ⓘ →
+"I have fixed the issues". A custom auth domain (e.g.
+`auth.kingfisherchess.app`) would also replace the host, and needs
+Supabase's paid plan.
+
+**Still open:** branding re-verification (owner, after 24 h), Realtime
+across two live devices, and `npm run cloud:verify` with the secret key.
