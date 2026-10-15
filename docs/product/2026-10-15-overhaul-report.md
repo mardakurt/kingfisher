@@ -162,17 +162,20 @@ All in `docs/operations/supabase-setup.md`, step by step:
 
 ## 6. Not done, and why
 
-- **Not verified against a hosted Supabase project** — none exists. The
-  live check is one command once it does. Google OAuth, real email
-  delivery and Realtime have not been exercised end to end.
+- **The hosted project is set up and partly verified; the full live
+  check is not run.** See §8. Not yet exercised end to end: Google OAuth
+  (provider not enabled), Realtime, the branded emails (custom SMTP is
+  configured, the domain was still pending in Resend), and
+  `npm run cloud:verify`, which needs the secret key.
 - **Google sign-in in the Mac app** — done after this report: the
   sign-in opens in the system browser and returns over a loopback
   listener (`desktop/src/browser-sign-in.mjs`; redirect URL in
   `docs/operations/supabase-setup.md` §4). Like the rest of accounts,
   it has not been run against a hosted Supabase project.
-- **Packaged macOS gates were not run** for this work; the changes are in
-  the shared web build, but `desktop:smoke -- --packaged` against a new
-  bundle is required before a release that contains them.
+- **Packaged macOS gates** were run by the Google sign-in session, not by
+  this one: `desktop:smoke -- --packaged` 23/23 and `desktop:certify`
+  passing on build 1187 (dev, commit `365c10a6`), which contains all the
+  account work (commit `ca76509c` records it). Not re-run here.
 - **Imported game collections do not sync** (deliberately, §2); a private
   per-user copy of a personal PGN collection is a possible later feature,
   with licence terms to write first.
@@ -212,8 +215,29 @@ gate, Firefox/WebKit matrix (`KF_E2E_MATRIX`), and the visual baselines.
 
 ### Follow-ups recorded by this session
 
-- Contrast audit for `/sign-in`, `/sign-up`, `/forgot-password` (excluded
-  from `route-audit.spec.ts` because they sit outside the Studio shell).
+- ~~Contrast audit for `/sign-in`, `/sign-up`, `/forgot-password`~~ — done:
+  `e2e/auth-pages-audit.spec.ts` applies the route audit's `measure` to all
+  three, light and dark, with and without an account service, at 375, 1024
+  and 1440 px; checked against a deliberate 1.68:1 mutation.
 - ~~Google sign-in in the Mac app~~ — done (system browser + loopback; see §6).
-- `desktop:smoke -- --packaged` and `desktop:certify` on a bundle that
-  contains this work, before it ships in a release.
+- ~~Packaged gates on a bundle with this work~~ — done by the Google
+  sign-in session on build 1187 (see §6); repeat on the release bundle.
+
+## 8. The live Supabase project (2026-10-15, after this report)
+
+The owner created project `mwrljfsnreplhmvzdhzl` (region **ap-northeast-2,
+Seoul**). Done in the dashboard with the owner signed in, and checked:
+
+| Step                                      | Evidence                                                                                                                                                                                                                                                                                          |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Migration applied from the committed file | editor content matched the file's SHA-256 (`ef2def52…`) before running; catalogue query afterwards: RLS on `profiles` and `user_records`, all six policies, both triggers, `user_records` in `supabase_realtime`, `anon` can neither select nor execute `push_user_records` / `delete_my_account` |
+| Anonymous boundary over the real API      | with only the publishable key: select on both tables, insert, and both RPCs each refused `42501 permission denied` (HTTP 401)                                                                                                                                                                     |
+| Email sign-in                             | confirmation on (already); minimum password length raised 6 → 8 to match the client                                                                                                                                                                                                               |
+| URLs                                      | Site URL `https://kingfisherchess.app`; redirects: `/auth/callback` and `/auth/update-password` on kingfisherchess.app and `localhost:3210`, and `http://127.0.0.1:*/auth/desktop/*` for the Mac app's Google sign-in                                                                             |
+| A real account and sync                   | the owner signed up and confirmed through the real email; a study created in the local app (no save action) appeared in `user_records` owned by that account at revision 1, and its deletion arrived as a revision-2 tombstone; the profile row was created by the sign-up trigger                |
+| Custom SMTP                               | Resend, sender `accounts@kingfisherchess.app`, name Kingfisher, host `smtp.resend.com:465`, user `resend`; the key was entered by the owner. Domain DNS (DKIM, SPF, return-path) resolves on 1.1.1.1 and 8.8.8.8; Resend still showed **Pending** at last check. DMARC (optional) not added       |
+| Branded templates                         | **Confirm sign up** saved and read back byte-identical (`12ba6115…`) with subject "Confirm your email for Kingfisher". Reset password, change email, magic link and reauthentication **not yet** pasted — the dashboard session ended                                                             |
+
+`.env.local` (gitignored) holds the project URL and publishable key for
+local development. The public site is unchanged: `public-services.json`
+still says accounts are off, and no Vercel variable was set.
