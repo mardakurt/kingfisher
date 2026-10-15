@@ -98,8 +98,10 @@ test('a merge opens in its own tab and keeps the analysis already on the board',
   const notation = page.locator('[data-move-tree]').first();
   await expect(notation).toContainText('d4');
 
-  const tabs = page.getByRole('tablist', { name: 'Workspace tabs' }).getByRole('tab');
-  await expect(tabs).toHaveCount(1);
+  const strip = page.getByRole('tablist', { name: 'Workspace tabs' });
+  const tabs = strip.getByRole('tab');
+  // One tab: no strip until there is a second to choose.
+  await expect(strip).toHaveCount(0);
   await page
     .getByRole('navigation', { name: 'Sections' })
     .getByRole('link', { name: 'Library', exact: true })

@@ -80,6 +80,13 @@ export const Plus = (p: IconProps) => (
     <path d="M12 5v14M5 12h14" />
   </Icon>
 );
+/** A window's tab with a plus: New tab, told apart from New analysis's bare +. */
+export const NewTab = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3" y="4" width="18" height="16" rx="2" />
+    <path d="M3 9h18M12 12v5M9.5 14.5h5" />
+  </Icon>
+);
 export const Import = (p: IconProps) => (
   <Icon {...p}>
     <path d="M12 3v11m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />

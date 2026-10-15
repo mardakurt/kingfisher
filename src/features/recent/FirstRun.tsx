@@ -91,7 +91,7 @@ export function FirstRun({ onDismiss }: { readonly onDismiss: () => void }) {
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {accountStatus === 'signed-out' ? (
               <Optional icon={<Check />} onClick={() => router.push('/sign-in?next=/recent')}>
-                Sign in to keep your work on every device
+                Sync across devices
               </Optional>
             ) : null}
             <Optional icon={<Players />} onClick={() => openSettingsAt('accounts')}>

@@ -137,7 +137,8 @@ test.describe('workspace tabs', () => {
   test('each tab keeps its own board and place, across a switch and a reload', async ({ page }) => {
     await page.goto('/analysis');
     await ready(page);
-    await expect(tabs(page)).toHaveCount(1);
+    // One tab is no strip at all; New tab is in the header.
+    await expect(strip(page)).toHaveCount(0);
 
     await play(page, 'd2', 'd4');
     await expect(page.locator('[data-move-tree]').first()).toContainText('d4');
@@ -192,7 +193,9 @@ test.describe('workspace tabs', () => {
       .getByRole('dialog', { name: 'Close this tab?' })
       .getByRole('button', { name: 'Close tab' })
       .click();
-    await expect(tabs(page)).toHaveCount(1);
+    // Back to one tab: the strip goes, and New tab is back in the header.
+    await expect(strip(page)).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'New tab' })).toHaveCount(1);
   });
 });
 
@@ -282,7 +285,6 @@ test.describe('the preparation report', () => {
     await expect(card).toContainText('Opponent, O');
     // One win, one draw, one loss: the ring and its legend say the same thing.
     await expect(card.locator('[data-score-ring]')).toContainText('50%');
-    await expect(tabs(page).first()).toContainText('Preparation against Opponent, O');
 
     const report = page.getByRole('tablist', { name: 'Report' });
     await report.getByRole('tab', { name: 'Games' }).click();
@@ -292,5 +294,11 @@ test.describe('the preparation report', () => {
     const style = page.locator('[data-style-report]');
     await expect(style).toContainText('Scores 50% as White (2 games) and 50% as Black (1)');
     await expect(style).not.toContainText(/aggressive|positional/i);
+
+    // The tab is named for the person, which shows once there is a strip:
+    // with a second tab open, the first still says who it prepares against.
+    await page.getByRole('button', { name: 'New tab' }).click();
+    await expect(tabs(page)).toHaveCount(2);
+    await expect(tabs(page).first()).toContainText('Preparation against Opponent, O');
   });
 });

@@ -68,6 +68,12 @@ interface SegmentedProps<T extends string> {
   readonly items: readonly TabItem<T>[];
   readonly value: T;
   readonly onChange: (value: T) => void;
+  /**
+   * What the choice is about, as the group's accessible name. Needed when
+   * the options alone do not say it — "1 2 3 4 5" is a number of lines
+   * only to someone who already knows.
+   */
+  readonly label?: string;
   readonly className?: string;
 }
 
@@ -75,6 +81,7 @@ export function Segmented<T extends string>({
   items,
   value,
   onChange,
+  label,
   className,
 }: SegmentedProps<T>) {
   return (
@@ -84,6 +91,8 @@ export function Segmented<T extends string>({
       cut in half with nothing saying there was a fourth option to scroll to.
     */
     <div
+      role={label ? 'group' : undefined}
+      aria-label={label}
       className={cn(
         'inline-flex max-w-full flex-wrap gap-y-0.5 rounded-[var(--radius-control)] border border-line bg-surface-2 p-0.5',
         className,

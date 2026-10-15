@@ -54,8 +54,14 @@ that holds unsaved chapter edits asks first.
 
 ## Interaction
 
-- The strip sits under the page header on every route, full width, with the
-  tabs sharing it equally up to a comfortable maximum, and **+** at its end.
+- With two or more tabs open, the strip sits under the page header on every
+  route, full width, with the tabs sharing it equally up to a comfortable
+  maximum, and **+** at its end.
+- With one tab there is no strip (since 2026-10-16), as in Safari: a full-width
+  bar holding one pill that repeated the header's title cost every route a row
+  and said nothing. _New tab_ is then a button in the header's common controls
+  (`NewTabButton`, its own icon so it is not read as _New analysis_), and the
+  strip returns when a second tab opens.
 - The sidebar navigates _within_ the current tab, as a browser's address bar
   does. **+** opens a new tab on a fresh analysis board.
 - A tab closes with its ×, a middle click, or the command palette. The last

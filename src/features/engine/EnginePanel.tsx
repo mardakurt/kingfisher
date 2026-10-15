@@ -179,15 +179,21 @@ export function EnginePanel({ compact = false }: { readonly compact?: boolean })
                 ))}
               </select>
             ) : (
-              <Segmented
-                items={[1, 2, 3, 4, 5].map((n) => ({ id: String(n), label: String(n) }))}
-                value={String(prefs.engineMultiPv)}
-                onChange={(value) => {
-                  prefs.set('engineMultiPv', Number(value));
-                  prefs.set('enginePreset', 'custom');
-                }}
-                className="mr-1"
-              />
+              <>
+                <span aria-hidden className="mr-1 text-2xs text-tertiary">
+                  Lines
+                </span>
+                <Segmented
+                  label="Candidate lines"
+                  items={[1, 2, 3, 4, 5].map((n) => ({ id: String(n), label: String(n) }))}
+                  value={String(prefs.engineMultiPv)}
+                  onChange={(value) => {
+                    prefs.set('engineMultiPv', Number(value));
+                    prefs.set('enginePreset', 'custom');
+                  }}
+                  className="mr-1"
+                />
+              </>
             )}
             <IconButton
               label="Save this evaluation to the current move"

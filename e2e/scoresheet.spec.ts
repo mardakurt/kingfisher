@@ -142,7 +142,8 @@ test('opening the scoresheet never replaces an unsaved analysis', async ({ page 
   await expect(status).toContainText('3 half-moves');
 
   const strip = page.getByRole('tablist', { name: 'Workspace tabs' });
-  const before = await strip.getByRole('tab').count();
+  // A single tab has no strip, and counts as one.
+  const before = Math.max(1, await strip.getByRole('tab').count());
   await page
     .getByRole('navigation', { name: 'Sections' })
     .getByRole('link', { name: 'Scoresheet', exact: true })

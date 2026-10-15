@@ -35,7 +35,6 @@ import {
   Target,
 } from '@/components/icons';
 import { Button, IconButton } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/Panel';
 import { getRepositories } from '@/persistence/repositories';
 import { gameTitle } from '@/persistence/describe';
 import { continueStoredDraft } from '@/features/persistence/useWorkspacePersistence';
@@ -238,26 +237,6 @@ export function RecentWorkspace() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      {/*
-        Shown until dismissed, or until there is anything to come back to —
-        whichever happens first. A getting-started panel above a list of your
-        own studies is a panel that has outstayed its welcome.
-      */}
-      {!firstRunDone && hasNothingYet ? (
-        <div className="shrink-0 px-5 pt-5">
-          <FirstRun
-            onDismiss={() => {
-              setFirstRunDone(true);
-              try {
-                localStorage.setItem(FIRST_RUN_KEY, '1');
-              } catch {
-                // Nothing to do: the panel simply comes back next time.
-              }
-            }}
-          />
-        </div>
-      ) : null}
-
       <header data-titlebar-drag="" className="shrink-0 border-b border-line-subtle px-5 py-5">
         {/*
           This page's header is a "pick up where you left off" panel rather than
@@ -322,8 +301,29 @@ export function RecentWorkspace() {
         </nav>
       </header>
       <WorkspaceTabStrip />
+      {/*
+        Shown until dismissed, or until there is anything to come back to —
+        whichever happens first. A getting-started panel above a list of your
+        own studies is a panel that has outstayed its welcome. It sits under
+        the page's header, not over it: above, it pushed the title, ⌘K and
+        Settings halfway down the window, where no other route keeps them.
+      */}
+      {!firstRunDone && hasNothingYet ? (
+        <div className="shrink-0 px-5 pt-5">
+          <FirstRun
+            onDismiss={() => {
+              setFirstRunDone(true);
+              try {
+                localStorage.setItem(FIRST_RUN_KEY, '1');
+              } catch {
+                // Nothing to do: the panel simply comes back next time.
+              }
+            }}
+          />
+        </div>
+      ) : null}
 
-      <div className="grid min-h-0 flex-1 gap-5 p-5 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid min-h-0 flex-1 content-start items-start gap-5 p-5 md:grid-cols-2 xl:grid-cols-3">
         {pinned.length > 0 && (
           <Section title="Pinned" icon={<Pin />}>
             {pinned.map(({ pin, label, href }) => (
@@ -484,19 +484,19 @@ function Row({
   );
 }
 
+/**
+ * An empty section, in one line. A full empty state in each of four cards
+ * said "They appear here once you create one." four times over on a new
+ * profile, and the cards' height pushed Training due below the fold.
+ */
 function Empty({ what, href }: { what: string; href: string }) {
   return (
-    <div className="p-3">
-      <EmptyState
-        title={`No ${what} yet.`}
-        description="They appear here once you create one."
-        action={
-          <Link href={href} className="text-xs text-accent-ink hover:underline">
-            Go to {what}
-          </Link>
-        }
-      />
-    </div>
+    <p className="flex items-center justify-between gap-3 px-3 py-2 text-xs text-tertiary">
+      <span>No {what} yet.</span>
+      <Link href={href} className="text-accent-ink hover:underline">
+        Go to {what}
+      </Link>
+    </p>
   );
 }
 

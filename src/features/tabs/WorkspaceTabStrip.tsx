@@ -8,12 +8,19 @@
  * the shape of the tab bar in a Mac document window. Titles are the tab's
  * place and document; a tab closes with its ×, a middle click or its menu,
  * and tabs reorder by dragging.
+ *
+ * With one tab open there is no strip, as in Safari: a full-width bar holding
+ * a single pill that repeated the header's own title ("Library" under
+ * "Library") cost every route a row and said nothing. The header carries
+ * New tab instead (`NewTabButton`), so the way to a second tab stays where
+ * it was, and the strip returns the moment there is something to choose.
  */
 
 import { useEffect, useRef, useState, type DragEvent, type MouseEvent } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
-import { Close, Plus } from '@/components/icons';
+import { Close, NewTab, Plus } from '@/components/icons';
+import { IconButton } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ContextMenu } from '@/components/ui/Menu';
 import { cn } from '@/lib/cn';
@@ -59,21 +66,11 @@ export function WorkspaceTabStrip() {
     followNavigation();
   }, [pathname]);
 
-  // The strip's box is drawn at once, so the page does not move when the
-  // list arrives; the tabs fill it after the list is read back, so the
-  // server's markup (which cannot know the list) never disagrees with the
-  // first client paint.
-  if (!ready || tabs.length === 0) {
-    return (
-      <div
-        className="flex h-9 shrink-0 items-center border-b border-line-subtle px-3 [@media(max-height:859px)]:h-7"
-        data-workspace-tabs="pending"
-        aria-hidden
-      >
-        <div className="h-[26px] flex-1 rounded-[var(--radius-control)] bg-surface-2 [@media(max-height:859px)]:h-[22px]" />
-      </div>
-    );
-  }
+  // Nothing until the list is read back, and nothing for a single tab. The
+  // server cannot know the list, so a person with several tabs open sees the
+  // strip arrive once on load; reserving its row for everyone else, the
+  // common case, was the price of avoiding that.
+  if (!ready || tabs.length <= 1) return null;
 
   const title = (id: string, stored: string, href: string) =>
     id === activeId ? liveTitle(pathname ?? href, subject, published) : stored;
@@ -237,4 +234,21 @@ export function useTabTitle(title: string | null | undefined): void {
     publish(title ?? null);
     return () => publish(null);
   }, [publish, title]);
+}
+
+/**
+ * New tab, in the header, while the strip is hidden. Once a second tab is
+ * open the strip's own + takes over and this one goes, so there is never
+ * more than one control with the name.
+ */
+export function NewTabButton() {
+  const router = useRouter();
+  const ready = useTabs((state) => state.ready);
+  const count = useTabs((state) => state.tabs.length);
+  if (!ready || count > 1) return null;
+  return (
+    <IconButton label="New tab" onClick={() => void newTab(router)}>
+      <NewTab />
+    </IconButton>
+  );
 }

@@ -160,7 +160,8 @@ async function main() {
         text: document.body.innerText.length,
         route: location.pathname,
         // Phase 84: what the tab, sidebar and appearance items change.
-        tabs: document.querySelectorAll('[data-workspace-tabs] [role="tab"]').length,
+        // A single tab has no strip, and counts as one.
+        tabs: document.querySelectorAll('[data-workspace-tabs] [role="tab"]').length || 1,
         activeTab:
           document
             .querySelector('[data-workspace-tabs] [role="tab"][aria-selected="true"]')

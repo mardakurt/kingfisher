@@ -22,6 +22,7 @@
 
 import { Search, Settings } from '@/components/icons';
 import { IconButton } from '@/components/ui/Button';
+import { NewTabButton } from '@/features/tabs/WorkspaceTabStrip';
 import { useUi } from '@/stores/ui-store';
 
 export function GlobalControls({ className }: { readonly className?: string }) {
@@ -30,6 +31,7 @@ export function GlobalControls({ className }: { readonly className?: string }) {
 
   return (
     <div className={`flex shrink-0 items-center gap-1.5 ${className ?? ''}`}>
+      <NewTabButton />
       {/*
         Search commands keeps a longer label than Position or Set up, so the
         threshold for it is wider: at `mid` (900 px) the rest of the toolbar

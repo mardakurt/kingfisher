@@ -29,7 +29,8 @@ test('an unsaved analysis replaced by "New analysis" is kept in a tab of its own
   await expect(status).toContainText(fen);
 
   const strip = page.getByRole('tablist', { name: 'Workspace tabs' });
-  const before = await strip.getByRole('tab').count();
+  // A single tab has no strip, and counts as one.
+  const before = Math.max(1, await strip.getByRole('tab').count());
   await page.getByRole('button', { name: 'New analysis' }).click();
   await expect(status).toContainText('0 half-moves');
 

@@ -10,12 +10,15 @@ test('MultiPV changes apply to a running engine and leave a stopped engine stopp
   const panel = page.locator('[data-engine-panel-fen]');
   await panel.getByRole('button', { name: 'Start analysis (E)', exact: true }).click();
   await expect(panel.locator('[data-engine-line]')).toHaveCount(3, { timeout: 30_000 });
-  await panel.getByRole('button', { name: '1', exact: true }).click();
+  // The numbers are reached through the control's name: "1" to "5" alone
+  // says nothing about what is being counted.
+  const lines = panel.getByRole('group', { name: 'Candidate lines' });
+  await lines.getByRole('button', { name: '1', exact: true }).click();
   await expect(panel.locator('[data-engine-line]')).toHaveCount(1, { timeout: 15_000 });
-  await panel.getByRole('button', { name: '5', exact: true }).click();
+  await lines.getByRole('button', { name: '5', exact: true }).click();
   await expect(panel.locator('[data-engine-line]')).toHaveCount(5, { timeout: 15_000 });
   await panel.getByRole('button', { name: 'Stop analysis (E)', exact: true }).click();
-  await panel.getByRole('button', { name: '2', exact: true }).click();
+  await lines.getByRole('button', { name: '2', exact: true }).click();
   await expect(
     panel.getByRole('button', { name: 'Start analysis (E)', exact: true }),
   ).toBeEnabled();
