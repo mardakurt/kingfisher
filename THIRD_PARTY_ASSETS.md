@@ -217,25 +217,25 @@ is not protected" line is in the hero. The displayed piece and board artwork
 retains the attribution recorded above. Replace all of them together, with
 the script, when the workspace changes.
 
-`public/landing/img/workspace-2026-09-23.webp` and `…-dark.webp` — the hero.
-The analysis workspace of the Phase 84 working tree (after `024dd1a`, the
-Studio design of Phases 82–84 with the framed evaluation bar), taken on
-2026-09-23 at 1440 × 900 at 2× and encoded at 2240 × 1400 (WebP q82).
+`public/landing/img/workspace-2026-10-15.webp` and `…-dark.webp` — the hero.
+The analysis workspace after `708e6f1d` (no tab strip while one tab is open,
+the engine's Lines label, the sidebar's account row), taken on 2026-10-15
+UTC at 1440 × 900 at 2× and encoded at 2240 × 1400 (WebP q82).
 Stockfish 18 Lite WASM Multithreaded was started on the position after
 `1. e4 e5 2. Nf3 Nc6 3. Bc4` with MultiPV 5 and the capture waited for the
 engine's arrow, then eight seconds; the panel shows the depth it had reached.
 
-`public/landing/img/engines-2026-09-23.webp` and `…-dark.webp` — the Engines
+`public/landing/img/engines-2026-10-15.webp` and `…-dark.webp` — the Engines
 section. The same search with the Notation section folded, cropped to the
-engine panel and the right half of the board (1558 × 1302, WebP q82).
+engine panel and the right half of the board (1558 × 1446, WebP q82).
 
-`public/landing/img/research-2026-09-23.webp` and `…-dark.webp` — the Research
+`public/landing/img/research-2026-10-15.webp` and `…-dark.webp` — the Research
 section. The Explorer's source comparison on the Najdorf after `5...a6`, with
 the bundled Kingfisher Starter Reference against the Recent Theory Reference
 (installed by the script from its public manifest, 34 MB), each in its own
 column with its own game count; the Notation section folded, the variation
 brief folded away and the dock widened by its handle so both columns fit,
-cropped down to the end of the comparison table (1718 × 1414, WebP q82).
+cropped down to the end of the comparison table (1718 × 1304, WebP q82).
 
 `public/landing/img/og.png` — the social card, 1200 × 630, the light hero
 scaled to 1200 wide and cropped from 48 px below its top edge (PNG, palette).

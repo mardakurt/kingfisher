@@ -40,11 +40,11 @@ import './landing.css';
  * pixels (the light and dark captures of one image are the same size).
  */
 const CAPTURES = '/landing/img';
-const CAPTURED = '2026-09-23';
-const RESEARCH_SIZE = { width: 1718, height: 1414 };
-const ENGINES_SIZE = { width: 1558, height: 1302 };
+const CAPTURED = '2026-10-15';
+const RESEARCH_SIZE = { width: 1718, height: 1304 };
+const ENGINES_SIZE = { width: 1558, height: 1446 };
 const HERO_ALT =
-  'The Kingfisher analysis workspace: the board after 1. e4 e5 2. Nf3 Nc6 3. Bc4 with Stockfish 18 running, its best move drawn as an arrow on the board beside the evaluation bar, the notation and the engine lines in the panel beside it, and the workspace sections — Analysis, Openings, Studies, Repertoire, Preparation, Players, Opening Files, Review, Training, Library, Databases — in the sidebar';
+  'The Kingfisher analysis workspace: the board after 1. e4 e5 2. Nf3 Nc6 3. Bc4 with Stockfish 18 running, its best move drawn as an arrow on the board beside the evaluation bar, the notation and the engine lines in the panel beside it, and the workspace sections — Analysis, Openings, Studies, Repertoire, Preparation, Players, Opening Files, Review, Training, Library — in the sidebar';
 const RESEARCH_ALT =
   "The Explorer on the Najdorf after 5...a6, comparing the Kingfisher Starter Reference with the Recent Theory Reference: the same candidate moves, each source's own game count and frequency in its own column, and no combined figure";
 const ENGINES_ALT =

@@ -204,7 +204,7 @@ for (const theme of THEMES) {
   player comparing sources drags the dock wider, so the capture does the
   same, by the handle, the way they would.
 */
-  const handle = research.getByRole('button', { name: 'Resize workspace tools' });
+  const handle = research.getByRole('separator', { name: 'Resize workspace tools' });
   const handleBox = await handle.boundingBox();
   if (!handleBox) throw new Error('dock handle not on screen');
   const grip = { x: handleBox.x + handleBox.width / 2, y: handleBox.y + handleBox.height / 2 };
