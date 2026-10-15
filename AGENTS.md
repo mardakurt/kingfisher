@@ -680,3 +680,35 @@ remembers.
 - **Real-scale acceptance runs on a GitHub-hosted runner**
   (`.github/workflows/real-scale.yml`, manual dispatch), because the
   maintainer's disk cannot hold a 10M-game collection.
+
+## Accounts and cloud sync (2026-10-15)
+
+Optional. Signed out — or on a build without `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — Kingfisher is exactly the
+local-first application above, and the account pages say accounts are not
+set up. `src/release/public-services.json` records whether the public site
+offers them (it does not yet); `docs:check` holds SECURITY.md and the
+privacy page to it.
+
+- **IndexedDB stays the working copy.** The cloud is a replica in one
+  table, `user_records` (owner, store, key, opaque JSON), behind Row Level
+  Security. The record schemas live in TypeScript; do not mirror them as
+  SQL tables.
+- **What syncs is `PORTABLE_STORES` minus `DEVICE_ONLY_STORES`**
+  (`src/sync/cloud/scope.ts`) plus `SYNCED_PREFERENCE_KEYS`. A new portable
+  store syncs automatically; if it must not, add it to `DEVICE_ONLY_STORES`
+  with a reason. Secrets and imported game collections never sync.
+- **Writes are announced by `withChangeFeed`** after commit; sync's own
+  writes go through the unannounced database (`getSyncDatabase()`).
+- **The server wins a conflict and the local loser is kept**
+  (`sync-state.ts` conflicts), restorable from _Account_. Never resolve a
+  conflict by discarding either side.
+- **The first sign-in asks** before uploading a device's existing work, and
+  work another account synced on the same browser is never offered.
+- **Tests:** `src/sync/cloud/rls.test.ts` and `sync-engine.test.ts` run the
+  real migration in PGlite under Supabase's roles and JWT claims;
+  `e2e/account-sync.spec.ts` drives real supabase-js with a stubbed
+  transport. `npm run cloud:verify` checks a live project. A migration
+  change must keep the RLS tests failing under a broken policy.
+- The Supabase **secret key never enters the repository or a
+  `NEXT_PUBLIC_` variable**; the client refuses one.

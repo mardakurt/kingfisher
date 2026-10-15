@@ -14,7 +14,9 @@
 - [Professional-use stabilization audit](reports/2026-10-04-professional-stability-audit.md)
 - [1.4.6 release notes](release/1.4.6.md)
 - [ChessBase Mac comparison for 1.4.6](product/chessbase-mac-comparison-1.4.6.md)
-- [Big data and accounts — a proposal](product/big-data-and-accounts-proposal.md)
+- [2026-10-15 overhaul report](product/2026-10-15-overhaul-report.md) — accounts and sync, Describe search, landing, what was verified and what is left.
+- [A large game database — proposal for review](product/2026-10-15-global-database-proposal.md) — sources, licences, architecture, cost and roadmap; nothing built.
+- [Big data and accounts — a proposal](product/big-data-and-accounts-proposal.md) — 2026-10-04; §2 superseded by the 2026-10-15 database proposal, §3 by the account implementation.
 - [1.4.6 handover](reports/2026-10-04-1.4.6-handover.md)
 - [1.4.5 release notes](release/1.4.5.md)
 - [ChessBase Mac comparison for 1.4.5](product/chessbase-mac-comparison-1.4.5.md)

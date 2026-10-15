@@ -23,7 +23,7 @@ for what remains different, and the
 
 > **Public release · 1.5.2** (macOS, Developer ID signed and notarised)
 > Research remains opt-in under Layout.
-> No account. No cookies. No subscription.
+> No account required. No cookies. No subscription.
 
 |                                                                           |                                                                                            |
 | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
@@ -87,7 +87,10 @@ locked out of strong data.
 
 Authored work — studies, repertoires, training, notes — is stored in this
 browser. **Settings → Backup** downloads a JSON file the same browser can
-re-import. No cloud sync is required and none is implied.
+re-import. No cloud sync is required. Optional accounts that keep authored
+work in a person's Supabase-backed account are implemented
+(`src/sync/cloud/`) but **not enabled on kingfisherchess.app**; turning
+them on is [`docs/operations/supabase-setup.md`](docs/operations/supabase-setup.md).
 
 ## At a glance
 

@@ -4,6 +4,22 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## Unreleased
+
+- **Describe a search in a sentence.** The Library's _Describe_ bar reads
+  "Carlsen as Black in the Najdorf since 2018, rated over 2700, blitz",
+  shows each condition it understood before anything runs, lists words it
+  did not, and fills the ordinary filters. Offline and deterministic.
+- Re-applying a saved query kept every condition except its opening; it
+  keeps the opening now.
+- **Optional accounts** (email and password, or Google) and **sync** of
+  studies, repertoires, analysis, training, preparation and preferences
+  between devices, with conflicts kept for review rather than overwritten.
+  Built and tested; switched on for kingfisherchess.app only once its
+  account service is provisioned. Without an account nothing changes.
+- The landing page answers "Coming from ChessBase?" — what moves across
+  and what Kingfisher does not have.
+
 ## 1.5.2 — 2026-10-14
 
 - Puzzles mark each move on the board, on the square it landed on: a red

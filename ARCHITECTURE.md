@@ -1042,6 +1042,34 @@ imported record; "Save to study" is the one action that transfers ownership.
 
 ---
 
+## Accounts and cloud sync
+
+Optional, additive, and off unless a Supabase project is configured. The
+browser's IndexedDB remains the working copy; an account holds a replica.
+
+```
+repositories ──withChangeFeed──▶ subscribeLocalWrites ─┐
+     │ (writes)                                         ▼ debounce 2 s
+IndexedDB ◀──getSyncDatabase()── CloudSyncEngine ◀── account-store (triggers:
+     ▲                            │  ▲                 focus, online, 60 s poll,
+     │       sync-state (per      │  │                 15 min reconcile,
+     │       device, kingfisher-  │  │                 Realtime doorbell)
+     │       sync IndexedDB)      ▼  │
+     └──────────────────── SupabaseRemote ──▶ push_user_records (CAS) / user_records (RLS)
+```
+
+- `supabase/migrations/` — `profiles`, `user_records`, RLS on both, a
+  trigger that stamps revision and sequence, `push_user_records` doing
+  compare-and-swap per record, `delete_my_account`.
+- `src/sync/cloud/sync-engine.ts` — content-hash diff against the last
+  acknowledged state; incremental pull by sequence, periodic reconcile by
+  manifest; server wins a conflict and the local version is kept.
+- `src/stores/account-store.ts` — Supabase Auth session, engine lifetime,
+  triggers, and the announcement that refreshes lists and an open chapter
+  when another device's records land.
+- `src/features/account/` — sign-in, sign-up, recovery, the Account page,
+  the first-sign-in import question, the sidebar entry.
+
 ## State
 
 Four stores, split by what the state _is_, not by which component uses it.
