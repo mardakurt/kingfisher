@@ -1,6 +1,18 @@
 # Platform parity — the web application and the macOS application
 
-**Published revision check (2026-10-14, 1.5.2).** The public Mac download is
+**Published revision check (2026-10-17, 1.5.3).** The public Mac download is
+1.5.3 build 1228 from `9d9065d6a8a5723aa1be5374bcd336afd548b6cc`, stable and
+clean at packaging. It is Developer ID signed, and the app and DMG are both
+notarised and stapled; the trust gate is GREEN (29 code objects), and the
+minimum is macOS 14.0. `desktop:certify` passed all 11 steps against that
+bundle, including the unit step (4,410/4,410). The staged update feed passed
+on the wire, and 18/18 update-guard mutations failed as expected.
+`desktop:public:verify -- --landing --full` downloaded the public DMG and
+passed 68/68 checks. A quarantined copy of the public DMG, and the app copied
+out of it, are both assessed "accepted, source=Notarized Developer ID". The
+GUI first-open sheet was not clicked through; that needs a person.
+
+**Previous published revision (2026-10-14, 1.5.2).** The public Mac download is
 1.5.2 build 1179 from `b6b938f1f04e255237917304c639043c9aa67218`, stable and
 clean at packaging; Developer ID signed, app and DMG notarised and stapled,
 trust GREEN (29 code objects), minimum macOS 14.0. `desktop:certify` passed

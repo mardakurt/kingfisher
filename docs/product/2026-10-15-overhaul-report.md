@@ -332,3 +332,116 @@ live against the same project on 2026-10-15 (§8).
   the local suite test Chrome only.
 - **Google branding re-verification** — after the 24-hour wait, by the
   owner: Google Cloud → Branding → ⓘ → "I have fixed the issues".
+
+## 10. 2026-10-16 to 17: the user pass, the browser matrix, and 1.5.3
+
+The owner asked for the documentation to be made true, the app to be used as a
+person would and its faults fixed, and 1.5.3 to be built, notarised and
+published. Everything below is pushed. Each figure comes from a command that
+was run.
+
+### Documentation and the legal pages
+
+The 548 documents removed on 2026-10-15 were removed without checking what
+cited them. Every citation now resolves: removed reports link to commit
+`16d2fcc2`, and `docs:check` reports 375/375. Privacy, Terms, Security and
+Data & licences (the pages and their Markdown copies) now describe the
+optional account: Supabase and Google among the network requests, the
+operator's administrative access, Delete account, a "Your account" section,
+and no more "no cross-device sync" (`5dc00453`).
+
+### Faults found by using the app, each with a test that fails without its fix
+
+| Fault                                                                                                       | Commit     |
+| ----------------------------------------------------------------------------------------------------------- | ---------- |
+| Opening a chapter scrolled the board off screen where the list sits under it                                | `b2b4e92c` |
+| Review's header overflowed at 1024 px (title gone, Settings off the edge), and folded needlessly at 1280 px | `b2b4e92c` |
+| The Notation header pushed "Move the notation" past the window; menus then scrolled the workspace sideways  | `b2b4e92c` |
+| Menus were clamped to the window, not to the clipping column ("eory Book")                                  | `b2b4e92c` |
+| Puzzles' prompt and controls were below the fold at 1024×768                                                | `b2b4e92c` |
+| On a phone, "White to play" read "W", with 200 px of empty space under the board                            | `b2b4e92c` |
+| Five panels set their text against the panel edge; "on the left" for lists under the board                  | `b2b4e92c` |
+| A position analysed and left without stopping the engine was never written to the history                   | `212d3cfd` |
+
+Every one was reverted once and its test failed, with one exception: the
+phone's empty space under the board. That fix changes a CSS class, and the
+development server does not regenerate CSS for a reverted class, so the revert
+could not be observed there. The before (200 px) and after were measured in
+the browser instead.
+
+### The browser matrix (full suites, retries 0)
+
+| Engine  | Full run            | After                                                                                                                      |
+| ------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Chrome  | **590/590** (1.0 h) | the touched specs re-run after the last fixes: 58/58                                                                       |
+| Firefox | 589/590 (1.1 h)     | the failure (the hydration race below) passes twice with the fix; settings + phase7 30/31 before the back-off, then passed |
+| WebKit  | 576/590 (1.2 h)     | see below                                                                                                                  |
+
+All 14 WebKit failures were explained, and none was a fault Safari users meet:
+
+- **The hydration race.** Next's router writes the current URL into history
+  as a page hydrates. Firefox and WebKit let that same-document write cancel
+  a navigation already in flight. A probe that logged every history write
+  traced it. The test helpers now retry both browsers' wording of it, with
+  back-off (`9d9065d6`).
+- **Development-build slowness.** On the development server, with the engine
+  running, WebKit's main thread was busy 350–540 ms of every half second.
+  Navigations never committed, and the engine fell behind. The same probe
+  against a **production** build: no lag, and navigation in 46 ms (Chrome:
+  71 ms). Run against a production server, the analysis-history, evaluation
+  bar, playouts and preparation failures all pass. Two tests cannot run
+  there by design: one reads a development-only test hook, and the other
+  needs an unconfigured account service.
+- **Routes compiling mid-run.** The development server's hot reload
+  refreshed pages as routes compiled. A server warmed first cleared 9 of the
+  17 re-run failures.
+- **A test bug.** `phase7` counted evidence rows by node id, but node ids are
+  per game (`9d9065d6`).
+
+The Firefox and WebKit visual baselines predated this session's redesign and
+were regenerated (`6df79118`). The `chrome-linux` baselines date from
+2026-10-04 and cannot be drawn on a Mac. The Linux browser-certification job,
+which compares them, has been cancelled at its one-hour limit on every run
+since 1.5.0.
+
+### Gates
+
+`npm test` 4,410/4,410 in 436 files, 0 skipped. Typecheck, lint, format,
+`git diff --check` and `test:no-skips` are clean. `docs:check` 375/375. The
+production build succeeds, and its CSS carries every class added today. The
+benchmark exits 0.
+
+### Kingfisher 1.5.3 for the Mac
+
+- **The build.** `desktop:dist` built build 1228 from `9d9065d6` on the
+  stable channel with a clean tree. The app was notarised in the build. The
+  DMG was then notarised (submission `8461110f-d693-4eae-8e50-2d50095db377`)
+  and stapled.
+- **Signing and certification.** `desktop:sign:verify` PASS (29 code
+  objects); `desktop:notary:verify` and `desktop:trust:verify` GREEN; the
+  DMG verified. `desktop:certify` passed **11/11** against this bundle.
+- **The update path.** `desktop:update:e2e` PASS on the wire, and
+  `desktop:update:mutations` 18/18.
+- **Publishing.** Tag `v1.5.3` was published as a full release. After
+  publishing, `/releases/latest` resolves to v1.5.3, all four artifacts match
+  `SHA256SUMS`, and the live feed offers 1.5.3 build 1228.
+- **The public download.** `macos-download.json` names
+  `Kingfisher-1.5.3-arm64.dmg` (SHA-256 `be7ec3a9…d68b`, 192,260,709 bytes).
+  Once the landing had deployed, `desktop:public:verify -- --landing --full`
+  passed 68/68 on the downloaded bytes, and `public:check` 22/22.
+- **A quarantined download.** The public DMG with the browser's quarantine
+  flag, and the app copied out of it, are both assessed "accepted,
+  source=Notarized Developer ID".
+
+Not done: clicking through macOS's first-open sheet on that quarantined copy,
+which needs a person at the Mac. Neither was an update from the installed
+1.5.2 to 1.5.3 run on this machine (`desktop:update:real`).
+
+### Two commit messages that are wrong
+
+Both are pushed and cannot be amended without a force push:
+
+- `15dfdb42` ("cloud:verify and sitemap records") also contains the 548
+  document deletions.
+- `a87cd220` says the sync label falls back to a store's "internal name". It
+  falls back to "other records".
