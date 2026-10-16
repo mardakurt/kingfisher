@@ -38,6 +38,31 @@ export async function selectTool(page: Page, dock: Locator, name: string): Promi
 }
 
 /**
+ * `page.goto`, retried once when — and only when — Firefox aborts it.
+ *
+ * Next's App Router writes its own state into the history entry just after
+ * a page hydrates. When a test navigates away at that moment, Firefox cancels
+ * the new navigation with `NS_BINDING_ABORTED`; Chromium and WebKit let it
+ * through. It is the framework's write racing the test's navigation, not the
+ * application refusing a route — in the 2026-10-16 Firefox run it struck a
+ * different route each time (forgot-password, database, model-game, install,
+ * privacy). The second attempt is the same navigation; any other error, and a
+ * second abort, still fail.
+ */
+export async function gotoRoute(
+  page: Page,
+  url: string,
+): Promise<Awaited<ReturnType<Page['goto']>>> {
+  try {
+    return await page.goto(url);
+  } catch (error) {
+    if (!/NS_BINDING_ABORTED/.test(String(error))) throw error;
+    await page.waitForLoadState('load').catch(() => undefined);
+    return page.goto(url);
+  }
+}
+
+/**
  * Whether a console line or page error is the noise a browser makes when a
  * full navigation cancels loads that were still in flight.
  *

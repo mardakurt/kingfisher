@@ -1,6 +1,8 @@
 'use client';
 
 import {
+  useLayoutEffect,
+  useRef,
   useState,
   useSyncExternalStore,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -683,24 +685,42 @@ function NotationSection({
   const toggle = () => writeNotationFolded(!folded);
   const Chevron = folded ? ChevronRight : ChevronDown;
 
+  /*
+    The share is a ceiling, not a size. A fixed 38% gave a 21-move game two
+    blank inches above an engine panel whose third line was below the fold;
+    the notation takes what its moves need, up to the share, and scrolls past
+    it. The ceiling is measured, in pixels, from the column it sits in: as a
+    percentage max-height it held in Chrome and was ignored in Firefox, which
+    treats a flexed height as indefinite — there the notation grew with the
+    game and pushed the engine and explorer off the screen.
+  */
+  const fraction = compact ? 0.22 : share === 'tall' ? 0.38 : 0.34;
+  const sectionRef = useRef<HTMLElement>(null);
+  const [ceiling, setCeiling] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const column = sectionRef.current?.parentElement;
+    if (!column) return;
+    const measure = () => setCeiling(Math.round(column.clientHeight * fraction));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(column);
+    return () => observer.disconnect();
+  }, [fraction]);
+
   return (
     <section
+      ref={sectionRef}
       className={cn(
         'flex min-h-0 flex-col border-b border-line-subtle',
-        /*
-          The share is a ceiling, not a size. A fixed 38% gave a 21-move game
-          two blank inches above an engine panel whose third line was below
-          the fold; the notation now takes what its moves need, up to the
-          share, and scrolls past it.
-        */
         folded
           ? 'shrink-0'
           : compact
-            ? 'min-h-[140px] max-h-[22%] flex-[0_1_auto]'
+            ? 'min-h-[140px] flex-[0_1_auto]'
             : share === 'tall'
-              ? 'min-h-[160px] max-h-[38%] flex-[0_1_auto]'
-              : 'min-h-[140px] max-h-[34%] flex-[0_1_auto]',
+              ? 'min-h-[160px] flex-[0_1_auto]'
+              : 'min-h-[140px] flex-[0_1_auto]',
       )}
+      style={!folded && ceiling !== null ? { maxHeight: ceiling } : undefined}
       aria-label="Notation"
       data-notation-section={workspace}
       data-folded={folded ? 'true' : undefined}

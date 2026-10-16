@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import { gotoRoute } from './tools';
+
 import { arrange, measure } from './page-audit';
 
 /**
@@ -70,7 +72,7 @@ for (const theme of ['light', 'dark'] as const) {
       for (const size of WINDOWS) {
         await page.setViewportSize({ width: size.width, height: size.height });
         for (const route of ROUTES) {
-          await page.goto(route);
+          await gotoRoute(page, route);
           await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
           // The state that was asked for, not a loading frame: a form with a
           // configured project, the "not set up" heading without one.

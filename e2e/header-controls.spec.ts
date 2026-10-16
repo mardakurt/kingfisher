@@ -23,6 +23,8 @@ import path from 'node:path';
 
 import { expect, test, type Page } from '@playwright/test';
 
+import { gotoRoute } from './tools';
+
 const READY = 'html[data-kingfisher-ready="true"]';
 
 const EXCLUDED = new Set([
@@ -83,7 +85,7 @@ test('every application route offers the command palette and Settings in its hea
   test.setTimeout(300_000);
   const problems: string[] = [];
   for (const route of routes) {
-    await page.goto(route);
+    await gotoRoute(page, route);
     await page.locator(READY).waitFor();
     await page.locator('[data-workspace-header], [data-page-header], header').first().waitFor();
     for (const missing of await missingControls(page)) problems.push(`${route}: ${missing}`);
@@ -98,7 +100,7 @@ test('the command palette opens from a route that has no board', async ({ page }
     carried nothing at all before this, so they are the two worth pressing.
   */
   for (const route of ['/players', '/search', '/position']) {
-    await page.goto(route);
+    await gotoRoute(page, route);
     await page.locator(READY).waitFor();
     await page.getByRole('button', { name: 'Search commands' }).first().click();
     await expect(

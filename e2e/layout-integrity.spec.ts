@@ -17,6 +17,8 @@
 
 import { expect, test } from '@playwright/test';
 
+import { gotoRoute } from './tools';
+
 const READY = 'html[data-kingfisher-ready="true"]';
 
 const ROUTES = [
@@ -120,7 +122,7 @@ for (const viewport of VIEWPORTS) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     const all: string[] = [];
     for (const route of ROUTES) {
-      await page.goto(route);
+      await gotoRoute(page, route);
       await page.locator(READY).waitFor();
       // Let lazy panels and the header's fold settle before measuring.
       await page.waitForTimeout(600);
@@ -134,7 +136,7 @@ for (const viewport of VIEWPORTS) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     const all: string[] = [];
     for (const route of PUBLIC) {
-      await page.goto(route);
+      await gotoRoute(page, route);
       await page.waitForLoadState('load');
       const findings = (await page.evaluate(measure)) as Finding[];
       all.push(...findings.map((finding) => `${route} ${finding.kind}: ${finding.detail}`));

@@ -560,6 +560,13 @@ function MoveToken({
           )}
         </button>
       </span>
+      {/*
+        Where a row may break: after a unit, never inside one. Chrome breaks
+        between two atomic inlines on its own; Firefox does not without a
+        break opportunity, and laid a 21-move game on one 24px line that ran
+        off the panel. A zero-width space is that opportunity and takes no room.
+      */}
+      {'\u200B'}
       {node.shapes.length > 0 && (
         <span
           aria-hidden

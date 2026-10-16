@@ -190,7 +190,7 @@ export function SettingsDialog() {
       open={open}
       onClose={close}
       title="Settings"
-      description="Stored on this machine, and synced with your account when you are signed in — except what describes this machine, such as threads, memory and installed sources."
+      description="Stored on this machine, and synced with your account when you are signed in."
       width="w-[960px]"
       /*
         Wide, with the sections down the left. Twelve tabs in a 640px row

@@ -12,7 +12,7 @@
  * chatter is not a study.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, Fragment } from 'react';
 
 import { formatScore } from '@/chess/evaluation';
 import { outcomeAt } from '@/chess/game';
@@ -416,30 +416,31 @@ export function EnginePanel({ compact = false }: { readonly compact?: boolean })
                         {variationGroups(
                           variationTokens(node.ply, compact ? line.san.slice(0, 4) : line.san),
                         ).map((group) => (
-                          /* A move number never ends a row without its move. */
-                          <span
-                            key={`${line.rank}-${group.moveIndex}`}
-                            className="whitespace-nowrap"
-                            data-engine-move-group
-                          >
-                            {group.number ? (
-                              <span className="mr-0.5 text-tertiary tabular">{group.number}</span>
-                            ) : null}
-                            <button
-                              type="button"
-                              title="Add this line up to here"
-                              onClick={() => insert(line.moves, group.moveIndex)}
-                              data-engine-candidate={group.moveIndex === 0 ? 'true' : undefined}
-                              className={cn(
-                                'mr-1 rounded-[var(--radius-control)] px-0.5 transition-colors hover:bg-accent-muted',
-                                group.moveIndex === 0
-                                  ? 'font-semibold text-primary'
-                                  : 'text-secondary hover:text-primary',
-                              )}
-                            >
-                              {group.move}
-                            </button>
-                          </span>
+                          /* A move number never ends a row without its move; the
+                             zero-width space after each group is where a row may
+                             break (Firefox will not break between atomic inlines). */
+                          <Fragment key={`${line.rank}-${group.moveIndex}`}>
+                            <span className="whitespace-nowrap" data-engine-move-group>
+                              {group.number ? (
+                                <span className="mr-0.5 text-tertiary tabular">{group.number}</span>
+                              ) : null}
+                              <button
+                                type="button"
+                                title="Add this line up to here"
+                                onClick={() => insert(line.moves, group.moveIndex)}
+                                data-engine-candidate={group.moveIndex === 0 ? 'true' : undefined}
+                                className={cn(
+                                  'mr-1 rounded-[var(--radius-control)] px-0.5 transition-colors hover:bg-accent-muted',
+                                  group.moveIndex === 0
+                                    ? 'font-semibold text-primary'
+                                    : 'text-secondary hover:text-primary',
+                                )}
+                              >
+                                {group.move}
+                              </button>
+                            </span>
+                            {'\u200B'}
+                          </Fragment>
                         ))}
                         {compact && line.san.length > 4 ? (
                           <span title="Preview the complete variation" className="text-secondary">
