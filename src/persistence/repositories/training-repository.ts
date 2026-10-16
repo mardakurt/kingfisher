@@ -48,6 +48,8 @@ export interface TrainingRepository {
     now: number,
   ): Promise<TrainingItemRecord>;
   history(id: TrainingItemId): Promise<readonly TrainingReviewRecord[]>;
+  /** Every review ever logged, newest first: the input to training progress. */
+  allReviews(): Promise<readonly TrainingReviewRecord[]>;
   countByPosition(positionKey: string): Promise<number>;
 }
 
@@ -231,6 +233,13 @@ export class LocalTrainingRepository implements TrainingRepository {
       assertValid(record, isTrainingReviewRecord, 'training review'),
     );
     return reviews.sort((a, b) => b.reviewedAt - a.reviewedAt);
+  }
+
+  async allReviews(): Promise<readonly TrainingReviewRecord[]> {
+    const records = await this.database.getAll<unknown>(STORE_NAMES.trainingReviews);
+    return records
+      .map((record) => assertValid(record, isTrainingReviewRecord, 'training review'))
+      .sort((a, b) => b.reviewedAt - a.reviewedAt);
   }
 
   async countByPosition(positionKey: string): Promise<number> {

@@ -6,6 +6,10 @@ real users notice.
 
 ## Unreleased
 
+- **Training progress.** Under the training queue: reviews in each of the
+  past eight weeks (the right answers filled in), the past seven days in
+  words with their count, and what falls due over the next week. Read from
+  the review log Kingfisher already kept, and never turned into a score.
 - **A small window shows the board and the tools together.** Below 1100px
   wide, the notation, engine and explorer used to sit under the board, out
   of sight. Now, whenever the window is landscape and has room for a 400px

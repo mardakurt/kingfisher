@@ -40,6 +40,7 @@ import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
 
 import { TrainingAnswer, type AttemptState } from './TrainingAnswer';
 import { useTrainingSetItems, useTrainingSets } from '@/features/review/queries';
+import { TrainingProgress } from './TrainingProgress';
 import { TrainingSetsDialog } from './TrainingSetsDialog';
 
 const MODE_LABEL: Record<TrainingMode, string> = {
@@ -240,6 +241,9 @@ export function TrainingWorkspace() {
           </ol>
         )}
       </div>
+      {items.length > 0 ? (
+        <TrainingProgress schedules={items.map((item) => item.schedule)} now={now} />
+      ) : null}
     </div>
   );
 
