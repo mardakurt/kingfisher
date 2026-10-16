@@ -686,13 +686,19 @@ function NotationSection({
     <section
       className={cn(
         'flex min-h-0 flex-col border-b border-line-subtle',
+        /*
+          The share is a ceiling, not a size. A fixed 38% gave a 21-move game
+          two blank inches above an engine panel whose third line was below
+          the fold; the notation now takes what its moves need, up to the
+          share, and scrolls past it.
+        */
         folded
           ? 'shrink-0'
           : compact
-            ? 'min-h-[140px] flex-[0_0_22%]'
+            ? 'min-h-[140px] max-h-[22%] flex-[0_1_auto]'
             : share === 'tall'
-              ? 'min-h-[160px] flex-[0_0_38%]'
-              : 'min-h-[140px] flex-[0_0_34%]',
+              ? 'min-h-[160px] max-h-[38%] flex-[0_1_auto]'
+              : 'min-h-[140px] max-h-[34%] flex-[0_1_auto]',
       )}
       aria-label="Notation"
       data-notation-section={workspace}

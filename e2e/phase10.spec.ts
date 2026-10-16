@@ -399,12 +399,14 @@ test.describe('settings', () => {
     await page.keyboard.press('Escape');
 
     // The board follows the new binding, and no longer follows the old one.
-    const orientation = page.getByText('White view');
-    await expect(orientation).toBeVisible();
+    // Only a flipped board is labelled, so "upright" is the label's absence.
+    const flipped = page.getByText('Black view');
+    await expect(page.locator('[data-board-frame]').first()).toBeVisible();
+    await expect(flipped).toHaveCount(0);
     await page.keyboard.press('f');
-    await expect(orientation).toBeVisible();
+    await expect(flipped).toHaveCount(0);
     await page.keyboard.press('q');
-    await expect(page.getByText('Black view')).toBeVisible();
+    await expect(flipped).toBeVisible();
   });
 
   test('§38 a conflicting binding is refused until the user chooses', async ({ page }) => {

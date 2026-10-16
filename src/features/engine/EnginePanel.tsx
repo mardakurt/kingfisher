@@ -388,7 +388,16 @@ export function EnginePanel({ compact = false }: { readonly compact?: boolean })
                 className={cn('group px-2.5', compact ? 'py-1' : 'py-1.5')}
                 data-engine-line={line.rank}
               >
-                <div className="flex items-baseline gap-2">
+                {/*
+                  The line, read the way a player reads it: the score, then
+                  the candidate move — the one thing on the row a decision is
+                  made about — then its continuation. The actions float over
+                  the end of the row on hover rather than reserving 76px of
+                  every row's width while invisible; that reservation wrapped
+                  each variation to four rows at 1440x900 and put the third
+                  line below the fold. On touch they stay in the row.
+                */}
+                <div className="relative flex items-baseline gap-2">
                   <span
                     className={cn(
                       'w-[52px] shrink-0 rounded-[var(--radius-control)] px-1 py-0.5 text-center text-xs font-medium tabular',
@@ -398,32 +407,40 @@ export function EnginePanel({ compact = false }: { readonly compact?: boolean })
                     {formatScore(line.score)}
                   </span>
 
-                  <div className="min-w-0 flex-1 text-[12px] leading-relaxed [overflow-wrap:anywhere]">
+                  <div
+                    className="min-w-0 flex-1 text-[12px] leading-relaxed [overflow-wrap:anywhere]"
+                    data-engine-variation
+                  >
                     {line.san && line.san.length > 0 ? (
                       <>
-                        {variationTokens(node.ply, compact ? line.san.slice(0, 4) : line.san).map(
-                          (token, index) =>
-                            token.isMove ? (
-                              <button
-                                key={`${line.rank}-${index}`}
-                                type="button"
-                                title="Add this line up to here"
-                                onClick={() =>
-                                  insert(line.moves, moveIndexOf(line, index, node.ply))
-                                }
-                                className="mr-1 rounded-[var(--radius-control)] px-0.5 text-primary transition-colors hover:bg-accent-muted"
-                              >
-                                {token.text}
-                              </button>
-                            ) : (
-                              <span
-                                key={`${line.rank}-${index}`}
-                                className="mr-0.5 text-tertiary tabular"
-                              >
-                                {token.text}
-                              </span>
-                            ),
-                        )}
+                        {variationGroups(
+                          variationTokens(node.ply, compact ? line.san.slice(0, 4) : line.san),
+                        ).map((group) => (
+                          /* A move number never ends a row without its move. */
+                          <span
+                            key={`${line.rank}-${group.moveIndex}`}
+                            className="whitespace-nowrap"
+                            data-engine-move-group
+                          >
+                            {group.number ? (
+                              <span className="mr-0.5 text-tertiary tabular">{group.number}</span>
+                            ) : null}
+                            <button
+                              type="button"
+                              title="Add this line up to here"
+                              onClick={() => insert(line.moves, group.moveIndex)}
+                              data-engine-candidate={group.moveIndex === 0 ? 'true' : undefined}
+                              className={cn(
+                                'mr-1 rounded-[var(--radius-control)] px-0.5 transition-colors hover:bg-accent-muted',
+                                group.moveIndex === 0
+                                  ? 'font-semibold text-primary'
+                                  : 'text-secondary hover:text-primary',
+                              )}
+                            >
+                              {group.move}
+                            </button>
+                          </span>
+                        ))}
                         {compact && line.san.length > 4 ? (
                           <span title="Preview the complete variation" className="text-secondary">
                             …
@@ -435,7 +452,10 @@ export function EnginePanel({ compact = false }: { readonly compact?: boolean })
                     )}
                   </div>
 
-                  <span className="flex shrink-0 items-center opacity-100 mid:opacity-0 mid:transition-opacity mid:focus-within:opacity-100 mid:group-hover:opacity-100">
+                  <span
+                    className="flex shrink-0 items-center opacity-100 mid:absolute mid:top-0 mid:right-0 mid:rounded-[var(--radius-control)] mid:bg-surface-1 mid:opacity-0 mid:shadow-[var(--shadow-popover)] mid:transition-opacity mid:focus-within:opacity-100 mid:group-hover:opacity-100"
+                    data-engine-line-actions
+                  >
                     <IconButton
                       label="Preview this variation"
                       className="h-6 w-6"
@@ -705,13 +725,27 @@ function PinnedRow({ line, applicable, onInsert, onRemove }: PinnedRowProps) {
  * `variationTokens` interleaves move numbers with moves, so the token index is
  * not the move index; recover it by counting the moves before this token.
  */
-function moveIndexOf(line: PrincipalVariation, tokenIndex: number, startPly: number): number {
-  const tokens = variationTokens(startPly, line.san ?? []);
-  let moves = -1;
-  for (let i = 0; i <= tokenIndex && i < tokens.length; i += 1) {
-    if (tokens[i]?.isMove) moves += 1;
+/**
+ * A variation's tokens as move-number-and-move pairs, so a pair can be kept
+ * on one row. `moveIndex` is the move's index in the variation, which is how
+ * far "Add this line up to here" inserts.
+ */
+function variationGroups(tokens: readonly { text: string; isMove: boolean }[]): {
+  readonly number: string | null;
+  readonly move: string;
+  readonly moveIndex: number;
+}[] {
+  const groups: { number: string | null; move: string; moveIndex: number }[] = [];
+  let number: string | null = null;
+  for (const token of tokens) {
+    if (!token.isMove) {
+      number = token.text;
+      continue;
+    }
+    groups.push({ number, move: token.text, moveIndex: groups.length });
+    number = null;
   }
-  return Math.max(0, moves);
+  return groups;
 }
 
 /**

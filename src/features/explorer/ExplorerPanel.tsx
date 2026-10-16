@@ -811,7 +811,19 @@ export function ExplorerPanel() {
               <table className="w-full border-collapse text-[10.5px] @min-[560px]:min-w-[650px]">
                 <thead>
                   <tr className="border-b border-line-subtle text-left text-[9.5px] text-tertiary">
-                    <th className="w-6 px-1.5 py-1.5" />
+                    {/*
+                      The tick column compares moves side by side. It had no
+                      header at all — a column of unexplained checkboxes
+                      beside every move, and a table whose first column had
+                      no name for a screen reader to announce.
+                    */}
+                    <th
+                      className="w-6 px-1.5 py-1.5 font-medium"
+                      title="Tick two or more moves to compare them"
+                    >
+                      <span className="sr-only">Compare</span>
+                      <span aria-hidden>⇄</span>
+                    </th>
                     <th className="px-1.5 py-1.5 font-medium">Move</th>
                     <th className="px-1.5 py-1.5 text-right font-medium">Games</th>
                     <th className="px-1.5 py-1.5 text-right font-medium">Freq</th>

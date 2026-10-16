@@ -85,9 +85,17 @@ export function PositionSummary() {
           </span>
         )}
 
-        <span className="hidden sm:inline" data-board-view>
-          {orientation === 'w' ? 'White view' : 'Black view'}
-        </span>
+        {/*
+          Only the exception is stated. "White view" on every board said what
+          the coordinates already say, and spent the room the opening name
+          then truncated in. A flipped board is worth a word, because it is
+          the state that changes how a diagram reads.
+        */}
+        {orientation === 'b' ? (
+          <span className="hidden sm:inline" data-board-view>
+            Black view
+          </span>
+        ) : null}
 
         {opening ? (
           /*

@@ -66,6 +66,14 @@ export function EvaluationBar({
   const bottomIsWhite = layout.bottomSide === 'w';
   const historical = !outcome && (stale || catchingUp);
   const label = catchingUp && !outcome ? '…' : layout.barLabel;
+  /*
+    No score and no result: the bar has nothing to say, and says nothing.
+    It used to draw the two bands meeting at the midline — exactly the
+    picture of 0.00 — so a bar with the engine off read as "equal" to
+    anyone who looked at the fill rather than the dash. A fill is a claim
+    about the position; without a reading there is no fill to draw.
+  */
+  const empty = !outcome && !score;
   const reading = outcome
     ? describeOutcome(outcome)
     : score
@@ -86,7 +94,11 @@ export function EvaluationBar({
       data-stale={historical ? 'true' : undefined}
       data-catching-up={catchingUp && !outcome ? 'true' : undefined}
       data-outcome={outcome?.kind}
-      className="relative flex shrink-0 flex-col overflow-hidden rounded-[var(--radius-board)] bg-eval-black"
+      data-empty={empty ? 'true' : undefined}
+      className={cn(
+        'relative flex shrink-0 flex-col overflow-hidden rounded-[var(--radius-board)]',
+        empty ? 'bg-surface-2' : 'bg-eval-black',
+      )}
       style={{
         width: EVALUATION_BAR_WIDTH,
         /*
@@ -109,7 +121,11 @@ export function EvaluationBar({
       }
     >
       {/* The band of the side at the top fills the whole bar; the bottom side's band is drawn over it. */}
-      <div className={cn('absolute inset-0', bottomIsWhite ? 'bg-eval-black' : 'bg-eval-white')} />
+      {empty ? null : (
+        <div
+          className={cn('absolute inset-0', bottomIsWhite ? 'bg-eval-black' : 'bg-eval-white')}
+        />
+      )}
       <div
         data-evaluation-bar-fill
         className={cn(
@@ -129,17 +145,19 @@ export function EvaluationBar({
           'absolute inset-x-0 transition-[height] duration-900 ease-[cubic-bezier(0.22,0.61,0.36,1)]',
           bottomIsWhite ? 'bg-eval-white' : 'bg-eval-black',
         )}
-        style={{ height: `${layout.bottomShare * 100}%`, bottom: 0 }}
+        style={{ height: empty ? 0 : `${layout.bottomShare * 100}%`, bottom: 0 }}
       />
       {/* Equality, so a fill just above or below the middle can be read as such. */}
-      <div className="absolute inset-x-0 top-1/2 h-px bg-eval-midline" aria-hidden />
+      {empty ? null : (
+        <div className="absolute inset-x-0 top-1/2 h-px bg-eval-midline" aria-hidden />
+      )}
 
       <span
         data-evaluation-bar-label
         className={cn(
           'absolute inset-x-0 text-center font-semibold leading-none tracking-tight tabular',
           layout.labelAt === 'bottom' ? 'bottom-1' : 'top-1',
-          layout.labelOn === 'w' ? 'text-eval-black' : 'text-eval-white',
+          empty ? 'text-tertiary' : layout.labelOn === 'w' ? 'text-eval-black' : 'text-eval-white',
         )}
         style={{ fontSize: barLabelSize(label) }}
       >

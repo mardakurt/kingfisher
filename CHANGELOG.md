@@ -6,6 +6,20 @@ real users notice.
 
 ## Unreleased
 
+- **Analysis reads faster.** Engine lines use the whole row: the preview,
+  pin and insert buttons appear over the line you point at instead of
+  taking room from every line, so three full lines fit on a laptop screen.
+  The candidate move is bold and its continuation is lighter.
+- A move number stays on the same row as its move, in the notation and in
+  engine lines.
+- The notation takes only the height its moves need, so a short game
+  leaves the room to the engine and the explorer. A long game scrolls
+  inside its share.
+- With no evaluation the evaluation bar is blank. It used to show two equal
+  halves, which looks exactly like 0.00.
+- The line under the board says "Black view" when the board is flipped and
+  says nothing about an upright board.
+- The Explorer's tick column is labelled _Compare_.
 - **Opening map.** The Explorer can draw the next three moves of a local
   source as nested blocks — width is how often each move was played, shade
   is White's score — and a click plays the whole line. It says which source,

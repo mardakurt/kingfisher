@@ -500,58 +500,66 @@ function MoveToken({
           Q
         </span>
       )}
-      {(isWhite || forceNumber) && (
-        <span className="mr-0.5 select-none text-tertiary tabular">
-          {number}
-          {isWhite ? '.' : '…'}
-        </span>
-      )}
-      <button
-        type="button"
-        data-current={current}
-        tabIndex={current ? 0 : -1}
-        aria-current={current ? 'step' : undefined}
-        onClick={() => onSelect(node.id)}
-        onContextMenu={(event) => {
-          event.preventDefault();
-          onContextMenu?.(node.id, event);
-        }}
-        title={node.comment}
-        className={cn(
-          'mr-1 rounded-[var(--radius-control)] px-1 py-px transition-colors',
-          depth === 0 ? 'font-medium' : 'text-secondary',
-          current
-            ? 'bg-accent text-accent-contrast'
-            : 'hover:bg-surface-3 active:bg-surface-press hover:text-primary',
-          /*
+      {/*
+        The number and its move are one unit for line breaking. The button is
+        an atomic inline, which is a break opportunity on both sides, so a row
+        could end on "5." with "Nc3" starting the next — a number that names
+        nothing on its own row and a move that has lost its number.
+      */}
+      <span className="whitespace-nowrap" data-move-unit>
+        {(isWhite || forceNumber) && (
+          <span className="mr-0.5 select-none text-tertiary tabular" data-move-number>
+            {number}
+            {isWhite ? '.' : '…'}
+          </span>
+        )}
+        <button
+          type="button"
+          data-current={current}
+          tabIndex={current ? 0 : -1}
+          aria-current={current ? 'step' : undefined}
+          onClick={() => onSelect(node.id)}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            onContextMenu?.(node.id, event);
+          }}
+          title={node.comment}
+          className={cn(
+            'mr-1 rounded-[var(--radius-control)] px-1 py-px transition-colors',
+            depth === 0 ? 'font-medium' : 'text-secondary',
+            current
+              ? 'bg-accent text-accent-contrast'
+              : 'hover:bg-surface-3 active:bg-surface-press hover:text-primary',
+            /*
             Move quality in the two colours every chess reader knows: good in
             the positive token, bad in the negative one, dubious in caution.
             Tokens rather than literals, so the colour-blind palette repaints
             them along with the brushes.
           */
-          (quality === 1 || quality === 3) && !current && 'text-positive',
-          (quality === 4 || quality === 2) && !current && 'text-negative',
-          (quality === 5 || quality === 6) && !current && 'text-caution',
-        )}
-      >
-        {display(move.san)}
-        {quality !== undefined && (
-          <span
-            className="ml-px font-semibold"
-            title={nagInfo(quality)?.label ?? `Annotation $${quality}`}
-          >
-            {nagSymbol(quality)}
-          </span>
-        )}
-        {judgement !== undefined && (
-          <span
-            className="ml-0.5 opacity-80"
-            title={nagInfo(judgement)?.label ?? `Annotation $${judgement}`}
-          >
-            {nagSymbol(judgement)}
-          </span>
-        )}
-      </button>
+            (quality === 1 || quality === 3) && !current && 'text-positive',
+            (quality === 4 || quality === 2) && !current && 'text-negative',
+            (quality === 5 || quality === 6) && !current && 'text-caution',
+          )}
+        >
+          {display(move.san)}
+          {quality !== undefined && (
+            <span
+              className="ml-px font-semibold"
+              title={nagInfo(quality)?.label ?? `Annotation $${quality}`}
+            >
+              {nagSymbol(quality)}
+            </span>
+          )}
+          {judgement !== undefined && (
+            <span
+              className="ml-0.5 opacity-80"
+              title={nagInfo(judgement)?.label ?? `Annotation $${judgement}`}
+            >
+              {nagSymbol(judgement)}
+            </span>
+          )}
+        </button>
+      </span>
       {node.shapes.length > 0 && (
         <span
           aria-hidden
