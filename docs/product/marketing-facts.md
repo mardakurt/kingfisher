@@ -9,7 +9,7 @@ do not make it. When the product changes, change the fact here first
 Historical certification: Phase 49 (2026-09-13),
 [`final-certification.md`](final-certification.md). Starter population and
 update-check wording were refreshed for 1.4.0; current release evidence is in
-[`2026-10-01-research-workspace-release.md`](../reports/2026-10-01-research-workspace-release.md).
+`2026-10-01-research-workspace-release.md`.
 Other dated corpus figures below describe their named pack versions.
 
 ## The product

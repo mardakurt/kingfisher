@@ -49,7 +49,7 @@ plain right-drag drawing the blue brush exactly as the engine best-move arrow
 application serve the same application source again (`362517b`; `d9c5aae`
 changes only versions and release text). The four-hour professional session
 was run on 1.4.8 build 1141, not on 1147; see the
-[closure log](../reports/2026-10-04-professional-use-closure.md).
+closure log.
 
 **Published revision check (2026-10-05, 1.4.8).** The public Mac download is
 1.4.8 build 1141 from `754572610a67a3ab05a44dae8c0193e0854f2aa5`, stable and
@@ -59,7 +59,7 @@ publication checkpoint, the web served the same application source (no `src/`
 change after the frozen
 `08bf7d4` browser gate; later commits change the shell, harnesses and
 documentation). See the
-[closure log](../reports/2026-10-04-professional-use-closure.md).
+closure log.
 
 **Published revision check (2026-10-04, 1.4.7).** The public Mac download is
 1.4.7 build 1113 from `43044cde134cca9a4db8c3023ab2ad4235a68e95`, stable and
@@ -78,7 +78,7 @@ See [stability audit](../reports/2026-10-04-professional-stability-audit.md).
 clean at packaging, the same commit the website deployed. Developer ID signed,
 notarised and stapled; `desktop:public:verify -- --full` passed 61/61 against
 the descriptor, and 1.4.5 updated itself to it through the public feed. See
-[release handover](../reports/2026-10-04-1.4.6-handover.md).
+release handover.
 
 **Published revision check (2026-10-03, 1.4.5).** The public Mac download is
 1.4.5 build 1077 from `ef004085fb7e309d6940fc40c18a2a3ea336e436`, stable and
@@ -86,7 +86,7 @@ clean at packaging, the same commit the website deployed. The app and DMG are
 Developer ID signed, notarised and stapled; `desktop:public:verify -- --full`
 downloaded the published DMG and passed 61/61 against the descriptor. 1.4.4
 updated itself to it through the public Sparkle feed (19/19). See
-[release handover](../reports/2026-10-03-1.4.5-release-handover.md).
+release handover.
 
 **Published revision check (2026-10-03, 1.4.4).** The public Mac download is
 1.4.4 build 1069 from `f5f751cebbbd9982c68db766df27dfdca79813cc`, stable and
@@ -94,7 +94,7 @@ clean at packaging, the same commit the website deployed. The app and DMG are
 Developer ID signed, notarised and stapled; the public bytes match the
 certified artifact. The immutable package's embedded download descriptor
 still names 1.4.3; only this publication metadata differs. See
-[release handover](../reports/2026-10-03-1.4.4-release-handover.md).
+release handover.
 
 **Published revision check (2026-10-03, 1.4.3).** The public Mac download is
 1.4.3 build 1055 from `b9a155feb7125774d85f9774c1f3dfb6c6510436`, stable and
@@ -103,7 +103,7 @@ stapled. Public bytes match the certified artifact. Both products share the
 1.4.3 application implementation; subsequent publication metadata changes
 the website's download and security claims. The immutable package's embedded
 download descriptor still names 1.4.2. See
-[release handover](../reports/2026-10-03-1.4.3-release-handover.md) for exact
+release handover for exact
 validation and the Firefox and remote-CI coverage limitations.
 
 **Published revision check (2026-10-03, 1.4.2).** The public Mac download is

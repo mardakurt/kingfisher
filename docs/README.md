@@ -17,11 +17,8 @@
 - [2026-10-15 overhaul report](product/2026-10-15-overhaul-report.md) — accounts and sync, Describe search, landing, what was verified and what is left.
 - [A large game database — proposal for review](product/2026-10-15-global-database-proposal.md) — sources, licences, architecture, cost and roadmap; nothing built.
 - [Big data and accounts — a proposal](product/big-data-and-accounts-proposal.md) — 2026-10-04; §2 superseded by the 2026-10-15 database proposal, §3 by the account implementation.
-- [1.4.6 handover](reports/2026-10-04-1.4.6-handover.md)
 - [1.4.5 release notes](release/1.4.5.md)
-- [ChessBase Mac comparison for 1.4.5](product/chessbase-mac-comparison-1.4.5.md)
 - [Local video lessons](design/video-lessons.md)
-- [1.4.5 release validation](reports/2026-10-03-1.4.5-release-handover.md)
 
 Every Markdown file in this repository is listed here, in one of four
 sections, so nobody has to guess whether a document describes the product as
@@ -48,14 +45,10 @@ with [`AGENTS.md`](../AGENTS.md).
 ### The public product
 
 - [`release/1.4.4.md`](release/1.4.4.md) — annotation bar, Opponent, the reference in the Library, top games and strongest players, folders, the photo switch.
-- [`product/chessbase-mac-comparison-1.4.4.md`](product/chessbase-mac-comparison-1.4.4.md) — ChessBase for Mac's recordings frame by frame, what 1.4.4 closes, the photo check, and the defects using it turned up.
 - [`release/1.4.3.md`](release/1.4.3.md) — rating classes, Library position and annotation filters, collection index, online download, costly moves, photos; the Chess960 import fix.
-- [`product/chessbase-mac-comparison-2026-10-03.md`](product/chessbase-mac-comparison-2026-10-03.md) — ChessBase for Mac screen by screen, what 1.4.3 closes, and the defects using it turned up.
 - [`release/1.4.2.md`](release/1.4.2.md) — puzzles, tournament tables, threats, diagrams, engine matches, rating history.
-- [`product/chessbase-comparison-2026-10-03.md`](product/chessbase-comparison-2026-10-03.md) — the feature inventory against ChessBase 26 and ChessBase for Mac, what 1.4.2 closes and what stays open.
 - [`release/1.4.1.md`](release/1.4.1.md) — opening surveys, preparation chapters, large imports; published 2026-10-03.
 - [`product/chessbase-roadmap-2026-10-02.md`](product/chessbase-roadmap-2026-10-02.md) — the research-workflow comparison and roadmap.
-- [`reports/2026-10-02-chessbase-research-1.4.1.md`](reports/2026-10-02-chessbase-research-1.4.1.md) — validation and public-release limitations.
 
 - [`../README.md`](../README.md) — the project README: what Kingfisher is,
   where to get it, what is and is not true of the desktop build.
@@ -305,17 +298,9 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ## Historical
 
-- [`reports/2026-10-01-research-workspace-release.md`](reports/2026-10-01-research-workspace-release.md)
-  — Research readiness implementation and the 1.4.0 release evidence ledger.
-- [`reports/2026-09-30-interface-acceptance.md`](reports/2026-09-30-interface-acceptance.md)
-  — the populated Analysis prototype, keyboard and composition fixes, and its
-  measured acceptance evidence.
 - [`product/interface-usability-study.md`](product/interface-usability-study.md)
   — the unrun five-player protocol and architecture checkpoint.
 
-- [`reports/2026-09-29-interface-continuation.md`](reports/2026-09-29-interface-continuation.md)
-  — the remaining shell-pass gates, the ChessBase-reference comparison, the
-  shared-interface improvements, and the reasons for keeping Electron.
 - [`reports/phase-89-independent-audit.md`](reports/phase-89-independent-audit.md) —
   independent corrections, regression evidence and recovered-file inventory.
 - [`reports/phase-89-handover.md`](reports/phase-89-handover.md) — the
@@ -326,110 +311,30 @@ with [`AGENTS.md`](../AGENTS.md).
   behind them. Also Phase 88's recorded walk-harness defect, closed, and the
   packaged application re-verified at build 1012 — with the open pack-side
   `*`-as-Black-win defect that correcting would cost a full pack rebuild.
-- [`reports/phase-88-shell-pass.md`](reports/phase-88-shell-pass.md) — the
-  shell and workspace bug-fix pass: the settings-contract guard that passed
-  four mis-declared consumers, a Tailwind class that was completed by
-  interpolation three separate times, eight layout literals collapsed onto
-  the tokens they were restating, and eleven corner radii reduced to three —
-  with what was refuted, what was not done, and why.
-- [`reports/phase-88-handover.md`](reports/phase-88-handover.md) — a
-  defect-finding and desktop-UX session rather than a feature phase: the
-  failed backup the status bar reported as a green success, the settings
-  import that could assert an engine configuration the engine was not in,
-  the focus ring that reshaped every control it touched, the missing press
-  state, the sidebar's silent overflow, and the two drift guards that
-  passed vacuously — each with its reproduction, fix and a regression
-  proven able to fail; unreleased.
-- [`reports/phase-87-handover.md`](reports/phase-87-handover.md) — the
-  ChessBase-alternative reassessment: the laptop layout, preparation counts,
-  Library continuity and empty states, with every gate run;
-  unreleased. [`reports/phase-87-documentation-audit.md`](reports/phase-87-documentation-audit.md)
-  — what Phase 87 checked in all 264 Markdown files, category by category,
-  and what it did not. Before-and-after evidence:
-  [`release-evidence/phase-87/ux/`](release-evidence/phase-87/ux).
-- [`reports/phase-86-handover.md`](reports/phase-86-handover.md) — the parity
-  program's first phase, seven pages reworked, Mac 1.3.2;
-  [`reports/phase-86-workflow-matrix.md`](reports/phase-86-workflow-matrix.md)
-  — its journeys with the test behind each.
-- [`reports/phase-85-handover.md`](reports/phase-85-handover.md) — the
-  evidence-led ChessBase verdict: million-game import/search, dated and rated
-  packs, persistent deep analysis, the Mac gates, and every acceptance row.
-- [`reports/phase-85-browser-matrix.md`](reports/phase-85-browser-matrix.md) —
-  the Firefox and WebKit matrix run: what was fixed, and the five failures
-  filed with their suspected causes.
-- [`reports/phase-84-handover.md`](reports/phase-84-handover.md) — ChessBase
-  parity: the six workflows master built, and the continuation — where a game
-  leaves the reference, deep analysis, move search in companion databases,
-  merges in their own tab — with the evidence and the verdict.
-- [`reports/phase-83-handover.md`](reports/phase-83-handover.md) — working
-  tabs, the Library, the preparation report and the Databases grid.
-- [`reports/phase-82-handover.md`](reports/phase-82-handover.md) — the quiet
-  workstation: a light Mac-document redesign after the owner's brief, the
-  notation beside the board on tall screens, and what the redesign found.
-- [`reports/phase-81-handover.md`](reports/phase-81-handover.md) — research
-  after ChessBase 26, a UI sweep, and the games search mask.
-- [`reports/phase-75-handover.md`](reports/phase-75-handover.md) — closing the
-  gap: After the round and the round journal, Played against you, search across
-  all of a player's own work; the market research and the parity queue.
-- [`reports/phase-74-handover.md`](reports/phase-74-handover.md) — the
-  reset control renamed to say where the board goes, and the Team hub:
-  the research, the cloud-account answer, the local-first packet design,
-  what building it found, and section A of the checklist as run.
-- [`reports/phase-73-handover.md`](reports/phase-73-handover.md) — the
-  whole-codebase audit after 1.2.3: sixteen defects fixed (position
-  identity for a pasted FEN, an engine switched mid-start, the Lichess
-  rating bands, the feedback header encoding, the move-order list), the
-  `middleware` → `proxy` rename, and the documents brought back to what
-  the code does.
 - [`reports/phase-72-handover.md`](reports/phase-72-handover.md) — the
   independent audit of Phase 71, eleven defects reproduced and fixed
   (checkmate on the eval bar, the between-moves dip, the board flip, the
   tool strip, the Companion panel's honesty), and the Vercel
   deployment-storage cause and remedy.
-- [`reports/phase-71-handover.md`](reports/phase-71-handover.md) — the
-  Training knight, the landing's captures, header, identity and favicon
-  set, and the returning player's way into the Studio; every gate run,
-  and the Mac release that is still owed.
-- [`reports/phase-54-handover.md`](reports/phase-54-handover.md) — the
-  update engine's move to Sparkle: the control pass over the other
-  session's migration, ten findings, four real updates through Sparkle's
-  own window, and the 1.1.8 and 1.1.9 releases with every gate run.
-- [`reports/phase-53-handover.md`](reports/phase-53-handover.md) — the
-  owner's fourteen Phase 53 items, the control pass over the first
-  attempt at them, the 1.1.6 and 1.1.7 releases and every gate run for them.
-- [`reports/phase-52-handover.md`](reports/phase-52-handover.md) — the
-  owner's twelve reports on 1.1.4, the order they were taken in, the
-  1.1.5 release and every gate run for it.
-- [`reports/phase-51-handover.md`](reports/phase-51-handover.md) — the
-  owner's first-day report: nineteen items, one workspace frame, the 1.1.3
-  release and every gate run for it.
-- [`reports/phase-49-handover.md`](reports/phase-49-handover.md) — follow-up
-  release audit, exact public identities, fixes and remaining gates.
-- [`reports/phase-49-final-certification.md`](reports/phase-49-final-certification.md)
-  — original Phase 49 investigation with incomplete verdicts corrected.
 
-- [`reports/`](reports) — every phase handover and findings register. Each
+- [`reports/`](reports) — the most recent handovers and audits. Each
   describes what a phase set out to do, what it found, what it shipped and
   what remained. The most recent is the starting point for the next phase;
-  none is a description of the product now. Personal paths have been
-  redacted; some historical command output remains machine-specific.
-- [`product/phase-15-audit.md`](product/phase-15-audit.md),
-  [`product/phase-16-codebase-audit.md`](product/phase-16-codebase-audit.md),
-  [`product/phase-16-field-walk.md`](product/phase-16-field-walk.md),
-  [`product/phase-19-professional-acceptance.md`](product/phase-19-professional-acceptance.md),
-  [`product/phase-22-handover.md`](product/phase-22-handover.md),
-  [`product/phase-28-acceptance.md`](product/phase-28-acceptance.md),
-  [`product/phase-28-ui-audit.md`](product/phase-28-ui-audit.md),
-  [`product/phase-31-workflow-audit.md`](product/phase-31-workflow-audit.md),
-  [`product/phase-37-gap-register.md`](product/phase-37-gap-register.md) —
-  per-phase product audits and acceptance records.
-- [`release/1.0.0.md`](release/1.0.0.md) — the 1.0.0 release notes.
-- [`release/1.0.0-rc.1.md`](release/1.0.0-rc.1.md),
-  [`release/1.0.0-rc.2.md`](release/1.0.0-rc.2.md),
-  [`release/1.0.0-rc.3.md`](release/1.0.0-rc.3.md),
-  [`release/1.0.0-rc.4.md`](release/1.0.0-rc.4.md),
-  [`release/1.0.0-rc.5.md`](release/1.0.0-rc.5.md) — release-candidate notes.
-  The current notes are [`release/1.4.4.md`](release/1.4.4.md).
+  none is a description of the product now.
+
+**Removed on 2026-10-16, kept in git history.** The handovers of Phases
+13–88, the dated release handovers before 2026-10-08, the Phase 85–87
+evidence folders (`docs/release-evidence/`, 45 MB of screenshots and logs),
+the phase audits under `product/phase-*` other than the traceability and
+verification maps, the ChessBase comparisons superseded by the 1.4.6 and
+1.5.0 ones, the 1.0.0 release-candidate notes, the Phase 85 session prompt
+and the unused images of the old landing under `marketing/assets/`. Older
+documents still cite some of these paths as evidence; every one can be read
+with `git show 16d2fcc2:<path>` (for example
+`git show 16d2fcc2:docs/reports/phase-88-handover.md`).
+
+- [`release/1.0.0.md`](release/1.0.0.md) — the 1.0.0 release notes. The
+  current notes are [`release/1.5.2.md`](release/1.5.2.md).
 - [`../.github/ISSUE_TEMPLATE/`](../.github/ISSUE_TEMPLATE) — issue templates;
   current, and listed here so nothing is unaccounted for.
 - [`../marketing/README.md`](../marketing/README.md) and
@@ -448,6 +353,3 @@ not add a "last updated" line; `git log` already says.
 - [Large databases and external storage](operations/large-databases.md)
 - [Turning on accounts: the Supabase and Google set-up](operations/supabase-setup.md) — the owner's steps, and `npm run cloud:verify` for the live account boundary.
 - [Independent ChessBase acceptance](operations/independent-chessbase-acceptance.md)
-
-- [`reports/2026-10-03-1.4.4-release-handover.md`](reports/2026-10-03-1.4.4-release-handover.md) — 1.4.4: public release identity, source and packaged gates, update evidence, coverage limits.
-- [`reports/2026-10-03-1.4.3-release-handover.md`](reports/2026-10-03-1.4.3-release-handover.md) — public release identities, source and packaged gates, update evidence and coverage limits.

@@ -4,7 +4,7 @@
 > gates; restart and native engine installation failed in that run. Restart
 > passed on a diagnostic rerun, so its earlier failure remains intermittent.
 > These historical GREEN rows do not override the current
-> [Phase 49 handover](../reports/phase-49-handover.md).
+> Phase 49 handover.
 
 What the packaged `Kingfisher.app` has been shown to do, row by row, with
 the command that showed it. Every GREEN row was run against the packaged

@@ -9,7 +9,7 @@
 > the published bytes, and the real public 1.1.1 → 1.1.2 update through
 > the menu (`desktop:update:real --public-feed`, PASS) — are recorded
 > with their output in
-> [`docs/reports/phase-50-handover.md`](../reports/phase-50-handover.md).
+> `docs/reports/phase-50-handover.md`.
 > The four-browser matrix was not run for 1.1.2 (the maintainer asked
 > that CI not be used); the Chrome e2e for the one renderer change,
 > `e2e/feedback.spec.ts`, was run locally. The paragraph and tables

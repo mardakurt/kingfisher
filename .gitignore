@@ -87,7 +87,7 @@ output/
 # source. (Same reasoning as `output/` — the proof is the run, not the file.)
 tmp/
 
-# Locally generated manifests; immutable historical evidence lives in docs/release-evidence.
+# Locally generated manifests. Older release evidence (docs/release-evidence/) is in git history; see docs/README.md.
 /release-manifest.json
 /kingfisher-release-manifest.json
 
