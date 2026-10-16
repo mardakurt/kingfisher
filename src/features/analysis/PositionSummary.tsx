@@ -44,7 +44,8 @@ export function PositionSummary() {
       else is present. The opening comes last and alone truncates, taking
       whatever room is left once it has six rem.
     */
-    <div className="min-w-0 flex-1">
+    // Never narrower than its first fact: below that it moves to its own line.
+    <div className="min-w-[5.5rem] flex-1">
       <div className="flex max-h-5 min-w-0 flex-wrap content-start items-center gap-x-2 overflow-hidden text-2xs whitespace-nowrap text-tertiary sm:gap-x-3">
         {outcome ? (
           <span className="font-medium text-primary">

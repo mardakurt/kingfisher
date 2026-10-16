@@ -28,6 +28,7 @@ import { EmptyState } from '@/components/ui/Panel';
 import { Segmented, Tabs } from '@/components/ui/Tabs';
 import { positionKey } from '@/chess/fen';
 import { Review as ReviewIcon } from '@/components/icons';
+import type { RouteAction } from '@/features/workspace/HeaderActions';
 import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
 import { invalidateReview } from '@/features/persistence/queries';
@@ -42,7 +43,7 @@ import { useUi } from '@/stores/ui-store';
 import { CriticalInbox } from './CriticalInbox';
 import { DecisionJournal } from './DecisionJournal';
 import { ImprovementSummary } from './ImprovementSummary';
-import { SuggestCandidatesButton } from './SuggestCandidates';
+import { useSuggestCandidates } from './SuggestCandidates';
 import { strategicContextForNode } from './strategic-context';
 import { useDecisionAt, useReviewItems } from './queries';
 import { useReviewSession } from './review-session-store';
@@ -261,11 +262,71 @@ export function ReviewWorkspace() {
     With nothing open there is no position to mark and no evidence to
     reveal, so neither is offered: an accent Reveal on an empty board was the
     page's most prominent control, and it did nothing a person could see.
+
+    The buttons fold. Drawn whole beside the evidence toggle they came to
+    808 px with a game open — more than the 796 px a 1024 px window leaves the
+    header beside the sidebar — so the title collapsed under them and search
+    went off the edge. As route actions they shorten, then fold behind "⋯"
+    from the last; the order below is what is kept longest.
   */
+  const suggest = useSuggestCandidates();
+  const routeActions: RouteAction[] = [
+    ...(selfAnalysis && !revealed && !nothingOpen
+      ? [
+          {
+            id: 'reveal',
+            label: 'Reveal',
+            variant: 'accent' as const,
+            onClick: () => reveal(key),
+          },
+        ]
+      : []),
+    ...(nothingOpen
+      ? []
+      : markedItem
+        ? [
+            {
+              id: 'open-mark',
+              label: 'Open the marked position',
+              shortLabel: 'Open',
+              onClick: () => void openItem(markedItem),
+            },
+            {
+              id: 'remove-mark',
+              label: 'Remove the mark',
+              shortLabel: 'Remove',
+              onClick: () => void removeMark(),
+            },
+          ]
+        : [
+            {
+              id: 'mark',
+              label: 'Mark for review',
+              shortLabel: 'Mark',
+              onClick: () => void markCritical(),
+            },
+          ]),
+    ...(suggest.available
+      ? [
+          {
+            id: 'suggest',
+            label: suggest.busy ? 'Reading…' : 'Suggest positions',
+            shortLabel: suggest.busy ? 'Reading…' : 'Suggest',
+            disabled: suggest.busy,
+            onClick: suggest.run,
+          },
+        ]
+      : []),
+  ];
+
   const actions = (
     <>
-      <span className="hidden text-[10px] text-tertiary sm:inline">Evidence</span>
+      {/* The caption only where it costs the actions nothing; the toggle is named either way. */}
+      <span className="hidden text-[10px] text-tertiary 2xl:inline" aria-hidden>
+        Evidence
+      </span>
       <Segmented
+        label="Evidence"
         items={[
           { id: 'hidden' as const, label: 'Hidden' },
           { id: 'visible' as const, label: 'Visible' },
@@ -273,50 +334,23 @@ export function ReviewWorkspace() {
         value={selfAnalysis ? 'hidden' : 'visible'}
         onChange={(value) => setSelfAnalysis(value === 'hidden')}
       />
-      {nothingOpen ? null : markedItem ? (
-        <>
-          {/*
-            Compact at narrow widths: an icon-only chip with the full text
-            as the accessible label. The chip stays single-row on a
-            390px phone instead of wrapping mid-label and shoving
-            adjacent controls off the end of the header.
-          */}
-          <span
-            className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[10.5px] text-primary"
-            title={
-              markedItem.markedFromGames.length > 1
-                ? `Marked from ${markedItem.markedFromGames.length} of your games`
-                : 'Marked for review'
-            }
-            aria-label="This position is marked for review"
-          >
-            <PinMarkIcon className="h-3 w-3" aria-hidden />
-            <span className="hidden sm:inline">Marked for review</span>
-          </span>
-          <Button
-            variant="ghost"
-            onClick={() => void openItem(markedItem)}
-            aria-label="Open the marked position"
-          >
-            Open
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => void removeMark()}
-            aria-label="Remove the mark"
-            className="hidden sm:inline-flex"
-          >
-            Remove mark
-          </Button>
-        </>
-      ) : (
-        <Button onClick={() => void markCritical()}>Mark for review</Button>
-      )}
-      <SuggestCandidatesButton />
-      {selfAnalysis && !revealed && !nothingOpen ? (
-        <Button variant="accent" onClick={() => reveal(key)}>
-          Reveal
-        </Button>
+      {!nothingOpen && markedItem ? (
+        /*
+          Icon-only below xl, with the full text as the accessible label: the
+          chip stays one row on a phone instead of wrapping mid-label.
+        */
+        <span
+          className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[10.5px] text-primary"
+          title={
+            markedItem.markedFromGames.length > 1
+              ? `Marked from ${markedItem.markedFromGames.length} of your games`
+              : 'Marked for review'
+          }
+          aria-label="This position is marked for review"
+        >
+          <PinMarkIcon className="h-3 w-3" aria-hidden />
+          <span className="hidden xl:inline">Marked for review</span>
+        </span>
       ) : null}
     </>
   );
@@ -329,6 +363,7 @@ export function ReviewWorkspace() {
         document.kind === 'untitled' ? 'Open one of your games to review it' : document.title
       }
       icon={<ReviewIcon />}
+      routeActions={routeActions}
       actions={actions}
       rail={{ label: 'Review queue', width: 260, content: context, headerless: true }}
       /*

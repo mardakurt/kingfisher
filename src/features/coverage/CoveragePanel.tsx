@@ -29,7 +29,7 @@ export function CoveragePanel() {
       <PanelHeader>
         <span>Coverage · move {moveNumberOfPly(ply)}</span>
       </PanelHeader>
-      <PanelBody className="space-y-2 text-2xs">
+      <PanelBody className="space-y-2 p-3 text-2xs">
         <p className="text-tertiary">
           What each source you have holds, from its own manifest, and what it does not. Populations
           are never combined: two sources disagreeing is the reason to look at both.

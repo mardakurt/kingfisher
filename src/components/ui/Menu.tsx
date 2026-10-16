@@ -126,18 +126,31 @@ function MenuList({ sections, onClose, labelledBy, autoFocus = true }: MenuListP
 }
 
 /** The box a menu inside `element` can draw in: the viewport, cut by every clipping ancestor. */
-function clippingBounds(element: HTMLElement | null): { top: number; bottom: number } {
+function clippingBounds(element: HTMLElement | null): {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+} {
   let top = 0;
   let bottom = window.innerHeight;
+  let left = 0;
+  let right = window.innerWidth;
   for (let node = element?.parentElement ?? null; node; node = node.parentElement) {
     const style = getComputedStyle(node);
-    if (/(hidden|clip|auto|scroll)/.test(style.overflowY)) {
-      const rect = node.getBoundingClientRect();
+    const clips = /(hidden|clip|auto|scroll)/;
+    if (!clips.test(style.overflowY) && !clips.test(style.overflowX)) continue;
+    const rect = node.getBoundingClientRect();
+    if (clips.test(style.overflowY)) {
       top = Math.max(top, rect.top);
       bottom = Math.min(bottom, rect.bottom);
     }
+    if (clips.test(style.overflowX)) {
+      left = Math.max(left, rect.left);
+      right = Math.min(right, rect.right);
+    }
   }
-  return { top, bottom };
+  return { top, bottom, left, right };
 }
 
 interface MenuProps {
@@ -160,9 +173,11 @@ export function Menu({ trigger, sections, align = 'start' }: MenuProps) {
   // in the middle of the side panel, and More opened upwards into a region
   // the panel clipped, under the header, with its items unclickable.
   const [room, setRoom] = useState<number | null>(null);
-  // Sideways, the panel is pulled back inside the window: an end-aligned menu
-  // wider than the room left of its trigger — the header's "⋯" on a phone —
-  // otherwise opens with its first characters off-screen.
+  // Sideways, the panel is pulled back inside the same box: an end-aligned
+  // menu wider than the room left of its trigger — the header's "⋯" on a
+  // phone — otherwise opens with its first characters off-screen, and the
+  // tool dock's More, in a side column that clips sideways, opened at 1024 px
+  // with the first letters of every tool cut off ("eory Book").
   const [shift, setShift] = useState(0);
   useLayoutEffect(() => {
     if (!open) return;
@@ -177,8 +192,11 @@ export function Menu({ trigger, sections, align = 'start' }: MenuProps) {
     setRoom(Math.max(120, Math.floor((up ? aboveRoom : below) - 8)));
     const left = box.left - shift;
     const right = box.right - shift;
-    const limit = window.innerWidth - 4;
-    setShift(left < 4 ? Math.ceil(4 - left) : right > limit ? Math.floor(limit - right) : 0);
+    const start = bounds.left + 4;
+    const limit = bounds.right - 4;
+    setShift(
+      left < start ? Math.ceil(start - left) : right > limit ? Math.floor(limit - right) : 0,
+    );
   }, [open, sections, shift]);
 
   useEffect(() => {

@@ -292,7 +292,7 @@ export function OpeningFilesWorkspace() {
         ) : (
           <EmptyState
             title="No file selected."
-            description="Choose one on the left, or create a file for the opening you are working on."
+            description="Choose one from Files, or create a file for the opening you are working on."
           />
         )
       }

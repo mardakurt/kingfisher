@@ -127,7 +127,7 @@ export function TheoryBookPanel() {
     return (
       <div className="flex min-h-0 flex-col">
         <PanelHeader>Theory Book</PanelHeader>
-        <PanelBody>
+        <PanelBody className="px-3 py-2">
           {loadFailed ? (
             <EmptyState
               title="The opening library could not be loaded."
@@ -151,7 +151,7 @@ export function TheoryBookPanel() {
     return (
       <div className="flex min-h-0 flex-col" data-theory-book="roots">
         <PanelHeader>Theory Book</PanelHeader>
-        <PanelBody>
+        <PanelBody className="px-3 py-2">
           <p className="text-2xs leading-relaxed text-tertiary">
             {book.size.toLocaleString()} named positions. Open one to see its branches, or play into
             a line on the board.
@@ -186,7 +186,7 @@ export function TheoryBookPanel() {
     return (
       <div className="flex min-h-0 flex-col" data-theory-book="unnamed">
         <PanelHeader actions={allOpenings}>Theory Book</PanelHeader>
-        <PanelBody>
+        <PanelBody className="px-3 py-2">
           <EmptyState
             title="Not a named opening"
             description="Nothing on this line reaches a position the classification dataset names. The Explorer can still say what has been played here."
@@ -216,7 +216,7 @@ export function TheoryBookPanel() {
   return (
     <div className="flex min-h-0 flex-col" data-theory-book="located">
       <PanelHeader actions={allOpenings}>Theory Book</PanelHeader>
-      <PanelBody>
+      <PanelBody className="px-3 py-2">
         {/* Where the reader is, family first, each step clickable. */}
         <nav className="flex flex-wrap items-center gap-x-1 gap-y-0.5" data-book-crumbs>
           <span className="font-mono text-2xs text-tertiary">{node.eco}</span>

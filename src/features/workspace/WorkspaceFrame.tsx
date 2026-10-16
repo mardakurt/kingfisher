@@ -312,7 +312,9 @@ export function WorkspaceFrame({
                 'flex min-w-0 flex-1 flex-col',
                 // `wide` here is the frame's layout, not the `wide:` media
                 // variant: side by side happens below that variant's width too.
-                wide ? 'min-h-0' : 'min-h-[620px]',
+                // Stacked, the floor is a tablet's; a phone's board is as wide
+                // as the window, and 620 px left 200 px of nothing under it.
+                wide ? 'min-h-0' : 'min-h-[min(620px,calc(100vw+60px))]',
               )}
               data-workspace-board-column
             >
@@ -339,7 +341,7 @@ export function WorkspaceFrame({
                   */
                     className={cn(
                       `flex-1 px-2 py-2 sm:px-3 ${SHORT_VIEWPORT_PADDING_CLASS}`,
-                      wide ? 'min-h-0' : 'min-h-[460px]',
+                      wide ? 'min-h-0' : 'min-h-[min(460px,calc(100vw+40px))]',
                       view.priority !== 'maximum' && TALL_VIEWPORT_PADDING_CLASS,
                     )}
                   />
@@ -465,9 +467,13 @@ function FrameHeader({
            left is measured from where the trailing block begins. */
         trailing.getBoundingClientRect().left - contentLeft;
     // The name clips itself, so the block's own scrollWidth is only the room
-    // it was given; the h1 knows the text. Only the name is protected.
+    // it was given. Nor is the h1's: a subtitle wider than the name widens the
+    // block, and the h1 with it, so its scrollWidth was the subtitle's — 134
+    // px for "Review" under a game's title, and Review's actions folded
+    // behind "⋯" at 1280 px with 87 px of the header unused. The text's own
+    // box is the name. Only the name is protected.
     const name = titleBlock?.querySelector<HTMLElement>('h1');
-    const titleNeed = titleBlock ? Math.min(TITLE_FLOOR, name?.scrollWidth ?? 0) : 0;
+    const titleNeed = titleBlock ? Math.min(TITLE_FLOOR, name ? textWidth(name) : 0) : 0;
     const row = element.querySelector<HTMLElement>('[data-header-actions]');
     const others = trailing.offsetWidth - (row?.offsetWidth ?? 0);
     const next = Math.floor(inner - titleLeft - titleNeed - others - 12);
@@ -522,7 +528,9 @@ function FrameHeader({
       {/* Folds the route's own list, so the board can have its width. */}
       {railToggle}
       {toolbar ?? (
-        <div className="flex min-w-0 items-center gap-2">
+        // Clipped, so a title squeezed to nothing takes its icon with it
+        // rather than painting it under the actions.
+        <div className="flex min-w-0 items-center gap-2 overflow-hidden">
           {icon ? (
             <span className="shrink-0 text-accent-ink [&>svg]:h-5 [&>svg]:w-5">{icon}</span>
           ) : null}
@@ -715,4 +723,11 @@ function PositionFromUrl({ onPosition }: { readonly onPosition?: () => void }) {
   }, [notify, onPosition, openDocument, params, pathname, requested]);
 
   return null;
+}
+
+/** The width of an element's text as laid out, whatever box it sits in. */
+function textWidth(element: HTMLElement): number {
+  const range = document.createRange();
+  range.selectNodeContents(element);
+  return Math.ceil(range.getBoundingClientRect().width);
 }

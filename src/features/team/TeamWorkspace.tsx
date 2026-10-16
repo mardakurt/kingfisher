@@ -655,7 +655,7 @@ export function TeamWorkspace() {
           ) : !assignment ? (
             <EmptyState
               title="No assignment selected."
-              description="Choose one on the left, or set one. Its thread — brief, hand-ins, reviews — appears here."
+              description="Choose one from Assignments, or set one. Its thread — brief, hand-ins, reviews — appears here."
             />
           ) : (
             <ThreadPanel

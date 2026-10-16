@@ -130,7 +130,7 @@ export function ImprovementSummary({
           onChange={setPeriodId}
         />
       </div>
-      <PanelBody className="space-y-4 overflow-y-auto">
+      <PanelBody className="space-y-4 overflow-y-auto p-3">
         <section>
           <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
             {report.figures.map((figure) => (

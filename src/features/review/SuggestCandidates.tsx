@@ -17,14 +17,22 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { Button } from '@/components/ui/Button';
 import { invalidateReview } from '@/features/persistence/queries';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 
 import { suggestForGame } from './suggest-for-game';
 
-export function SuggestCandidatesButton() {
+/**
+ * The header action's state: whether the board holds an analysed game to ask
+ * about, whether a run is in progress, and the run itself. Review draws it as
+ * one of its folding header actions.
+ */
+export function useSuggestCandidates(): {
+  readonly available: boolean;
+  readonly busy: boolean;
+  readonly run: () => void;
+} {
   const client = useQueryClient();
   const notify = useUi((state) => state.notify);
   const document = useAnalysis((state) => state.document);
@@ -32,9 +40,9 @@ export function SuggestCandidatesButton() {
   const [busy, setBusy] = useState(false);
 
   const gameId = document.kind === 'database-game' ? document.gameId : null;
-  if (!gameId) return null;
 
   const run = async () => {
+    if (!gameId) return;
     setBusy(true);
     try {
       const { suggested, points, sides } = await suggestForGame({
@@ -71,9 +79,5 @@ export function SuggestCandidatesButton() {
     }
   };
 
-  return (
-    <Button onClick={() => void run()} disabled={busy}>
-      {busy ? 'Reading…' : 'Suggest positions'}
-    </Button>
-  );
+  return { available: gameId !== null, busy, run: () => void run() };
 }

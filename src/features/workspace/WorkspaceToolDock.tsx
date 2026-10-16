@@ -725,7 +725,13 @@ function NotationSection({
       data-notation-section={workspace}
       data-folded={folded ? 'true' : undefined}
     >
-      <div className="flex h-9 shrink-0 items-center gap-1 px-2.5">
+      {/*
+        Wraps rather than overflows. The glyphs cannot shrink, and in the
+        299 px column of a 1024 px window the row needed 341 px: "Move the
+        notation" sat past the window's edge, out of reach, and opening any
+        menu scrolled the whole workspace sideways to bring it into view.
+      */}
+      <div className="flex min-h-9 shrink-0 flex-wrap items-center gap-1 px-2.5 py-1">
         <button
           type="button"
           onClick={toggle}

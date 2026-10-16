@@ -108,7 +108,7 @@ export function ChapterReferences({ chapter }: { readonly chapter: ChapterRecord
       <PanelHeader actions={<span>{references.data?.length ?? 0} linked</span>}>
         References
       </PanelHeader>
-      <PanelBody className="space-y-4 overflow-y-auto">
+      <PanelBody className="space-y-4 overflow-y-auto p-3">
         {references.isPending ? (
           <p className="text-xs text-tertiary">Reading chapter references…</p>
         ) : references.data?.length ? (

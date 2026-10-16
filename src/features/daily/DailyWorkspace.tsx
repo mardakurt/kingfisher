@@ -353,7 +353,7 @@ export function DailyWorkspace() {
         ) : (
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-xs text-secondary">
-              {nextCard ? `Start with ${cardTitle(nextCard)}.` : 'Choose a card on the left.'}
+              {nextCard ? `Start with ${cardTitle(nextCard)}.` : 'Choose a card from Today.'}
             </p>
             {nextCard ? (
               <Button
@@ -430,5 +430,5 @@ const cardTask = (card: SessionCard): string =>
     : card.kind === 'critical'
       ? `Calculate before you look: ${card.reason}. Then grade it.`
       : card.kind === 'endgame'
-        ? `Goal: ${card.goal}. Play it out from the tools on the right; the tablebase referees where it can.`
+        ? `Goal: ${card.goal}. Play it out in the Play it out tool; the tablebase referees where it can.`
         : 'Read the card and recall the plan; mark it when done.';

@@ -63,3 +63,30 @@ test('a thirty-chapter study reads as a list, with the open chapter in view', as
     long,
   );
 });
+
+test('opening a new chapter where the list sits under the board keeps the board in view', async ({
+  page,
+}) => {
+  // At 1024x768 the chapter list is stacked under the board in one scroller;
+  // bringing the new chapter's row into view scrolled the board off screen.
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.goto('/studies');
+  await page.locator(READY).waitFor();
+  await page.getByRole('button', { name: 'Start a study' }).first().click();
+  let dialog = page.getByRole('dialog');
+  await dialog.getByRole('textbox').first().fill('Stacked study');
+  await dialog.getByRole('button', { name: 'Create study' }).click();
+  await expect(dialog).toBeHidden();
+  // The empty chapter's own button, under the header: the rail's copy sits
+  // below the board here, and clicking it would scroll the page by itself.
+  await page.getByRole('button', { name: 'Add a chapter' }).last().click();
+  dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Title').fill('Main line');
+  await dialog.getByRole('button', { name: 'Create chapter' }).click();
+  await expect(dialog).toBeHidden();
+
+  await expect(page.locator('[data-chapter-list] [aria-current="true"]')).toContainText(
+    'Main line',
+  );
+  await expect(page.locator('[data-chessboard]').first()).toBeInViewport({ ratio: 0.5 });
+});

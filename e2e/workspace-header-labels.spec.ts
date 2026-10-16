@@ -12,8 +12,10 @@
  *
  *   - Position and Set up: `xs:` (430 px). Above that the sidebar is visible
  *     and there is room for two short labels next to their icons.
- *   - Search commands: `mid:` (900 px). The label is longer, and below 900 px
- *     it would push the theme toggle off the right edge of the header.
+ *   - Search commands: `xl:` (1280 px). The label is longer, and the
+ *     breakpoints read the window while the header is the window less the
+ *     sidebar: at 1024 px it pushed Review's actions, and Settings, off the
+ *     right edge of a 796 px header.
  *
  * The icon and the kbd stay visible at every width — only the text label
  * changes.
@@ -97,6 +99,45 @@ test.describe('workspace header labels', () => {
    * painted under "Position". Three sizes, a long title, and the assertion
    * that no child of the header paints past its box or under its neighbour.
    */
+  test('Review, with a game open, fits its header at 1024 px', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.goto('/analysis');
+    await ready(page);
+    await page.getByRole('button', { name: 'Import PGN or FEN' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Import a game or position' });
+    await dialog.getByRole('textbox').fill('[White "A"]\n[Black "B"]\n\n1. e4 c5 *');
+    await dialog.getByRole('button', { name: /^(Load|Import)/ }).click();
+    await expect(dialog).toBeHidden();
+    await page.goto('/review');
+    await ready(page);
+    const header = page.locator('[data-workspace-header]');
+    await expect(header.getByRole('button', { name: 'Reveal' })).toBeVisible();
+    await expect(header.getByRole('button', { name: 'Settings' })).toBeInViewport({ ratio: 1 });
+
+    const survey = await header.evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      const title = element.querySelector('[data-header-title]')?.getBoundingClientRect();
+      const trailing = element.querySelector('[data-header-trailing]')!.getBoundingClientRect();
+      return {
+        right: Math.round(box.right),
+        titleWidth: Math.round(title?.width ?? 0),
+        trailingLeft: Math.round(trailing.left),
+        trailingRight: Math.round(trailing.right),
+        icon: Math.round(
+          element.querySelector('[data-header-title]')?.parentElement?.getBoundingClientRect()
+            .right ?? 0,
+        ),
+      };
+    });
+    expect(survey.trailingRight, 'the actions stay inside the header').toBeLessThanOrEqual(
+      survey.right + 1,
+    );
+    expect(survey.titleWidth, 'the page title keeps some room').toBeGreaterThan(40);
+    expect(survey.icon, 'the title ends before the actions begin').toBeLessThanOrEqual(
+      survey.trailingLeft + 1,
+    );
+  });
+
   for (const size of [
     { width: 834, height: 1194, name: 'iPad portrait' },
     { width: 1024, height: 768, name: 'iPad landscape' },

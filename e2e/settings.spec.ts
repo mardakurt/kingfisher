@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { SETTING_CONTRACTS } from '../src/features/shell/settings-contract';
 import { DEFAULT_PREFERENCES } from '../src/stores/preferences-store';
+import { reloadRoute } from './tools';
 
 /**
  * Every setting, held to what the contract says it does.
@@ -658,7 +659,7 @@ test.describe('every setting', () => {
         { storeKey: KEY, key: contract.key, value: next },
       );
 
-      await page.reload();
+      await reloadRoute(page);
       await page.locator(READY).waitFor();
       const after = await stored(page, contract.key);
       if (JSON.stringify(after) !== JSON.stringify(next)) {
@@ -688,11 +689,11 @@ test.describe('every setting', () => {
         ),
       },
     );
-    await page.reload();
+    await reloadRoute(page);
     await page.locator(READY).waitFor();
 
     await page.evaluate(() => window.localStorage.removeItem('kingfisher.preferences'));
-    await page.reload();
+    await reloadRoute(page);
     await page.locator(READY).waitFor();
 
     const wrong: string[] = [];

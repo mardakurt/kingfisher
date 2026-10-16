@@ -465,7 +465,7 @@ function RevealedJournal({
     return (
       <Panel className="h-full border-0">
         <PanelHeader>Your decision</PanelHeader>
-        <PanelBody className="space-y-4 overflow-y-auto">
+        <PanelBody className="space-y-4 overflow-y-auto p-3">
           <EmptyState
             title="Nothing recorded here."
             description="Evidence is visible for this position. Turn self-analysis on to record a decision before revealing it."

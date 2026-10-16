@@ -62,6 +62,46 @@ export async function gotoRoute(
   }
 }
 
+/** `page.reload`, with the same Firefox retry as {@link gotoRoute}. */
+export async function reloadRoute(page: Page): Promise<void> {
+  try {
+    await page.reload();
+  } catch (error) {
+    if (!/NS_BINDING_ABORTED/.test(String(error))) throw error;
+    await page.waitForLoadState('load').catch(() => undefined);
+    await page.reload();
+  }
+}
+
+/**
+ * A clipboard the test can read back. Chromium grants the real one; Firefox
+ * and WebKit have no clipboard permission to grant, so there the clipboard —
+ * a boundary, not the thing under test — is replaced on every document by a
+ * recording one. Call before the page loads.
+ */
+export async function readableClipboard(page: Page): Promise<() => Promise<string>> {
+  const granted = await page
+    .context()
+    .grantPermissions(['clipboard-read', 'clipboard-write'])
+    .then(() => true)
+    .catch(() => false);
+  if (!granted) {
+    await page.addInitScript(() => {
+      let copied = '';
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: async (text: string) => {
+            copied = text;
+          },
+          readText: async () => copied,
+        },
+      });
+    });
+  }
+  return () => page.evaluate(() => navigator.clipboard.readText());
+}
+
 /**
  * Whether a console line or page error is the noise a browser makes when a
  * full navigation cancels loads that were still in flight.

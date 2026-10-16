@@ -222,3 +222,14 @@ test('a tick or a cross marks the square each move landed on', async ({ page }) 
   await expect(badge).toHaveAttribute('data-move-badge', 'correct');
   await expect(badge).toHaveAttribute('data-move-badge-square', last.slice(2, 4));
 });
+
+test('at 1024x768 the prompt and its controls are beside the board, not below the fold', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  const [id] = puzzleWith('r1200', 2);
+  await open(page, id);
+  await expect(page.getByText(/to play — find the best move/)).toBeInViewport({ ratio: 1 });
+  await expect(page.getByRole('button', { name: 'Show solution' })).toBeInViewport({ ratio: 1 });
+  await expect(page.locator('[data-puzzle-board]')).toBeInViewport({ ratio: 1 });
+});

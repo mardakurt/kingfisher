@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { selectTool } from './tools';
+import { readableClipboard, selectTool } from './tools';
 import { settingsButton } from './support/settings-control';
 
 /**
@@ -466,20 +466,15 @@ test('opening survey uses an installed population and exports variations without
   await expect(page.locator('[data-question-marker]')).toHaveCount(1);
 });
 
-test('copy report exports the current position and visible provenance', async ({
-  page,
-  context,
-}) => {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+test('copy report exports the current position and visible provenance', async ({ page }) => {
+  const clipboard = await readableClipboard(page);
   await openReport(page);
   await play(page, 'e2', 'e4');
   await play(page, 'c7', 'c5');
   await expect(section(page, 'identity')).toContainText('Sicilian Defense');
   await page.getByRole('button', { name: 'Copy report', exact: true }).click();
-  await expect
-    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
-    .toContain('Sicilian Defense');
-  const text = await page.evaluate(() => navigator.clipboard.readText());
+  await expect.poll(clipboard).toContain('Sicilian Defense');
+  const text = await clipboard();
   expect(text).toContain('lichess-org/chess-openings');
   expect(text).toContain('CC0-1.0');
   expect(text).toContain('Snapshot:');

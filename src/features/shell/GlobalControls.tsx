@@ -37,7 +37,10 @@ export function GlobalControls({ className }: { readonly className?: string }) {
         threshold for it is wider: at `mid` (900 px) the rest of the toolbar
         has the room it needs without the search button pushing the theme
         toggle off the right edge. Below that the icon and the kbd stay, so
-        the shortcut is still discoverable.
+        the shortcut is still discoverable. The label itself waits for `xl`:
+        the breakpoints read the window, and the header is the window less the
+        sidebar — 796 px of a 1024 px window, where the label crowded a route
+        with actions of its own (Review) off the edge.
       */}
       <button
         type="button"
@@ -46,7 +49,7 @@ export function GlobalControls({ className }: { readonly className?: string }) {
         className="flex h-8 shrink-0 items-center gap-2 rounded-[var(--radius-control)] bg-surface-2 px-3 text-xs text-tertiary transition-colors hover:bg-surface-3 hover:text-secondary active:bg-surface-press"
       >
         <Search className="h-3.5 w-3.5" />
-        <span className="hidden mid:inline">Search commands</span>
+        <span className="hidden xl:inline">Search commands</span>
         <kbd className="hidden rounded-[var(--radius-board)] bg-surface-1 px-1 font-mono text-[10px] mid:inline">
           ⌘K
         </kbd>

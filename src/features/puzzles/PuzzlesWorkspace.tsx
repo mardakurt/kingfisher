@@ -347,7 +347,7 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
 
   const panel = (
     <aside
-      className="flex w-full shrink-0 flex-col gap-3 overflow-y-auto border-line-subtle p-4 wide:w-[340px] wide:border-l"
+      className="flex w-full shrink-0 flex-col gap-3 overflow-y-auto border-line-subtle p-4 lg:w-[340px] lg:border-l"
       data-puzzle-panel
     >
       {puzzle ? (
@@ -557,11 +557,16 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
       icon={<Tactics />}
       withMoveTree={false}
       takeover={
+        /*
+          Side by side from 1024 px. Stacked there, the 628 px board filled a
+          768 px window and the prompt — who is to move — with Hint, Show
+          solution and Skip, all began below the fold.
+        */
         <div
-          className="flex min-h-0 flex-1 flex-col overflow-y-auto wide:flex-row wide:overflow-hidden"
+          className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden"
           data-puzzles
         >
-          <div className="flex shrink-0 justify-center p-3 wide:flex-1 wide:items-center">
+          <div className="flex shrink-0 justify-center p-3 lg:flex-1 lg:items-center">
             <div
               className="aspect-square"
               // The largest square that fits: the column's width, the viewport

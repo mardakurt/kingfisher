@@ -37,7 +37,9 @@ export const PanelHeader = ({ children, actions, className }: PanelHeaderProps) 
 );
 
 export const PanelBody = ({ children, className }: PanelProps) => (
-  <div className={cn('min-h-0 flex-1 overflow-y-auto', className)}>{children}</div>
+  <div className={cn('min-h-0 flex-1 overflow-y-auto', className)} data-panel-body>
+    {children}
+  </div>
 );
 
 interface EmptyStateProps {

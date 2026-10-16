@@ -392,7 +392,7 @@ export function OpeningReportPanel() {
     return (
       <div className="flex min-h-0 flex-col">
         <PanelHeader>Opening Report</PanelHeader>
-        <PanelBody>
+        <PanelBody className="px-3 py-2">
           <p className="text-xs text-tertiary">No position on the board.</p>
         </PanelBody>
       </div>
@@ -402,7 +402,7 @@ export function OpeningReportPanel() {
   return (
     <div className="flex min-h-0 flex-col">
       <PanelHeader>Opening Report</PanelHeader>
-      <PanelBody>
+      <PanelBody className="px-3 py-2">
         <div className="flex flex-col gap-4" data-opening-report>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="subtle" onClick={() => setSurveyOpen(true)}>

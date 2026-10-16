@@ -188,12 +188,16 @@ export function StudiesWorkspace() {
 
   const chapter = chapters.find((candidate) => candidate.id === chapterId) ?? null;
   // The open chapter in view in the list: a new or chosen chapter far down a
-  // long study was open on the board and out of sight in the list.
+  // long study was open on the board and out of sight in the list. Only the
+  // list's own scroller moves — `scrollIntoView` scrolled every ancestor,
+  // and where the list sits under the board (1024x768) it scrolled the page
+  // and put the chapter that had just opened off the screen.
   useEffect(() => {
     if (!chapterId) return;
-    document
-      .querySelector(`[data-chapter-row="${CSS.escape(chapterId)}"]`)
-      ?.scrollIntoView({ block: 'nearest' });
+    const row = document.querySelector<HTMLElement>(
+      `[data-chapter-row="${CSS.escape(chapterId)}"]`,
+    );
+    if (row) revealInList(row);
   }, [chapterId]);
   /*
     Phase 84: the chapter's questions, read from the tree on the board — the
@@ -943,4 +947,27 @@ export function StudiesWorkspace() {
       )}
     </WorkspaceFrame>
   );
+}
+
+/**
+ * Scroll the nearest scroller holding `row` just enough to show it — unless
+ * that scroller also holds the board, where showing the row would hide the
+ * board.
+ */
+function revealInList(row: HTMLElement) {
+  let scroller = row.parentElement;
+  while (
+    scroller &&
+    !(
+      scroller.scrollHeight > scroller.clientHeight &&
+      /(auto|scroll)/.test(getComputedStyle(scroller).overflowY)
+    )
+  ) {
+    scroller = scroller.parentElement;
+  }
+  if (!scroller || scroller.querySelector('[data-chessboard]')) return;
+  const box = row.getBoundingClientRect();
+  const frame = scroller.getBoundingClientRect();
+  if (box.top < frame.top) scroller.scrollTop -= frame.top - box.top;
+  else if (box.bottom > frame.bottom) scroller.scrollTop += box.bottom - frame.bottom;
 }

@@ -399,7 +399,9 @@ export function CanonicalBoardSurface({
         </p>
       ) : null}
       {showContext && caps.allowContextActions ? (
-        <div className="@container mx-auto mt-2 flex w-full max-w-[860px] shrink-0 items-center gap-3 pt-1">
+        // Wraps: on a phone the controls take 311 of the strip's 351 px, and
+        // the status line, given the 11 px left, showed "W" of "White to play".
+        <div className="@container mx-auto mt-2 flex w-full max-w-[860px] shrink-0 flex-wrap items-center gap-x-3 gap-y-1 pt-1">
           {/*
             A concealing workspace (Review before reveal, Calculation,
             Training) withholds evidence; the position page is exactly that
