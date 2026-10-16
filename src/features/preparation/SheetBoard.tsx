@@ -23,11 +23,14 @@ export function SheetBoard({
   fen,
   orientation,
   className = 'w-16',
+  marked,
 }: {
   readonly fen: Fen | string;
   readonly orientation?: Color;
   /** Sizing for the *container*, e.g. `w-16`. */
   readonly className?: string;
+  /** Squares to tint (a comparison's differences). */
+  readonly marked?: ReadonlySet<string>;
 }) {
   const boardTheme = usePreferences((state) => state.boardTheme);
   const pieceSet = usePreferences((state) => state.pieceSet);
@@ -38,6 +41,7 @@ export function SheetBoard({
         {...(orientation ? { orientation } : {})}
         theme={boardTheme}
         pieceSet={pieceSet}
+        {...(marked ? { marked } : {})}
       />
     </div>
   );

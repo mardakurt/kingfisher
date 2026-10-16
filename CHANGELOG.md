@@ -6,6 +6,10 @@ real users notice.
 
 ## Unreleased
 
+- **Compare two positions.** Features → _Compare with another position_:
+  pick an earlier position on the line or paste a FEN. Both diagrams tint
+  the squares that differ, and the structural facts are split into only
+  here, only there, and true of both.
 - **Training progress.** Under the training queue: reviews in each of the
   past eight weeks (the right answers filled in), the past seven days in
   words with their count, and what falls due over the next week. Read from

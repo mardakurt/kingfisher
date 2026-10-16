@@ -31,6 +31,8 @@ interface MiniBoardProps {
   readonly className?: string;
   /** Marks the element for tests that need to find one particular board. */
   readonly testId?: string;
+  /** Squares to tint, as the board tints a target: what differs, for a comparison. */
+  readonly marked?: ReadonlySet<string>;
 }
 
 export function MiniBoard({
@@ -40,6 +42,7 @@ export function MiniBoard({
   pieceSet,
   className,
   testId,
+  marked,
 }: MiniBoardProps) {
   const squares = useMemo(() => boardSquares(orientation), [orientation]);
   const pieces = useMemo<readonly PlacedPieceView[]>(() => {
@@ -65,7 +68,24 @@ export function MiniBoard({
       aria-hidden
       data-mini-board={testId ?? ''}
     >
-      <SquareLayer squares={squares} className="absolute inset-0" />
+      <SquareLayer
+        squares={squares}
+        className="absolute inset-0"
+        {...(marked && marked.size > 0
+          ? {
+              cell: (square: string) =>
+                marked.has(square) ? (
+                  <span
+                    className="absolute inset-0"
+                    data-marked-square={square}
+                    style={{
+                      background: 'color-mix(in oklab, var(--shape-yellow) 50%, transparent)',
+                    }}
+                  />
+                ) : null,
+            }
+          : {})}
+      />
       <PieceLayer pieces={pieces} orientation={orientation} pieceSet={pieceSet} />
     </div>
   );

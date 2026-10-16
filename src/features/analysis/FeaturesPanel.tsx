@@ -23,6 +23,7 @@ import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { useAnalysisPosition } from './useAnalysisPosition';
 import { SafetySection } from './SafetySection';
 import { StructureSearchPanel } from './StructureSearchPanel';
+import { CompareSection } from './CompareSection';
 
 export function FeaturesPanel() {
   const { node } = useAnalysisPosition();
@@ -58,6 +59,7 @@ export function FeaturesPanel() {
         {position ? <SafetySection fen={node.fen} parts={position.parts} /> : null}
         <RelationInspector parts={position?.parts ?? null} />
         <StructureSearchPanel fen={node.fen} />
+        <CompareSection />
       </PanelBody>
     </div>
   );
