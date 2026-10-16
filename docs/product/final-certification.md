@@ -9,7 +9,7 @@
 > the published bytes, and the real public 1.1.1 → 1.1.2 update through
 > the menu (`desktop:update:real --public-feed`, PASS) — are recorded
 > with their output in
-> `docs/reports/phase-50-handover.md`.
+> [`docs/reports/phase-50-handover.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/phase-50-handover.md).
 > The four-browser matrix was not run for 1.1.2 (the maintainer asked
 > that CI not be used); the Chrome e2e for the one renderer change,
 > `e2e/feedback.spec.ts`, was run locally. The paragraph and tables
@@ -49,7 +49,7 @@ public deployment or the public artefact).
 
 | Artefact                | Identity                                                                                                                                                                                   |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Source                  | `master` at the commit named in `docs/reports/phase-49-final-certification.md` § 3                                                                                                         |
+| Source                  | `master` at the commit named in [`docs/reports/phase-49-final-certification.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/phase-49-final-certification.md) § 3   |
 | Web (production)        | `https://kingfisher-roan.vercel.app/` and `https://kingfisher-chess.vercel.app/`, deployed from that commit (§ 4 there)                                                                    |
 | macOS                   | `Kingfisher-1.1.2-arm64.dmg`, build and commit in `src/release/macos-download.json`                                                                                                        |
 | Certification candidate | build 490 (`1.1.0-dev-490`, the source at `d36ef00` plus uncommitted docs) — `desktop:certify` ran on it first; the release build 494 then passed every artefact gate and the update flows |

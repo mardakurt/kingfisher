@@ -32,7 +32,8 @@ export function PrivacyPage(): JSX.Element {
         <li>
           <strong>Third-party services are asked for, never assumed.</strong> Lichess and Chess.com
           only see requests that come from a feature you opened, signed in or queried; the reference
-          mirror only fetches chunks when a pack needs them. Each call is described in{' '}
+          mirror only fetches chunks when a pack needs them; the account service (Supabase) and
+          Google are reached only when you sign in or are signed in. Each call is described in{' '}
           <a href="#network">Network requests</a>.
         </li>
         <li>
@@ -78,8 +79,10 @@ export function PrivacyPage(): JSX.Element {
           engines, API tokens and keys, and settings that describe your machine.
         </li>
         <li>
-          <strong>Who can read it:</strong> only you. The database itself refuses every other
-          account (row-level security), not just the application.
+          <strong>Who can read it:</strong> no other account. The database itself refuses every
+          other account (row-level security), not just the application. As with any hosted service,
+          the person who runs the Kingfisher project has administrative access to the database; it
+          is not read, analysed or shared, and it is used only to keep the service running.
         </li>
         <li>
           <strong>Where:</strong> Supabase, which runs the account database, in its Seoul, South
@@ -94,9 +97,9 @@ export function PrivacyPage(): JSX.Element {
           <strong>Your session</strong> is kept in local storage, not in a cookie.
         </li>
         <li>
-          <strong>Deleting the account</strong> removes it and every copy of your work stored in it.
-          Work on your own device stays there. Nothing on a device is uploaded the first time until
-          you say so.
+          <strong>Deleting the account</strong> (<em>Account → Delete account</em>) removes it and
+          every copy of your work stored in it, at once. Work on your own device stays there.
+          Nothing on a device is uploaded the first time until you say so.
         </li>
       </ul>
 
@@ -128,11 +131,10 @@ export function PrivacyPage(): JSX.Element {
       <p>
         The bulk of your work is in <strong>IndexedDB</strong>. IndexedDB is origin-scoped, so a
         profile on <code>kingfisherchess.app</code> is not the same database as one on{' '}
-        <code>localhost</code>, in another browser, or in another browser profile. If you move
-        between them, the work does not move with you — the supported way to move work between
-        machines, browsers and profiles is the{' '}
-        <em>Settings → Database → Export backup… / Choose backup to restore…</em> flow, which
-        produces and consumes a versioned JSON file under your control.
+        <code>localhost</code>, in another browser, or in another browser profile. Signed in to the
+        optional account, your work follows you between them. Signed out, it does not: the way to
+        move it is the <em>Settings → Database → Export backup… / Choose backup to restore…</em>{' '}
+        flow, which produces and consumes a versioned JSON file under your control.
       </p>
 
       <h2 id="reference-cache">Reference cache</h2>
@@ -217,6 +219,17 @@ export function PrivacyPage(): JSX.Element {
           you set it up and ask, and Kingfisher does not choose or know what that service is.
         </li>
         <li>
+          <strong>The account service</strong> — Supabase (<code>*.supabase.co</code>), only when
+          you sign in or are signed in: signing in and out, and copying your authored work to and
+          from your account, including a live connection that tells this device when another one
+          changed something. Signed out, nothing is sent there.
+        </li>
+        <li>
+          <strong>Google</strong> (<code>accounts.google.com</code>), only when you choose{' '}
+          <em>Continue with Google</em>: Google asks you to approve sharing your email address and
+          name with Kingfisher, and nothing else is requested.
+        </li>
+        <li>
           <strong>The application&apos;s own origin</strong> for the static assets (the standard
           Stockfish WASM, piece art, the marketing/landing assets, the app code itself).
         </li>
@@ -244,7 +257,8 @@ export function PrivacyPage(): JSX.Element {
         during a normal session will show this origin (including <code>/_vercel/insights/view</code>
         , the page-view beacon, and <code>/_vercel/speed-insights/vitals</code>, the load-timing
         beacon), Lichess (if you have signed in or queried Lichess), Chess.com (if you have queried
-        Chess.com) and the data mirror (if you have used a reference source). Nothing else.
+        Chess.com), the data mirror (if you have used a reference source) and the account service
+        (if you are signed in). Nothing else.
       </p>
 
       <h2 id="hosting">Hosting</h2>
@@ -253,7 +267,9 @@ export function PrivacyPage(): JSX.Element {
         does, and the request log will contain the IP address you connected from, the URL you
         requested and the user agent your browser sent. Vercel&apos;s own data-handling is described
         in their privacy policy; the Kingfisher project does not put anything additional in those
-        logs. There is no Kingfisher-side server processing them.
+        logs. The optional account is kept by Supabase (see <a href="#account">Optional account</a>
+        ), and in-app feedback passes through this site&apos;s own endpoint (see{' '}
+        <a href="#feedback">Feedback</a>); nothing else runs on a Kingfisher server.
       </p>
 
       <h2 id="account-status">Account status</h2>
@@ -266,10 +282,6 @@ export function PrivacyPage(): JSX.Element {
         can be pulled into your local collection; that linkage lives in your IndexedDB and desktop
         profile, and is the only thing that connects a Lichess username to a Kingfisher install.
       </p>
-      <p>
-        If a Kingfisher-controlled account is ever added, this page will be updated before any data
-        is collected.
-      </p>
 
       <h2 id="sync">Sync status</h2>
       <p>
@@ -278,11 +290,6 @@ export function PrivacyPage(): JSX.Element {
         Either way you can move it yourself: <em>Settings → Database → Export backup</em> on one
         machine and <em>Choose backup to restore…</em> on the other. The backup file is portable
         JSON, held on disk under your control.
-      </p>
-      <p>
-        A future Kingfisher version may add an opt-in cloud sync. If it does, this page will be
-        updated first, the change will be listed in <code>CHANGELOG.md</code>, and the sync will be
-        off by default.
       </p>
 
       <h2 id="feedback">Feedback</h2>
@@ -328,8 +335,9 @@ export function PrivacyPage(): JSX.Element {
 
       <h2 id="children">Children</h2>
       <p>
-        Kingfisher is not directed at children. The application does not knowingly collect
-        information from children, because it does not collect information from anyone.
+        Kingfisher is not directed at children. Signed out, it collects nothing from anyone; the
+        optional account stores an email address and the work its owner syncs, and Kingfisher does
+        not knowingly hold an account for a child.
       </p>
 
       <h2 id="changes">Changes</h2>
@@ -340,8 +348,10 @@ export function PrivacyPage(): JSX.Element {
 
       <h2 id="contact">Contact</h2>
       <p>
-        There is no Kingfisher-controlled inbox for privacy requests. For a security issue, see{' '}
-        <a href="/security">Security</a>. For a non-security question, open an issue on{' '}
+        To delete your account and everything stored in it, use <em>Delete account</em> on the
+        Account page; nothing else needs to be asked for. There is no Kingfisher-controlled inbox
+        for privacy requests. For a security issue, see <a href="/security">Security</a>. For a
+        non-security question, open an issue on{' '}
         <a href="https://github.com/mardakurt/kingfisher/issues" rel="noopener">
           GitHub
         </a>

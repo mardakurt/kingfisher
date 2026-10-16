@@ -174,6 +174,13 @@ export function DataLicencesPage(): JSX.Element {
             <td>Syncing a Chess.com username&apos;s public games (no sign-in; the public API)</td>
             <td>Chess.com API terms</td>
           </tr>
+          <tr>
+            <td>Kingfisher account (Supabase; Google if you choose it)</td>
+            <td>Signing in, and copying your own work to and from your account while signed in</td>
+            <td>
+              Kingfisher&apos;s <a href="/terms">terms</a> and <a href="/privacy">privacy</a> page
+            </td>
+          </tr>
         </tbody>
       </table>
       <p>

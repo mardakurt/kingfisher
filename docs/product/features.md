@@ -15,9 +15,11 @@ that is a defect in this document and `docs:check`'s owner should hear.
 Kingfisher is a local-first chess research workstation for strong players. It
 runs as a web application at <https://kingfisherchess.app/analysis> and as a
 signed, notarised macOS application; the two are one source and one build.
-There is no account, no cookie and no subscription; everything you author
-lives in your browser (IndexedDB and `localStorage`) or, on the Mac, in
-`~/Library/Application Support/kingfisher-desktop/`.
+There is no cookie and no subscription, and no account is required:
+everything you author lives in your browser (IndexedDB and `localStorage`) or,
+on the Mac, in `~/Library/Application Support/kingfisher-desktop/`. An
+optional account (email and password, or Google) keeps a copy of that work in
+sync across your devices — see _Account_ below.
 
 ---
 
@@ -120,7 +122,14 @@ Moves`, `Database`, `Repertoire`, `Position Health`, `Transpositions`,
 `Theory Radar`, `Calculation`, `Candidates`, `Features`, `Tablebase`, `Play
 it out`, `Play From Here`, `Report`, `After the round`, `Notes`, and the
 `Move Tree`. Each is described in §6; a tool that cannot help says why
-instead of disappearing.
+instead of disappearing. _Features_ ends with **Compare with another
+position** — an earlier position on the line or a pasted FEN, both diagrams
+with the differing squares tinted, and the structural facts split into only
+here, only there and true of both. The _Explorer_ has the **Opening map**:
+the next three moves of a source on this machine as nested blocks (width for
+how often, shade for White's score), a click playing the whole line.
+_Document actions → Game details…_ edits the game's players, ratings, event,
+date, ECO, annotator and result as one undoable change.
 
 ## 3. Study, prepare, improve, data — the other routes
 
@@ -128,7 +137,9 @@ instead of disappearing.
 
 _Continue_ (the last thing on the board, when you were doing it), pinned
 studies, repertoires and games (up to twelve pins), recently opened
-documents.
+documents, and **Analysed positions** — every position you analysed with the
+engine to depth 12 or more, with its score, line, depth and engine, one click
+from the board.
 
 ### Openings (`/openings`)
 
@@ -256,8 +267,9 @@ drop it on the route): every board in it is replayed through Kingfisher's
 rules before anything is written, threads merge by union of their
 handovers, the newer copy sets the assignment whole, and receiving the
 same packet twice changes nothing. Which team and thread were open are
-remembered on the device. No server, no account; `docs/design/team-hub.md`
-has the research and the decisions.
+remembered on the device. Team work travels by packet file, never through
+the account: the account syncs one person's own work, not a team's;
+`docs/design/team-hub.md` has the research and the decisions.
 
 ### Review (`/review`)
 
@@ -284,7 +296,10 @@ These are records from named rules, not a diagnosis or a player score;
 played, in your words, grouped by event, each opening its game; _Mark for
 review_ from any board; _Hidden / Visible_ evidence toggle; a game review that
 walks a whole game and attaches strategic transitions (a passed pawn created,
-a file opened, a king shield stripped) as facts.
+a file opened, a king shield stripped) as facts. _Improvement_ ends with
+**Openings to reconsider**: positions in your own games where your usual move
+has lost most of at least five games, and the moves a named reference source
+played there that scored better, each with its count.
 
 ### Training (`/training`)
 
@@ -297,7 +312,15 @@ came from (you, the engine, the repertoire); _Show answer_; grading advances
 a deterministic schedule and appends to an immutable review history;
 **Training sets** (static membership, or a repertoire review's selection);
 _Create position_ from any board; the dock's tools stay locked until the
-answer is revealed.
+answer is revealed. Under the queue, **Progress**: reviews in each of the past
+eight weeks with the right ones filled in, the past seven days in words, and
+what falls due over the next week.
+
+### Puzzles (`/puzzles`)
+
+Rated tactics puzzles from the Lichess puzzle database (CC0), filtered by
+theme and rating, each move marked on its square; your solver rating is
+Kingfisher's own Glicko-2 over your attempts, never a Lichess rating.
 
 ### Endgame (`/endgame`)
 
@@ -500,6 +523,17 @@ per-source health with a remedy.
 Guess-the-move through a model game with the engine off, with Theory Book,
 Opening Report, Notes, Repertoire, Model Games, Features, Explorer, Book
 Moves, Database, Engine and Play From Here beside it.
+
+### Account (`/account`, `/sign-in`, `/sign-up`)
+
+Optional. Email and password or Google; email verification and password
+reset with Kingfisher's own emails. Signed in, authored work and settings
+sync between devices; the server's version wins a conflict and yours is kept
+under _To review_ to restore or dismiss; the first sign-in on a device that
+already has work asks before uploading it. _Sync My games on this device_
+carries the newest 2,000 games, added and never removed. Sign out can keep or
+remove this device's synced copies; deleting the account deletes its data on
+the server. Settings → Accounts names the account and links here.
 
 ### Player (`/player/[id]`)
 
@@ -800,4 +834,6 @@ page.
 Chess960 (positions it cannot play are refused, not guessed); merging
 populations into one statistic; labelling a move "best" or a position
 "unclear" from a number; inventing an opponent's "style"; writing into
-another program's database; a second board renderer; a cloud account.
+another program's database; a second board renderer; a server that holds
+anything you did not ask it to (the optional account holds what you sync, and
+nothing else).

@@ -247,7 +247,8 @@ The Phase 72 captures of 2026-09-19 (`workspace-`, `engines-`,
 The captures these replaced (`workspace-2026-09.webp`, `engine-analysis-v2.webp`,
 `research-explorer.webp`, the 1440 × 900 `og.png`) showed the toolbar removed
 in 1.2.0, the wooden board and the pre-Phase-71 Training icon, and the
-"research" one was in fact the Theory Book.
+"research" one was in fact the Theory Book. None of these older captures is in
+the repository any more; the files named in this section are the current ones.
 
 ## Closure QA media (2026-10-06; not distributed)
 

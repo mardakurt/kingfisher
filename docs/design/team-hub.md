@@ -85,10 +85,13 @@ Four things follow, and each is a design rule below:
 
 ## 2. The decisions
 
-**No server, no account.** Kingfisher promises that everything you author
-lives in your browser or in the Mac application's own folder
-(`docs/product/features.md` §13, `/privacy`). A hub that needed a Kingfisher
-account would reverse that promise, need a database that does not exist,
+**No server between people.** (Written before the optional account
+existed, and still the decision: the account syncs one person's work between
+their own devices; it shares nothing with anyone else.) Kingfisher promises
+that everything you author lives in your browser or in the Mac application's
+own folder (`docs/product/features.md` §13, `/privacy`). A hub that needed a
+shared Kingfisher service would reverse that promise, need a database built
+for sharing,
 and put a sync engine between a person and their analysis — a multi-phase
 effort and a product decision, not a feature. The owner chose the
 local-first design on 2026-09-20. Everything below is built so that a

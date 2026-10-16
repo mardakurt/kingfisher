@@ -136,6 +136,8 @@ you did not put in the address bar.
 | **Library**             | My games, companion databases and the installed reference packs in one list: search by player and opponent, position, annotations, moves; preview and open. A reference is searched by player, and says when it keeps only a player's newest games. Databases can be filed in folders.                                                                                                                    |
 | **Engine matches**      | Two engines play from the board's position with colours alternating; the result carries an Elo interval, not one confident number.                                                                                                                                                                                                                                                                        |
 | **Repertoire & review** | Add positions to repertoire, drill them, mark progress. Repertoire survives quit. Backup and restore work.                                                                                                                                                                                                                                                                                                |
+| **Your own record**     | Training progress by week; Review → Improvement finds the openings where your usual move keeps losing and shows what scored better in a named source, with every count; analysed positions are listed on Recent; two positions can be compared square by square and fact by fact.                                                                                                                         |
+| **Accounts & sync**     | Optional, with email and password or Google. Signed in, your studies, repertoires, training, analysis and settings follow you to every device; conflicts are kept for review, never discarded; the first sign-in asks before uploading a device’s work.                                                                                                                                                   |
 | **Local-first**         | No account required. No hidden data collection — the website counts page views and load times (see the privacy page), the Mac app sends nothing. Studies, repertoire, training and notes are stored locally. The diagnostic report is local; the log file is local.                                                                                                                                       |
 
 ## Privacy
@@ -287,7 +289,7 @@ source-labelled variation tree of recorded practice and copy its PGN.
 
 The sections below are the record of what each phase set out to fix, kept
 because the reasons are still the reasons. They are history, not a status line:
-the source and the public Mac download are both **Kingfisher 1.5.2**. Current release status is in
+the source is **Kingfisher 1.5.3** and the public Mac download is 1.5.2. Current release status is in
 [`docs/product/platform-parity.md`](docs/product/platform-parity.md), and
 what changed is in [`CHANGELOG.md`](CHANGELOG.md); the 1.0.0 notes are in
 [`docs/release/1.0.0.md`](docs/release/1.0.0.md).
@@ -547,8 +549,9 @@ before-figure in
 and
 [`docs/performance/phase-7-speed-and-scale.md`](docs/performance/phase-7-speed-and-scale.md).
 
-Everything is stored in your browser. There is no account, no cloud and no
-sync, and the application works with the network off. An **optional** local
+Everything was stored in your browser — at the time there was no account, no
+cloud and no sync (optional accounts arrived on 2026-10-15) — and the
+application works with the network off. An **optional** local
 companion adds native engines and SQLite collections, the two native
 capabilities shipped in Phase 4, and nothing depends on it. Tablebase evidence
 currently comes from the separate Lichess Syzygy provider.
@@ -630,32 +633,43 @@ fails, the header says the work is not saved.
 
 ### Routes
 
-| Route            | Purpose                                                                             |
-| ---------------- | ----------------------------------------------------------------------------------- |
-| `/analysis`      | Analyse a position or game. Opened games land here                                  |
-| `/openings`      | Board-led opening research across evidence sources                                  |
-| `/games`         | Your imported game collection: search, filter, sort, open                           |
-| `/preparation`   | Opponent reports: their tendencies against your repertoire                          |
-| `/databases`     | Collections, providers, connection health and imports                               |
-| `/repertoire`    | The lines you intend to play                                                        |
-| `/studies`       | Notebooks of chapters, each a full analysis workspace                               |
-| `/training`      | Spaced recall over positions you recorded                                           |
-| `/review`        | Self-analysis, the decision journal, the critical queue and the improvement summary |
-| `/model-game`    | Step through a model game with the engine off, or guess the moves                   |
-| `/opening-files` | One opening subject and everything already stored about it                          |
-| `/team`          | Assignments, hand-ins and reviews between you and your coach, second or students    |
-| `/endgame`       | The endgame library, with tablebase proof beside it                                 |
-| `/players`       | Every player the installed reference sources know, plus the historical roster       |
-| `/oauth/lichess` | Where a Lichess sign-in returns to. Not part of the workspace                       |
+The landing page is `/`; the application is every route below, on the same
+host.
+
+| Route                                      | Purpose                                                                              |
+| ------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `/search`                                  | Everything you have made or imported, by position, line or name                      |
+| `/recent`                                  | Continue where you left off; pinned work and the positions you analysed              |
+| `/analysis`                                | Analyse a position or game with engine and evidence. Opened games land here          |
+| `/openings`                                | The opening library and board-led research across evidence sources                   |
+| `/studies`                                 | Notebooks of chapters, each a full analysis workspace                                |
+| `/repertoire`                              | The lines you intend to play                                                         |
+| `/preparation`                             | A report on one opponent from their games, against your repertoire                   |
+| `/players`                                 | Players the installed reference sources know, plus the titled and historical rosters |
+| `/player/[id]`                             | One player: record, openings, games and measured style                               |
+| `/opening-files`                           | One opening subject and everything already stored about it                           |
+| `/team`                                    | Assignments, hand-ins and reviews between you and your coach, second or students     |
+| `/review`                                  | Self-analysis, the decision journal, the critical queue and the improvement summary  |
+| `/training`                                | Spaced recall over positions you recorded, with your progress                        |
+| `/puzzles`                                 | Rated tactics puzzles from the Lichess puzzle database, with your own solver rating  |
+| `/daily`                                   | Fifteen minutes built from your repertoire, review queue and endgame library         |
+| `/season`                                  | A named set of your games joined into one report                                     |
+| `/endgame`                                 | The endgame library, with tablebase proof beside it                                  |
+| `/games`                                   | The Library: every game you keep — search, describe, filter, preview, open           |
+| `/scoresheet`                              | Your over-the-board game, from the sheet to the board                                |
+| `/similar`                                 | The position on the board, looked for in every source you have                       |
+| `/databases`                               | Collections, reference packs, connections and imports                                |
+| `/position`                                | Everything known about one position                                                  |
+| `/model-game`                              | Step through a model game with the engine off, or guess the moves                    |
+| `/settings`                                | Settings as a page, for a deep link                                                  |
+| `/account`                                 | Your optional Kingfisher account: sync status, conflicts to review, sign-in methods  |
+| `/sign-in`, `/sign-up`, `/forgot-password` | The account's own pages; outside the workspace and never indexed                     |
+| `/oauth/lichess`                           | Where a Lichess sign-in returns to. Not part of the workspace                        |
 
 `/database` (singular) was opponent preparation, which read as data-source
 management once real data-source management existed. It now redirects to
 `/databases`, and preparation moved to `/preparation`; old bookmarks land
 somewhere sensible rather than 404ing.
-
-`/` still opens `/analysis` rather than `/recent`. Kingfisher already restores
-the previous session there, so landing on Analysis _is_ continuing; putting a
-list in front of it would add a click to the most common action.
 
 ### Where your data lives
 
@@ -672,6 +686,16 @@ Network requests occur only when you deliberately use a remote evidence
 source: the Lichess explorer, the Lichess tablebase, an account you linked and
 asked to sync, or an assistant endpoint you configured. Local database, engine,
 repertoire, study, training and backup workflows remain offline.
+
+Signed in to the optional account, a copy of your authored work — studies,
+repertoires, training, preparation, opening files, journal, saved searches,
+pinned lines, stored engine results, puzzle history, analysed positions and
+settings — is kept in your account (Supabase, Seoul) and on every device you
+sign in on, and IndexedDB stays the working copy. Imported game collections,
+reference packs, engines and tokens stay on the device, except the newest
+2,000 games of My games when you switch _Sync My games on this device_ on.
+What syncs and why is in `src/sync/cloud/scope.ts` and the
+[account ADR](docs/adr/00xx-optional-account-sync.md).
 
 A linked account stores a username and two sync cursors. It is not a login:
 both providers serve public games without one, nothing is uploaded, and no

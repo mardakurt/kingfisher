@@ -36,7 +36,7 @@ The companion's SQLite collections were measured at scale in Phase 86:
 **10,680,708 games imported search-only; the full posting layout built
 to 7,484,400 games at 36.37 GB, 4,859 bytes a game, explorer results
 identical to a linear oracle on 50 positions** (measured:
-`docs/reports/phase-86-handover.md`). So the indexing technology is not
+[`docs/reports/phase-86-handover.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/phase-86-handover.md)). So the indexing technology is not
 the gap. **The gap is a corpus Kingfisher may legally redistribute, and
 somewhere to serve it from.**
 
@@ -270,4 +270,4 @@ games, hosted, without a 40 MB-per-pack install).
 - [The Week in Chess](https://theweekinchess.com/twic) — "free for personal use only" (read 2026-10-15)
 - [Mega Database 2026, New in Chess](https://www.newinchess.com/chessbase-mega-database-2026) and [Big Database 2026](https://www.newinchess.com/chessbase-big-database-2026) — size and price
 - [Cloudflare R2 pricing](https://developers.cloudflare.com/r2/pricing/) — storage, operations, egress
-- In this repository: `docs/data/historical-games-audit.md`, `docs/data/streaming-reference-investigation.md`, `docs/reports/phase-86-handover.md`, `docs/product/parity-ledger.md`
+- In this repository: `docs/data/historical-games-audit.md`, `docs/data/streaming-reference-investigation.md`, [`docs/reports/phase-86-handover.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/phase-86-handover.md), `docs/product/parity-ledger.md`

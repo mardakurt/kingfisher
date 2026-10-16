@@ -49,7 +49,7 @@ plain right-drag drawing the blue brush exactly as the engine best-move arrow
 application serve the same application source again (`362517b`; `d9c5aae`
 changes only versions and release text). The four-hour professional session
 was run on 1.4.8 build 1141, not on 1147; see the
-closure log.
+[closure log](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/2026-10-04-professional-use-closure.md).
 
 **Published revision check (2026-10-05, 1.4.8).** The public Mac download is
 1.4.8 build 1141 from `754572610a67a3ab05a44dae8c0193e0854f2aa5`, stable and
@@ -59,7 +59,7 @@ publication checkpoint, the web served the same application source (no `src/`
 change after the frozen
 `08bf7d4` browser gate; later commits change the shell, harnesses and
 documentation). See the
-closure log.
+[closure log](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/2026-10-04-professional-use-closure.md).
 
 **Published revision check (2026-10-04, 1.4.7).** The public Mac download is
 1.4.7 build 1113 from `43044cde134cca9a4db8c3023ab2ad4235a68e95`, stable and
@@ -78,7 +78,7 @@ See [stability audit](../reports/2026-10-04-professional-stability-audit.md).
 clean at packaging, the same commit the website deployed. Developer ID signed,
 notarised and stapled; `desktop:public:verify -- --full` passed 61/61 against
 the descriptor, and 1.4.5 updated itself to it through the public feed. See
-release handover.
+[release handover](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/2026-10-04-1.4.6-handover.md).
 
 **Published revision check (2026-10-03, 1.4.5).** The public Mac download is
 1.4.5 build 1077 from `ef004085fb7e309d6940fc40c18a2a3ea336e436`, stable and
@@ -86,7 +86,7 @@ clean at packaging, the same commit the website deployed. The app and DMG are
 Developer ID signed, notarised and stapled; `desktop:public:verify -- --full`
 downloaded the published DMG and passed 61/61 against the descriptor. 1.4.4
 updated itself to it through the public Sparkle feed (19/19). See
-release handover.
+[release handover](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/2026-10-03-1.4.5-release-handover.md).
 
 **Published revision check (2026-10-03, 1.4.4).** The public Mac download is
 1.4.4 build 1069 from `f5f751cebbbd9982c68db766df27dfdca79813cc`, stable and
@@ -94,7 +94,7 @@ clean at packaging, the same commit the website deployed. The app and DMG are
 Developer ID signed, notarised and stapled; the public bytes match the
 certified artifact. The immutable package's embedded download descriptor
 still names 1.4.3; only this publication metadata differs. See
-release handover.
+[release handover](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/2026-10-03-1.4.4-release-handover.md).
 
 **Published revision check (2026-10-03, 1.4.3).** The public Mac download is
 1.4.3 build 1055 from `b9a155feb7125774d85f9774c1f3dfb6c6510436`, stable and
@@ -103,7 +103,7 @@ stapled. Public bytes match the certified artifact. Both products share the
 1.4.3 application implementation; subsequent publication metadata changes
 the website's download and security claims. The immutable package's embedded
 download descriptor still names 1.4.2. See
-release handover for exact
+[release handover](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/2026-10-03-1.4.3-release-handover.md) for exact
 validation and the Firefox and remote-CI coverage limitations.
 
 **Published revision check (2026-10-03, 1.4.2).** The public Mac download is
@@ -130,7 +130,7 @@ inside the immutable release still names its preceding public release; the
 website's descriptor names the newly published bytes. Both products share the
 1.4.0 application implementation; their Git revisions differ for this publication
 metadata. Research stays opt-in and the five-player study remains pending.
-See `docs/reports/2026-10-01-research-workspace-release.md` for validation and
+See [`docs/reports/2026-10-01-research-workspace-release.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/2026-10-01-research-workspace-release.md) for validation and
 remaining limitations. The dated entries below preserve earlier release states.
 
 Kingfisher runs in a browser and as a Mac application, and they are the
@@ -145,7 +145,7 @@ layout, lower keyboard divider, Library navigation, Preparation toolbar and
 composition/accessibility fixes are shared renderer changes and Mac-facing.
 They are not in public Mac 1.3.3 build 932. A local package, browser gate or
 performance result does not publish an update. Current evidence is recorded in
-`docs/reports/2026-09-30-interface-acceptance.md`.
+[`docs/reports/2026-09-30-interface-acceptance.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/2026-09-30-interface-acceptance.md).
 Completion on October 1 also corrects selected-engine startup naming and
 notation keyboard focus. Clean dev build 1004 from `1b1b512` passed full
 packaged certification 10/10, the native interface check 11/11, the 50-cycle
@@ -166,7 +166,7 @@ published update. The unfiltered browser suite passed **432/432** on
 `a14e4d4`; a clean local dev package from `43f3073` passed
 `desktop:certify` **10/10** against one app and DMG. Notarization and
 publication were not performed. The decision record is in
-`docs/reports/2026-09-29-interface-continuation.md`.
+[`docs/reports/2026-09-29-interface-continuation.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/2026-09-29-interface-continuation.md).
 
 **Browser verification follow-up (2026-09-16).** Phase 58–60 application
 changes are shared with macOS, even though they do not edit `desktop/src/`.
@@ -301,7 +301,7 @@ bundle `desktop:menus` 74/74, `desktop:engine-chaos` 18/18, the seeded walks
 (46 × 1000 and 7 × 300 with faults, 0 findings each), `desktop:soak:leaks`
 3/3, `desktop:upgrade` 7/7 from 1.2.6 (build 714) and the thirty-minute
 `desktop:soak`. The eight-hour deep analysis ran on the packaged application
-(`desktop:deep-night`); its log is cited in `docs/reports/phase-85-handover.md`.
+(`desktop:deep-night`); its log is cited in [`docs/reports/phase-85-handover.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/phase-85-handover.md).
 
 **Published revision check (Phase 84, Mac-facing — released in 1.3.0).**
 Phase 84 changed the shell as well as shared code: the window follows the
@@ -563,7 +563,7 @@ captures, the `/studio` redirect in `next.config.ts` and the favicon set
 in `src/app/`. Nothing touches `desktop/src/` or the Electron shell. The
 public Mac 1.2.0 (build 651) showed the previous Training icon until
 1.2.1, which is Section B of After-a-fix run in full on 2026-09-19
-(`docs/reports/phase-71-handover.md`).
+([`docs/reports/phase-71-handover.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/phase-71-handover.md)).
 
 **Published revision check (Phase 70, web only).** Phase 70 changed four
 src/ files plus the diagnostic script and `.gitignore`: `runAutoBackup`

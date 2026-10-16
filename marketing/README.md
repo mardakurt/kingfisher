@@ -7,9 +7,10 @@ still serves: `index.html` forwards to kingfisherchess.app (a meta refresh and
 a script fallback) and says so in one line, so links to the old address do not
 break. The Kingfisher mark in `assets/img/` is the current one.
 
-`style.css`, `anim.js` and the screenshots in `assets/img/` belonged to the
-full landing this page used to be. They are still published beside it but
-nothing links to them.
+The full landing this page used to be had a stylesheet, a script and
+screenshots in `assets/`. Nothing linked to them, and they were removed from
+this repository on 2026-10-16; copies published before then may still be on
+the old host until the next `publish:site`.
 
 ## Deploy
 

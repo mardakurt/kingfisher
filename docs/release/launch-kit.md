@@ -44,7 +44,8 @@ page-view and performance analytics do not run in the Mac application.
 Research is opt-in under Layout. Five-player usability observations are still
 pending. This release does not claim full Firefox/WebKit certification or a
 verified Windows, Linux or Intel Mac package. Portable backup/restore moves
-local work between profiles; cross-device cloud Sync is not active. Version
+local work between profiles, and an optional account syncs authored work
+between devices. Version
 1.0.0 predates the updater and needs manual replacement from a DMG.
 
 ## How to use this kit

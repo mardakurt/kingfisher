@@ -3,7 +3,7 @@
 > **Superseded.** This experiment shipped in Phase 18. The numbers below are
 > from a prototype on a copy of a 60,469-game collection; the shipped
 > implementation was measured on 150,119 games and 11,303,059 positions, and
-> those figures are in `docs/performance/phase-18-storage.md`. This file is
+> those figures are in [`docs/performance/phase-18-storage.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/performance/phase-18-storage.md). This file is
 > kept because it is where the design came from and it records what was
 > predicted before anything was built — 41.1%, against 42.9% measured.
 

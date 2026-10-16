@@ -8,12 +8,16 @@ the phase history has repeatedly shown matters as much as knowing the code.
 
 ## Start by finding out where you actually are
 
-Kingfisher is built in numbered phases, each handed over in
-[`docs/reports/`](docs/reports) (`phase-NN-handover.md`).
-Handovers are written by an agent that may have run out of context mid-phase, so
-they describe intent as much as fact. The index of current vs. historical
-documentation is at [`docs/README.md`](docs/README.md); do not treat a phase
-report as a current doc without checking that file.
+Kingfisher was built in numbered phases (to Phase 89), then in dated sessions.
+Each left a handover: the newest are in [`docs/reports/`](docs/reports) and
+[`docs/product/2026-10-15-overhaul-report.md`](docs/product/2026-10-15-overhaul-report.md),
+whose last section is the most recent state. The handovers of Phases 13–88
+were removed from the tree on 2026-10-16 and are cited by permanent links to
+commit `16d2fcc2` (or `git show 16d2fcc2:<path>`). Handovers are written by an
+agent that may have run out of context mid-phase, so they describe intent as
+much as fact. The index of current vs. historical documentation is at
+[`docs/README.md`](docs/README.md); do not treat a report as a current doc
+without checking that file.
 
 - **Read the most recent handover, then verify it against the repository.** The
   commit a handover names is often not `master`, and a documentation-only commit

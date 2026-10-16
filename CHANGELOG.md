@@ -4,7 +4,10 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
-## Unreleased
+## 1.5.3 — 2026-10-16
+
+The source and web release; the Mac download stays 1.5.2 until the 1.5.3
+build is published ([release notes](docs/release/1.5.3.md)).
 
 - **Game details on the board.** Document actions → _Game details…_ edits
   the players, ratings, event, site, date, round, ECO, annotator and result
@@ -55,6 +58,32 @@ real users notice.
 - The line under the board says "Black view" when the board is flipped and
   says nothing about an upright board.
 - The Explorer's tick column is labelled _Compare_.
+- **Found by using it as a person would** (Chrome at 1024×768 and on a
+  phone, Firefox for the matrix):
+  - Creating or opening a chapter no longer scrolls the board off screen
+    where the chapter list sits under it.
+  - Review's buttons fold to fit its header. With a game open they were wider
+    than a 1024 px window allows, so the title vanished and Settings went
+    off the edge. At 1280 px they were folding behind "⋯" with room to
+    spare, because a long subtitle was counted as the title.
+  - The Notation header wraps instead of pushing "Move the notation" past
+    the window, which had also let the workspace scroll sideways.
+  - Menus stay inside the column that clips them. The tool dock's More menu
+    cut off the first letters of every tool.
+  - Puzzles puts the prompt, Hint and Show solution beside the board from
+    1024 px. They were below the fold.
+  - On a phone, "White to play" moves to its own line instead of showing
+    "W", and the board no longer sits above 200 px of empty space.
+  - Coverage, Theory Book, Opening Report, a chapter's References and
+    Review → Improvement no longer run their text into the panel's edge.
+  - Opening Files, Team and Daily no longer say "on the left" where the list
+    is under the board.
+- **The legal pages describe the account.** Privacy names the account
+  service and Google sign-in among the network requests, and says who has
+  administrative access. It also covers Delete account and replaces the
+  "no account" wording on Children and Hosting. Terms gains a _Your account_
+  section. Security no longer says there is no cross-device sync. Data &
+  licences lists the account service.
 - **Opening map.** The Explorer can draw the next three moves of a local
   source as nested blocks — width is how often each move was played, shade
   is White's score — and a click plays the whole line. It says which source,

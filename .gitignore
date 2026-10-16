@@ -43,8 +43,9 @@ companion/data/
 
 # The compaction benchmark's collection, when it is pointed inside the tree.
 # Rebuilt by `npm run bench:compaction`; the measured one was 4.96 GB after
-# migrating and 10.54 GB at its widest, and its numbers are in
-# `docs/performance/phase-18-storage.md` where they do not take up a disk.
+# migrating and 10.54 GB at its widest. Its numbers were recorded in the Phase 18
+# storage report, removed from the tree on 2026-10-16 and kept in git history
+# (`git show 16d2fcc2:docs/performance/phase-18-storage.md`).
 .compaction/
 kf-compaction-run/
 

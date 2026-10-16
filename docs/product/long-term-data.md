@@ -6,6 +6,12 @@
 > records what the persistence architecture actually is today, what was
 > verified, the decision, and the staged plan for what is not built yet.
 > Nothing here is a promise of a date.
+>
+> **Status, 2026-10-16:** the account stage of this plan was carried out on
+> 2026-10-15 — optional accounts and cross-device sync on Supabase, live on
+> kingfisherchess.app (`docs/adr/00xx-optional-account-sync.md`, Accepted;
+> `docs/operations/supabase-setup.md`). The table below is the state on
+> 2026-09-19 and is kept as the record of that audit.
 
 ## What exists, verified on 2026-09-19
 

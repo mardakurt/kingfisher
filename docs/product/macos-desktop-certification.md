@@ -4,7 +4,7 @@
 > gates; restart and native engine installation failed in that run. Restart
 > passed on a diagnostic rerun, so its earlier failure remains intermittent.
 > These historical GREEN rows do not override the current
-> Phase 49 handover.
+> [Phase 49 handover](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/phase-49-handover.md).
 
 What the packaged `Kingfisher.app` has been shown to do, row by row, with
 the command that showed it. Every GREEN row was run against the packaged
@@ -13,9 +13,9 @@ launches it, with an isolated profile — not against the checkout shell.
 
 **Current as of:** Phase 48, 2026-09-12, on macOS 26.6.2 (Apple silicon,
 one built-in display), Electron 44.2.0, build 472 (the released 1.1.0)
-unless a row says otherwise. `docs/reports/phase-48-handover.md` and
-`docs/reports/phase-47-handover.md` hold the run records;
-`docs/reports/phase-46-findings.md` and the Phase 47 handover hold the
+unless a row says otherwise. [`docs/reports/phase-48-handover.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/phase-48-handover.md) and
+[`docs/reports/phase-47-handover.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/phase-47-handover.md) hold the run records;
+[`docs/reports/phase-46-findings.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/phase-46-findings.md) and the Phase 47 handover hold the
 findings with their reproductions and fixes. Phase 48 re-ran the rows it
 touched — window chrome, the update dialog, the real update, the packaged
 smoke and the public download — and left the chaos and soak rows as Phase

@@ -43,8 +43,9 @@ Three pieces of §3 sit underneath this design, in order of how loud they are:
 What is **not** in scope, and is named so the next leap is clear:
 
 - A web or push reminder to "do today's session". Kingfisher has no
-  account, no cloud and no notification channel; a daily habit that needs a
-  reminder from someone else's server is not a local-first product.
+  notification channel, and the optional account sends only account email;
+  a daily habit that needs a reminder from someone else's server is not a
+  local-first product.
 - A streak or rating-gain chart. Anything that scores an attempt by an
   invented number is the kind of label §3.4 lists. The session records what
   was attempted and what grade the player chose; the chart, if any, is the
@@ -141,8 +142,8 @@ rehearsed 3 days ago"_.
 - A streak counter, a "you've practised N days in a row" badge, a
   rating-gain estimate, a "personal best", or any invented score.
 - A reminder, push notification, email summary, or "your daily session
-  is ready" message. Kingfisher has no delivery channel and the brief
-  says no cloud account.
+  is ready" message. Kingfisher has no delivery channel, and the account
+  is for sync, not for messages.
 - An "AI summary" of the session — the count of attempts and the
   player's own grade buttons are the summary.
 - A "share my session" feature. Sharing a private rehearsal is a leak

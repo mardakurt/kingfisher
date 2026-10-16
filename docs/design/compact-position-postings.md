@@ -34,7 +34,7 @@ the position side**:
 | the three structure-id indexes                                                               | index            | 258.5 |
 | the game side (games, content, text, line index)                                             | —                | 539.4 |
 
-(Full `dbstat` listing: `docs/release-evidence/phase-86/compact-postings/probe-result.json`.)
+(Full `dbstat` listing: [`docs/release-evidence/phase-86/compact-postings/probe-result.json`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/release-evidence/phase-86/compact-postings/probe-result.json).)
 
 The cause is structural, not a missing `VACUUM`:
 
@@ -117,7 +117,7 @@ and keyed the same way.
 ## 3. What the probe measured
 
 `node scripts/probe-compact-postings.mjs --db <the 100,445-game database> --sample 3000 --top 200`,
-run twice with identical results (`docs/release-evidence/phase-86/compact-postings/`):
+run twice with identical results ([`docs/release-evidence/phase-86/compact-postings/`](https://github.com/mardakurt/kingfisher/tree/16d2fcc2/docs/release-evidence/phase-86/compact-postings)):
 
 | Measure                                      | Current schema   | Postings                                         |
 | -------------------------------------------- | ---------------- | ------------------------------------------------ |
@@ -161,7 +161,7 @@ the posting layout — the run stopped there when its session ended — take
 **36.37 GB, 4,859 bytes a game**; the whole month extrapolates to **about
 52 GB**, not 38–43. The explorer answered 50 positions identically to a
 linear oracle over all 7,484,400 games
-(`docs/release-evidence/phase-86/real-scale-10m-postings/`).
+([`docs/release-evidence/phase-86/real-scale-10m-postings/`](https://github.com/mardakurt/kingfisher/tree/16d2fcc2/docs/release-evidence/phase-86/real-scale-10m-postings)).
 
 ## 4. What the proposal costs, and what it does not do
 

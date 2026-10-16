@@ -9,18 +9,18 @@ do not make it. When the product changes, change the fact here first
 Historical certification: Phase 49 (2026-09-13),
 [`final-certification.md`](final-certification.md). Starter population and
 update-check wording were refreshed for 1.4.0; current release evidence is in
-`2026-10-01-research-workspace-release.md`.
+[`2026-10-01-research-workspace-release.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/2026-10-01-research-workspace-release.md).
 Other dated corpus figures below describe their named pack versions.
 
 ## The product
 
-| You may say                                                          | Because                                                                                                                                                                                                                            |
-| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A local-first chess research workstation for serious players.        | Studies, repertoire, training, review, settings and imported games live in the browser's own storage or the Mac profile; nothing is uploaded. `src/persistence/`; network observed in Phase 49.                                    |
-| No account required. No sign-up.                                     | There is no account surface anywhere in the application.                                                                                                                                                                           |
-| No account, no cookies, no cross-site tracking; page views counted.  | `default-src 'self'` CSP; the measurements are Vercel Web Analytics and Speed Insights from this origin, disclosed on the privacy page; otherwise only the engines, reference data and Lichess/Chess.com calls the user asked for. |
-| No subscription. Free. Open source under the MIT licence.            | `LICENSE`; no billing surface.                                                                                                                                                                                                     |
-| Runs in the browser and as a Mac application — the same application. | The Mac shell serves the same Next.js build; `docs/product/platform-parity.md`.                                                                                                                                                    |
+| You may say                                                          | Because                                                                                                                                                                                                                                               |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A local-first chess research workstation for serious players.        | Studies, repertoire, training, review, settings and imported games live in the browser's own storage or the Mac profile, which stays the working copy; signed in, authored work is also copied to the account. `src/persistence/`, `src/sync/cloud/`. |
+| No account required. Sign-up is optional.                            | Every feature works signed out (`e2e/account-sync.spec.ts` runs the Studio signed out first); the account (`src/features/account/`) is additive and only syncs work between devices.                                                                  |
+| No cookies, no cross-site tracking; page views counted.              | `default-src 'self'` CSP; the measurements are Vercel Web Analytics and Speed Insights from this origin, disclosed on the privacy page; otherwise only the engines, reference data and Lichess/Chess.com calls the user asked for.                    |
+| No subscription. Free. Open source under the MIT licence.            | `LICENSE`; no billing surface.                                                                                                                                                                                                                        |
+| Runs in the browser and as a Mac application — the same application. | The Mac shell serves the same Next.js build; `docs/product/platform-parity.md`.                                                                                                                                                                       |
 
 ## Engines
 

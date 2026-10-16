@@ -395,7 +395,7 @@ _That was the 1.4.7 verdict. It is superseded by the
 
 ## Closure (2026-10-05): Kingfisher 1.4.8
 
-Full evidence: closure working log;
+Full evidence: [closure working log](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/2026-10-04-professional-use-closure.md);
 raw logs in `~/KingfisherWork/evidence/closure/`.
 
 ### Defects found and fixed (each with a regression shown to fail first)
@@ -481,7 +481,7 @@ request, sixteen quit/reopen checks that brought back the latest work with no
 surviving process, twenty-five truthful offline rounds, three responsive
 suspend/resume checks, every comparable resource count constant within its
 own page state, key latency flat, and every owned process gone at the end
-(closure log). Every other row of
+([closure log](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/2026-10-04-professional-use-closure.md)). Every other row of
 the checklist above was verified earlier and is carried forward, not rerun;
 each names the build or source revision it was measured on.
 

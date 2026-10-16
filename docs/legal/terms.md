@@ -50,7 +50,10 @@ commitment on the web or the desktop, and the maintainer
 reserves the right to take a deployment offline for
 maintenance, change a domain, change a host, or change any
 public URL with the same notice the source repository
-receives.
+receives. The optional account is kept by Supabase, under the same
+terms: no service-level commitment. Your work stays on your own
+device either way, so an outage of the account service delays
+syncing and loses nothing.
 
 The "current canonical landing" and "current canonical studio"
 URLs are recorded in [`docs/product/public-claims.md`](../product/public-claims.md)
@@ -70,10 +73,25 @@ pack, read the licence, not this page.
 ## Account, sync, telemetry
 
 A Kingfisher account is optional; signed in, your work syncs
-between your devices, and signed out nothing leaves your machine.
+between your devices, and signed out nothing about you or your
+work leaves your machine.
 The website counts page views and load times and nothing more.
 The web build does not set cookies. See
 [`docs/legal/privacy.md`](privacy.md) for the full statement.
+
+## Your account
+
+- An account is for one person. Keep its password to yourself;
+  anyone who signs in with it can read and change the work stored
+  in it.
+- You can delete it at any time from _Account → Delete account_.
+  That removes the account and every copy of your work stored in
+  it, and leaves your own devices as they are.
+- Do not create accounts in bulk, probe another person's account,
+  or use the account service to store anything but your own
+  Kingfisher work. An account used that way may be removed.
+- A synced copy is not a backup you control. Keep one with
+  _Settings → Database → Export backup_ if the work matters to you.
 
 ## Engine binaries
 

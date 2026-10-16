@@ -73,7 +73,7 @@ tick again when the public link validator passes.
 - [ ] `docs/release/<version>.md` exists.
 - [ ] The launch-kit draft is in `docs/release/launch-kit.md`
       and is ready to copy-paste into channels.
-- [ ] `docs/reports/phase-23-handover.md` is written.
+- [ ] [`docs/reports/phase-23-handover.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/phase-23-handover.md) is written.
 
 ## Diagnostics smoke (recommended)
 

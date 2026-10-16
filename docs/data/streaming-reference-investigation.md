@@ -123,7 +123,7 @@ catalog row, and the explorer source without further design.
 ## References
 
 - Phase 28 brief, parts BC through BL.
-- Phase 27 final handover — `docs/reports/phase-27-final-handover.md`
+- Phase 27 final handover — [`docs/reports/phase-27-final-handover.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/phase-27-final-handover.md)
 - `src/reference/pack.ts` — pack format
 - `src/reference/reader.ts` — installed pack reader
 - `src/reference/manager.ts` — installed pack lifecycle

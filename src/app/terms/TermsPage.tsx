@@ -43,7 +43,9 @@ export function TermsPage(): JSX.Element {
         your machine&apos;s availability governs. There is no service-level commitment on the web or
         the desktop, and the maintainer reserves the right to take a deployment offline for
         maintenance, change a domain, change a host, or change any public URL with the same notice
-        the source repository receives.
+        the source repository receives. The optional account is kept by Supabase, under the same
+        terms: no service-level commitment. Your work stays on your own device either way, so an
+        outage of the account service delays syncing and loses nothing.
       </p>
       <p>
         The “current canonical landing” and “current canonical studio” URLs are recorded in{' '}
@@ -63,10 +65,31 @@ export function TermsPage(): JSX.Element {
       <h2 id="account">Account, sync, telemetry</h2>
       <p>
         A Kingfisher account is optional; signed in, your work syncs between your devices, and
-        signed out nothing leaves your machine. The web build does not set cookies; the website
-        counts page views and load times and nothing more. See the <a href="/privacy">Privacy</a>{' '}
-        page for the full statement.
+        signed out nothing about you or your work leaves your machine. The web build does not set
+        cookies; the website counts page views and load times and nothing more. See the{' '}
+        <a href="/privacy">Privacy</a> page for the full statement.
       </p>
+
+      <h2 id="your-account">Your account</h2>
+      <ul>
+        <li>
+          An account is for one person. Keep its password to yourself; anyone who signs in with it
+          can read and change the work stored in it.
+        </li>
+        <li>
+          You can delete it at any time from <em>Account → Delete account</em>. That removes the
+          account and every copy of your work stored in it, and leaves your own devices as they are.
+        </li>
+        <li>
+          Do not create accounts in bulk, probe another person&apos;s account, or use the account
+          service to store anything but your own Kingfisher work. An account used that way may be
+          removed.
+        </li>
+        <li>
+          A synced copy is not a backup you control. Keep one with{' '}
+          <em>Settings → Database → Export backup</em> if the work matters to you.
+        </li>
+      </ul>
 
       <h2 id="engines">Engine binaries</h2>
       <p>
@@ -74,7 +97,7 @@ export function TermsPage(): JSX.Element {
         Viridithas, Lc0 and others) carry their own licences, recorded in{' '}
         <code>docs/ENGINES.md</code> and in the catalogue row inside the application.{' '}
         <strong>
-          Native engines run with your user accounts permissions and are not sandboxed.
+          Native engines run with your user account&apos;s permissions and are not sandboxed.
         </strong>{' '}
         You agree to that by installing one.
       </p>

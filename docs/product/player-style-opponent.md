@@ -1,12 +1,16 @@
 # Player-style sparring opponent — feasibility and plan
 
-> **Status: idea, not implemented.** Phase 72 investigated whether
-> Kingfisher can offer, from Preparation, an opponent that plays the way
-> a chosen player plays — opening, middlegame and endgame tendencies —
-> rather than Stockfish at a rating. This page records what would be
-> needed, what the repository already has, and a staged plan. No part
-> of the Studio claims this today, and nothing here says a system can
-> "become" a player.
+> **Status, 2026-10-16: stage 1 is built** — Preparation → _Sparring_
+> (`src/preparation/sparring.ts`, `features/preparation/SparringPanel.tsx`)
+> plays a move the opponent actually played while the game stays inside
+> their own practice, says how often they played it, and hands over to the
+> engine, saying so, once it leaves. The later stages below — an engine
+> steered by measured tendencies — are not built. Nothing here says a system
+> can "become" a player.
+>
+> Phase 72 investigated whether Kingfisher can offer, from Preparation, an
+> opponent that plays the way a chosen player plays; this page records what
+> would be needed and the staged plan.
 
 ## What the repository already has
 

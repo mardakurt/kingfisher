@@ -6,7 +6,7 @@ Preparation's Openings and Style tabs, Library with its filter popover, an
 opened game, the Databases grid, Mega Database's page and the Shop). Baseline
 was `master` at `ef00408` with 1.4.5 in source. ChessBase advertises an early
 November 2026 release and calls its recordings a development version; it was
-not installed or measured. 1.4.5's comparison
+not installed or measured. [1.4.5's comparison](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/product/chessbase-mac-comparison-1.4.5.md)
 remains the record of what was already in place.
 
 ## Method

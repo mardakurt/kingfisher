@@ -18,9 +18,10 @@ what each kind of visitor sees. The rule is implemented in
 | `/openings`, `/training`, … | The Studio's other sections; every one is a working deep link, and reloading any of them serves the Studio directly. |
 | `/?stay`                    | The landing, for a browser whose owner chose to skip it (below).                                                     |
 
-Nothing about this is server-side state. There is no account, no
-cookie and no session; the landing is the same static document for
-every request, which is what keeps it fast and what a crawler indexes.
+Nothing about this is server-side state: no cookie and no session,
+and the optional account plays no part in it. The landing is the same
+static document for every request, which is what keeps it fast and what
+a crawler indexes.
 
 ## Who sees what
 

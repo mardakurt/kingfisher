@@ -155,7 +155,7 @@ player's own knowledge, **match** for a coach's worksheet.
 | Library limited to My games             | Any collection in the Library, with the filters a source cannot apply named                          | `src/features/games/library-source.ts`, `e2e/library-databases.spec.ts` |
 | Questions inside a chapter              | Marked moves, solved with Training's control, misses to Training; a printed worksheet                | `src/chess/tree/questions.ts`, `e2e/chapter-questions.spec.ts`          |
 
-Continued in the same phase (`docs/reports/phase-84-handover.md`):
+Continued in the same phase ([`docs/reports/phase-84-handover.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/phase-84-handover.md)):
 
 | Gap                                 | Change                                                                                                 | Where                                                                |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
@@ -205,7 +205,7 @@ files without writing them.
 ## 5. Verdict
 
 **ALMOST.** Asked for a plain YES or NO, the answer is **NO**, for the
-reasons below; `docs/reports/phase-84-handover.md` §5 gives it with the
+reasons below; [`docs/reports/phase-84-handover.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/phase-84-handover.md) §5 gives it with the
 evidence from the rest of the phase.
 
 Kingfisher can now do, for the player it is built for, every everyday
@@ -254,7 +254,7 @@ checked games, not a professional corpus. No second machine, cloud VM, Windows
 machine/certificate or owned million-game ChessBase database was available, so
 the required remote-engine, Windows and owned-corpus runs cannot be claimed.
 The real Lichess million-game and packaged-Mac measurements belong in
-`docs/reports/phase-85-handover.md`; code existence is not substituted for
+[`docs/reports/phase-85-handover.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/phase-85-handover.md); code existence is not substituted for
 those runs.
 
 ## Sources

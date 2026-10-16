@@ -3,10 +3,9 @@
 > **State on 2026-10-16:** every step is done for project
 > `mwrljfsnreplhmvzdhzl` (Seoul) — migrations, email with custom SMTP and
 > the five templates, redirect URLs, Vercel variables and Google sign-in.
-> Step 7 was run by the owner on 2026-10-16: `14/14 checks passed against
-mwrljfsnreplhmvzdhzl.supabase.co`. Still open: Google's branding
-> re-verification (after its 24-hour wait), so the consent screen names
-> Kingfisher rather than the Supabase host.
+> Step 7 was run by the owner on 2026-10-16, and all 14 of its checks passed
+> against the live project. Google's branding was verified the same day, so
+> the consent screen names Kingfisher rather than the Supabase host.
 
 Kingfisher's optional accounts are implemented in the repository and
 **off** until a Supabase project is connected. This is the runbook for

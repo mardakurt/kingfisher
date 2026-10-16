@@ -96,7 +96,7 @@ combined figure. Elite over-the-board play and 2400+ blitz disagree, and the
 disagreement is the reason to look at both.
 
 **Every visible setting needs a real consumer, and a way to check it.**
-`src/features/shell/settings-contract.ts` names, for all forty-five
+`src/features/shell/settings-contract.ts` names, for all forty-six
 preferences, the module that writes it, the module where it becomes visible,
 and what a person would see. A setting with no runtime assertion in
 `e2e/settings.spec.ts` must carry a written reason why one is impossible.
@@ -517,8 +517,9 @@ number (`git rev-list --count HEAD`), commit, dirty flag and channel, in
 them. `KINGFISHER_DESKTOP_CHANNEL` is `dev` (default), `preview` or
 `stable`; a publishable channel refuses a dirty tree.
 
-- **The source version is 1.5.2.** The public Mac descriptor names the
-  build that has been published and byte-verified; it changes only after that.
+- **The source version is 1.5.3; the public Mac download is 1.5.2.** The
+  public Mac descriptor names the build that has been published and
+  byte-verified; it changes only after that.
   Bump the marketing version only for a real release.
   Never create a version to freshen a filename.
 - **A trusted build is made by the pipeline, not by hand.** With the
@@ -718,3 +719,43 @@ privacy page to it.
   change must keep the RLS tests failing under a broken policy.
 - The Supabase **secret key never enters the repository or a
   `NEXT_PUBLIC_` variable**; the client refuses one.
+
+## Added in 1.5.3
+
+- **The opening map** (`src/database/opening-map.ts`,
+  `src/preparation/opening-map.ts`, one view in
+  `features/explorer/OpeningMapView.tsx`) asks a source about every branch
+  it draws, so it is offered **only for sources on this machine**. A node's
+  `score` is for the side the map names in `scoreFor`: White for a source,
+  the player for a dossier.
+- **Openings to reconsider** (`src/preparation/opening-advice.ts`) reports
+  a move only as "scored better, in this many games of this source". The
+  bar is the source's own record for the player's move when the source has
+  at least 50 games of it, the player's own score otherwise. Reference packs
+  register as sources asynchronously: a page that needs one before any
+  explorer has asked must `await initialiseReferences()`.
+- **Analysis history** is store `analysisHistory` (schema v25), one record
+  per position (`analysis:<positionKey>`), written when a primary search
+  settles at depth ≥ 12. It is portable and therefore synced.
+- **Sync sources can be additive.** `LocalSource.additive` means a record
+  that leaves the list is not a deletion. `gamesSource` (My games, behind the
+  per-device `syncMyGames`) is the one: its list is bounded (2,000) and
+  switchable, and mirroring deletions would let one device delete another's
+  games. It stores the sender's id, fingerprint and PGN exactly; re-deriving
+  them on arrival gives a new id (stored PGN gains the "?" tags).
+- **Inline layout must break in Firefox too.** Chrome breaks a line between
+  two atomic inlines; Firefox does not without a break opportunity. The
+  notation's and engine lines' nowrap units are followed by a zero-width
+  space. A percentage `max-height` inside a flex column is ignored by
+  Firefox; measure the column instead (`WorkspaceToolDock`'s notation
+  ceiling).
+- **Firefox aborts a `page.goto` that races Next's own history write after
+  hydration** (`NS_BINDING_ABORTED`). Specs that walk many routes use
+  `gotoRoute` from `e2e/tools.ts`, which retries that error once and nothing
+  else.
+- **The tab strip appears only with a second tab**; _New tab_ is then in the
+  header's common controls (`NewTabButton`). Tests that count tabs treat no
+  strip as one.
+- **Legal pages and Settings may not deny the account** while
+  `public-services.json` says accounts are enabled; `docs:check` refuses the
+  sentences that did.

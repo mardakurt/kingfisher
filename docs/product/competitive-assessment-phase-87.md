@@ -15,16 +15,16 @@ verdict **ALMOST / NO**) and [`parity-ledger.md`](parity-ledger.md)
 
 ## 1. What was tested, where
 
-| Surface                        | Revision                                | How                                                                                                                                                                                            |
-| ------------------------------ | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Browser, baseline              | `0547f38`                               | `next dev` on port 3211 from a worktree of that commit; Chrome through Playwright at 1280x720, 1280x800, 1440x790, 1440x860, 1470x860, 1728x1000 and 1728x1117, light and dark; fresh profiles |
-| Browser, after                 | master at the Phase 87 commits          | the same scripts against `next dev` on port 3210; the Playwright suites named below                                                                                                            |
-| Packaged Mac, from this source | see `docs/reports/phase-87-handover.md` | what was built and run is recorded there, with what was not                                                                                                                                    |
-| Public Mac release             | 1.3.2, build 908, `6b59452`             | **not changed and not re-verified in Phase 87.** It does not contain any change below; see `platform-parity.md`, "Published revision check (Phase 87)"                                         |
-| ChessBase                      | —                                       | **not run.** No ChessBase licence, no Windows machine, and ChessBase for Mac is not released. ChessBase is described from its publisher's pages and from the ten photographs, and says which   |
+| Surface                        | Revision                                                                                                                           | How                                                                                                                                                                                            |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Browser, baseline              | `0547f38`                                                                                                                          | `next dev` on port 3211 from a worktree of that commit; Chrome through Playwright at 1280x720, 1280x800, 1440x790, 1440x860, 1470x860, 1728x1000 and 1728x1117, light and dark; fresh profiles |
+| Browser, after                 | master at the Phase 87 commits                                                                                                     | the same scripts against `next dev` on port 3210; the Playwright suites named below                                                                                                            |
+| Packaged Mac, from this source | see [`docs/reports/phase-87-handover.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/phase-87-handover.md) | what was built and run is recorded there, with what was not                                                                                                                                    |
+| Public Mac release             | 1.3.2, build 908, `6b59452`                                                                                                        | **not changed and not re-verified in Phase 87.** It does not contain any change below; see `platform-parity.md`, "Published revision check (Phase 87)"                                         |
+| ChessBase                      | —                                                                                                                                  | **not run.** No ChessBase licence, no Windows machine, and ChessBase for Mac is not released. ChessBase is described from its publisher's pages and from the ten photographs, and says which   |
 
 The scripts that produced every number in §5 and §6 are committed in
-`docs/release-evidence/phase-87/ux/scripts/`; the numbers themselves are
+[`docs/release-evidence/phase-87/ux/scripts/`](https://github.com/mardakurt/kingfisher/tree/16d2fcc2/docs/release-evidence/phase-87/ux/scripts); the numbers themselves are
 `metrics-before.json`, `metrics-after.json` and
 `analysis-geometry-{before,after}.txt` beside them.
 

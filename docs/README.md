@@ -1,5 +1,6 @@
 # Kingfisher documentation
 
+- [1.5.3 release notes](release/1.5.3.md) — accounts and sync, opening map, openings to reconsider, analysis history, a faster-reading Studio. Source and web; the Mac download stays 1.5.2 until published.
 - [1.5.2 release notes](release/1.5.2.md) — puzzle move marks, unsaved-work safety, engine fallback.
 - [2026-10-14 stream-hardening report](reports/2026-10-14-stream-hardening.md) — what was audited, found, fixed and run.
 
@@ -84,10 +85,11 @@ with [`AGENTS.md`](../AGENTS.md).
   a tournament calendar and study schedule. **Idea only; not
   implemented.**
 - [`product/long-term-data.md`](product/long-term-data.md) — where a
-  player's work lives, the decision on accounts and sync, and the staged
-  plan (Phase 72)
+  player's work lived on 2026-09-19 and the staged plan for accounts (Phase
+  72); its account stage was carried out on 2026-10-15
 - [`product/player-style-opponent.md`](product/player-style-opponent.md)
-  — the player-style sparring opponent: feasibility and plan, not built
+  — the player-style sparring opponent: stage 1 built (Preparation →
+  Sparring), the later stages a plan
 - [`product/work-continuity.md`](product/work-continuity.md) — what survives
   a quit, a crash, a reinstall, a restore.
 - [`product/studio-access.md`](product/studio-access.md) — how the landing
@@ -264,9 +266,10 @@ with [`AGENTS.md`](../AGENTS.md).
 
 ## Records
 
-- `release-evidence/1.1.0-build-manifest.json` and
-  `release-evidence/1.0.0-runtime-manifest.json` — historical generated
-  snapshots, preserved byte-for-byte. Regenerate a local build manifest with
+- [`release-evidence/1.1.0-build-manifest.json`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/release-evidence/1.1.0-build-manifest.json) and
+  [`release-evidence/1.0.0-runtime-manifest.json`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/release-evidence/1.0.0-runtime-manifest.json) — historical generated
+  snapshots, removed from the tree on 2026-10-16; the links open them, byte for
+  byte, at the last commit that held them. Regenerate a local build manifest with
   `release:manifest`; `publish:release-manifest` prepares the runtime manifest
   from the current public download descriptor and does not upload it.
 

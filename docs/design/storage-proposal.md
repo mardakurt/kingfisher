@@ -49,16 +49,16 @@ on demand or elsewhere.
 
 The companion now has two position layouts (`docs/design/compact-position-postings.md`):
 
-| Layout                                   | Position side per game | Measured on                                                                                                                                                        |
-| ---------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| rows (original)                          | 32,433 B               | 100,445 broadcast games (Phase 86 probe)                                                                                                                           |
-| postings (Phase 86, opt-in per database) | 1,791 B                | the same 100,445 games, 0 mismatches against rows                                                                                                                  |
-| postings, whole file at scale            | see §3.1               | Lichess 2017-01 imported through the product path until the session running it ended at 7,464,900 games (`docs/release-evidence/phase-86/real-scale-10m-postings`) |
+| Layout                                   | Position side per game | Measured on                                                                                                                                                                                                                                                                        |
+| ---------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| rows (original)                          | 32,433 B               | 100,445 broadcast games (Phase 86 probe)                                                                                                                                                                                                                                           |
+| postings (Phase 86, opt-in per database) | 1,791 B                | the same 100,445 games, 0 mismatches against rows                                                                                                                                                                                                                                  |
+| postings, whole file at scale            | see §3.1               | Lichess 2017-01 imported through the product path until the session running it ended at 7,464,900 games ([`docs/release-evidence/phase-86/real-scale-10m-postings`](https://github.com/mardakurt/kingfisher/tree/16d2fcc2/docs/release-evidence/phase-86/real-scale-10m-postings)) |
 
 ### 3.1 At scale
 
 Measured on 7,484,400 games of Lichess 2017-01 in the posting layout
-(`docs/release-evidence/phase-86/real-scale-10m-postings/`): **36.37 GB,
+([`docs/release-evidence/phase-86/real-scale-10m-postings/`](https://github.com/mardakurt/kingfisher/tree/16d2fcc2/docs/release-evidence/phase-86/real-scale-10m-postings)): **36.37 GB,
 4,859 bytes a game**, every position indexed; the explorer identical to a
 linear oracle on 50 positions, warm explorer answers in 0.1–0.6 ms, games
 at a position in 92 ms, the move search in 26–38 s. Extrapolated to the

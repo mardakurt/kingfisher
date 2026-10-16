@@ -71,9 +71,12 @@ it). Then, and only while you are signed in:
 - **Never stored there:** other imported game collections, reference
   packs, engines, API tokens and keys, and settings that describe
   your machine.
-- **Who can read it:** only you. Every row is tied to your account
-  and the database refuses everyone else, enforced by the database
-  itself (row-level security), not by the application.
+- **Who can read it:** no other account. The database itself
+  refuses every other account (row-level security), not just the
+  application. As with any hosted service, the person who runs the
+  Kingfisher project has administrative access to the database; it
+  is not read, analysed or shared, and it is used only to keep the
+  service running.
 - **Where:** Supabase, the service that runs the account database,
   in its Seoul, South Korea region (`ap-northeast-2`).
 - **Account emails** — confirming your address, resetting a
@@ -106,8 +109,9 @@ typed (a study name, a repertoire name).
 The bulk of your work is in **IndexedDB**. IndexedDB is
 origin-scoped, so a profile on `kingfisherchess.app` is not the
 same database as one on `localhost`, in another browser, or in
-another browser profile. If you move between them, the work does
-not move with you — the supported way to move work between
+another browser profile. Signed out, the work does not move
+between them by itself; signed in, your authored work follows your
+account (see _Optional account_). The other way to move work between
 machines and profiles is the **Settings → Database → Export
 backup… / Choose backup to restore…** flow, which produces and consumes a
 versioned JSON file under your control.
@@ -156,6 +160,15 @@ product needs:
   sent there, and so is a score-sheet photo you choose to have
   read. Nothing goes to it unless you set it up and ask, and
   Kingfisher does not choose or know what that service is.
+- **The account service** — Supabase (`*.supabase.co`), only
+  when you sign in or are signed in: signing in and out, and copying
+  your authored work to and from your account, including a live
+  connection that tells this device when another one changed
+  something. Signed out, nothing is sent there.
+- **Google** (`accounts.google.com`), only when you choose
+  _Continue with Google_: Google asks you to approve sharing your
+  email address and name with Kingfisher, and nothing else is
+  requested.
 - **The application's own origin** for the static assets
   (the standard Stockfish WASM, piece art, the marketing/landing assets,
   the app code itself).
@@ -205,8 +218,10 @@ described above, served from this origin. A network panel open
 during a normal session will show this origin (including
 `/_vercel/insights/view`, the page-view beacon, and
 `/_vercel/speed-insights/vitals`, the load-timing beacon),
-Lichess (if you have signed in or queried Lichess) and the data
-mirror (if you have used a reference source). Nothing else.
+Lichess (if you have signed in or queried Lichess), Chess.com (if
+you have queried Chess.com), the data mirror (if you have used a
+reference source) and the account service (if you are signed in).
+Nothing else.
 
 ### Hosting
 
@@ -216,7 +231,9 @@ contain the IP address you connected from, the URL you
 requested and the user agent your browser sent. Vercel's own
 data-handling is described in their privacy policy; the
 Kingfisher project does not put anything additional in those
-logs. There is no Kingfisher-side server processing them.
+logs. The optional account is kept by Supabase (see _Optional
+account_), and in-app feedback passes through this site's own
+endpoint (see _Feedback_); nothing else runs on a Kingfisher server.
 
 ### Account status
 
@@ -263,9 +280,10 @@ field. If the destination changes, this section changes with it.
 
 ### Children
 
-Kingfisher is not directed at children. The application does
-not knowingly collect information from children, because it
-does not collect information from anyone.
+Kingfisher is not directed at children. Signed out, it collects
+nothing from anyone; the optional account stores an email address
+and the work its owner syncs, and Kingfisher does not knowingly
+hold an account for a child.
 
 ### Changes
 
@@ -275,6 +293,8 @@ page will be updated before the change ships.
 
 ### Contact
 
+To delete your account and everything stored in it, use _Delete
+account_ on the Account page; nothing else needs to be asked for.
 There is no Kingfisher-controlled inbox for privacy requests.
 For a security issue, see [`SECURITY.md`](../../SECURITY.md).
 For a non-security question, open an issue on

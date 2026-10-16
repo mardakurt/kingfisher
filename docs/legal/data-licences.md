@@ -43,13 +43,14 @@ for the exact upstream dates, ratings filters and shard sizes.
 
 ## Online queries the application makes
 
-| Provider                 | When the application calls it                                                                                                          | Licence / terms             |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| Lichess Explorer         | Choosing a Lichess source in the explorer — it needs a connected Lichess account or a personal token; the built-in pack is the default | Lichess terms apply         |
-| Lichess tablebase        | A position with few enough pieces, when no local Syzygy table answers                                                                  | Free for non-commercial use |
-| Lichess cloud evaluation | The engine panel's _Lichess cloud_, off at the start of each session                                                                   | Lichess terms apply         |
-| Lichess account          | _Connect Lichess_ (OAuth with PKCE, no scopes requested)                                                                               | Lichess terms apply         |
-| Chess.com games          | Syncing a Chess.com username's public games (no sign-in; the public API)                                                               | Chess.com API terms         |
+| Provider                                               | When the application calls it                                                                                                          | Licence / terms                                          |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Lichess Explorer                                       | Choosing a Lichess source in the explorer — it needs a connected Lichess account or a personal token; the built-in pack is the default | Lichess terms apply                                      |
+| Lichess tablebase                                      | A position with few enough pieces, when no local Syzygy table answers                                                                  | Free for non-commercial use                              |
+| Lichess cloud evaluation                               | The engine panel's _Lichess cloud_, off at the start of each session                                                                   | Lichess terms apply                                      |
+| Lichess account                                        | _Connect Lichess_ (OAuth with PKCE, no scopes requested)                                                                               | Lichess terms apply                                      |
+| Chess.com games                                        | Syncing a Chess.com username's public games (no sign-in; the public API)                                                               | Chess.com API terms                                      |
+| Kingfisher account (Supabase; Google if you choose it) | Signing in, and copying your own work to and from your account while signed in                                                         | Kingfisher's [terms](terms.md) and [privacy](privacy.md) |
 
 What each call sends is in the [privacy policy](privacy.md). The
 CSP in `vercel.json` names these hosts but also allows any

@@ -22,7 +22,7 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
         <tbody>
           <tr>
             <td>Web application</td>
-            <td>Kingfisher 1.5.2</td>
+            <td>Kingfisher 1.5.3</td>
             <td>Current. Served at kingfisherchess.app from every push to master.</td>
           </tr>
           <tr>
@@ -147,9 +147,12 @@ export function SecurityPage({ issuesUrl }: { issuesUrl: string }): JSX.Element 
       <h2 id="does-not">What the product deliberately does not do</h2>
       <ul>
         <li>
-          <strong>No cross-device Sync.</strong> Studies, repertoire, training, notes and
-          preferences are local to one browser profile. The documented way to move work between
-          machines is <em>Settings → Database → Export backup</em> and Import on the other side.
+          <strong>No sync without an account.</strong> Signed out, studies, repertoire, training,
+          notes and preferences stay in one browser profile, and the way to move them is{' '}
+          <em>Settings → Database → Export backup</em> and restore on the other side. Signed in to
+          the optional account, they sync through a database whose Row Level Security admits only
+          their owner. Secrets never sync, and nor do imported game collections — except My games,
+          on a device where you switch that on.
         </li>
         <li>
           <strong>Page views and load times only, from this origin.</strong> The website counts page

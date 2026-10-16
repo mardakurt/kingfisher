@@ -6,9 +6,9 @@ The public Mac 1.1.4 (build 544, `8f3e1d5`; 1.1.3 was build 539, `0600ce1`) and 
 are built from the same source revision. 1.1.3 closes the nineteen items
 the owner reported after the first day of public use (listed under
 "Closed during Phase 51" below); the gates run for it are in the
-Phase 51 handover. The 1.1.2 audit
+[Phase 51 handover](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/phase-51-handover.md). The 1.1.2 audit
 (build 516, `fc95f4d`; the feedback-dialog fix) is recorded in the
-Phase 50 handover.
+[Phase 50 handover](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/phase-50-handover.md).
 
 > **Subject:** what the first 100 users should be told up-front,
 > with the reasoning and the path to closing each item.
@@ -63,7 +63,7 @@ each closed in 1.1.3. The user-facing wording is the 1.1.3 entry in
 
 Found by adversarial testing of the packaged application and fixed in
 `master`; the full register with reproductions is
-`docs/reports/phase-46-findings.md`. None of these had been reported by
+[`docs/reports/phase-46-findings.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/phase-46-findings.md). None of these had been reported by
 a user; every packaged build since the polished-DMG work had been unable
 to launch, so no desktop user could have.
 

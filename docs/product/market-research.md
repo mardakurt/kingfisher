@@ -335,7 +335,7 @@ See `features.md`.
 ### Next — parity after ChessBase 26 (2026-09-23)
 
 A code audit of twenty ChessBase capabilities against this repository
-(recorded in `docs/reports/phase-81-handover.md` when the phase closes)
+(recorded in [`docs/reports/phase-81-handover.md`](https://github.com/mardakurt/kingfisher/blob/16d2fcc2/docs/reports/phase-81-handover.md) when the phase closes)
 found each of these partial or absent. In order of how often a ChessBase
 user touches it:
 
