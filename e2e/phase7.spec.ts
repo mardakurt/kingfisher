@@ -382,17 +382,21 @@ test('background analysis pauses for interactive work and persists resumable pro
     const rows = await Promise.all(
       found.games.map((game) => app.analysisQueue.evidenceForGame(game.id)),
     );
-    return rows.flat().map((row) => ({
-      nodeId: row.nodeId,
-      engineName: row.engineName,
-      depth: row.depth,
-      pv: row.pv.length,
-      hasScore: row.score !== undefined && row.score !== null,
-    }));
+    // Node ids are per tree — both games have an n1 — so a position is the
+    // game and the node together.
+    return rows.flatMap((list, index) =>
+      list.map((row) => ({
+        position: `${found.games[index]!.id}|${row.nodeId}`,
+        engineName: row.engineName,
+        depth: row.depth,
+        pv: row.pv.length,
+        hasScore: row.score !== undefined && row.score !== null,
+      })),
+    );
   });
   expect(evidence.length).toBeGreaterThan(0);
   expect(evidence.length).toBeLessThanOrEqual(12);
-  expect(new Set(evidence.map((row) => row.nodeId)).size).toBe(evidence.length);
+  expect(new Set(evidence.map((row) => row.position)).size).toBe(evidence.length);
   for (const row of evidence) {
     expect(row.engineName).toMatch(/Stockfish/);
     expect(row.depth).toBeGreaterThan(0);

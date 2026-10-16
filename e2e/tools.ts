@@ -53,23 +53,41 @@ export async function gotoRoute(
   page: Page,
   url: string,
 ): Promise<Awaited<ReturnType<Page['goto']>>> {
-  try {
-    return await page.goto(url);
-  } catch (error) {
-    if (!/NS_BINDING_ABORTED/.test(String(error))) throw error;
-    await page.waitForLoadState('load').catch(() => undefined);
-    return page.goto(url);
-  }
+  return retryAborted(page, () => page.goto(url));
 }
 
 /** `page.reload`, with the same Firefox retry as {@link gotoRoute}. */
 export async function reloadRoute(page: Page): Promise<void> {
-  try {
-    await page.reload();
-  } catch (error) {
-    if (!/NS_BINDING_ABORTED/.test(String(error))) throw error;
-    await page.waitForLoadState('load').catch(() => undefined);
-    await page.reload();
+  await retryAborted(page, () => page.reload());
+}
+
+/**
+ * The same race in two browsers' words. Next's router writes the current URL
+ * into history as a page hydrates (`replaceState`, about half a second after
+ * load); Firefox and WebKit let that same-document write cancel a navigation
+ * already in flight, Chromium does not. Firefox calls it `NS_BINDING_ABORTED`;
+ * WebKit says the navigation "is interrupted by another navigation" — to the
+ * page being left, which is the write. Traced in WebKit on 2026-10-17.
+ */
+const ABORTED = /NS_BINDING_ABORTED|is interrupted by another navigation/;
+
+/**
+ * Up to four attempts, and only for that race. One retry was not
+ * enough for a spec that reloads forty-six times in a row: in the 2026-10-16
+ * Firefox run the retry itself landed on the next history write and was
+ * aborted too. Any other error is thrown at once.
+ */
+async function retryAborted<T>(page: Page, navigate: () => Promise<T>): Promise<T> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await navigate();
+    } catch (error) {
+      if (attempt >= 4 || !ABORTED.test(String(error))) throw error;
+      await page.waitForLoadState('load').catch(() => undefined);
+      // Retrying the moment the page reports "load" met the same write each
+      // time (2026-10-17, four aborts in a row); back off past hydration.
+      await page.waitForTimeout(250 * 2 ** (attempt - 1));
+    }
   }
 }
 
