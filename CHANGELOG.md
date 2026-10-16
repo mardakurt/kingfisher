@@ -6,6 +6,10 @@ real users notice.
 
 ## Unreleased
 
+- **Game details on the board.** Document actions → _Game details…_ edits
+  the players, ratings, event, site, date, round, ECO, annotator and result
+  of the game you are analysing, checks the date and ratings, and saves it
+  as one change you can undo.
 - **Openings to reconsider.** Review → Improvement finds the positions in
   your own games where the move you usually play has lost most of at least
   five games, and shows what the reference source played there that scored

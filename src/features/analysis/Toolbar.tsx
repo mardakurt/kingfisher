@@ -14,6 +14,8 @@
  * route the same way; see `WorkspaceFrame`.
  */
 
+import { useState } from 'react';
+
 import { Copy, Export, Import, Plus } from '@/components/icons';
 import { IconButton } from '@/components/ui/Button';
 import { Menu, type MenuSection } from '@/components/ui/Menu';
@@ -23,6 +25,7 @@ import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 
 import { DocumentHeader } from './DocumentHeader';
+import { GameDetailsDialog } from './GameDetailsDialog';
 import { ResearchReadiness } from './ResearchReadiness';
 import { useCopyActions } from './useCopyActions';
 import { useEvaluationWriteBack } from './useEvaluationWriteBack';
@@ -51,6 +54,7 @@ export function Toolbar() {
   const setTrainingCaptureOpen = useUi((state) => state.setTrainingCaptureOpen);
   const setModelGameOpen = useUi((state) => state.setModelGameOpen);
   const copy = useCopyActions();
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const writeBack = useEvaluationWriteBack();
 
   const sections: readonly MenuSection[] = [
@@ -88,6 +92,11 @@ export function Toolbar() {
           id: 'model-game',
           label: 'Mark as model game…',
           run: () => setModelGameOpen(true),
+        },
+        {
+          id: 'game-details',
+          label: 'Game details…',
+          run: () => setDetailsOpen(true),
         },
         {
           id: 'import',
@@ -166,6 +175,7 @@ export function Toolbar() {
   */
   return (
     <div className="flex min-w-0 flex-1 items-center gap-1" data-analysis-toolbar>
+      {detailsOpen ? <GameDetailsDialog onClose={() => setDetailsOpen(false)} /> : null}
       {/* The document first, as a Mac document window names itself; the
           three actions on it follow as icons, their names on hover and for
           assistive technology. */}

@@ -39,6 +39,7 @@ import {
   setComment,
   setEvaluation,
   setHeader,
+  setHeaders,
   setMeta,
   setNags,
   toggleShape,
@@ -177,6 +178,8 @@ interface AnalysisState {
   attachEvaluation(nodeId: NodeId, evaluation: Evaluation): void;
   setCritical(nodeId: NodeId, category: CriticalCategory | null): void;
   setHeaderValue(key: string, value: string): void;
+  /** Several headers in one undoable edit; `null` removes the tag. */
+  setHeaderValues(values: Readonly<Record<string, string | null>>): void;
   /**
    * Write an evidence plan into the tree as variations, in one commit.
    *
@@ -492,6 +495,16 @@ export const useAnalysis = create<AnalysisState>((set, get) => ({
   setHeaderValue: (key, value) => {
     const state = get();
     set(commit(state, setHeader(state.tree, key, value)));
+  },
+
+  setHeaderValues: (values) => {
+    const state = get();
+    const headers: Record<string, string> = { ...state.tree.headers };
+    for (const [key, value] of Object.entries(values)) {
+      if (value === null) delete headers[key];
+      else headers[key] = value;
+    }
+    set(commit(state, setHeaders(state.tree, headers)));
   },
 
   newGame: (fen = START_FEN) => {

@@ -286,3 +286,25 @@ describe('saving is revision-aware (Phase 38 PART P, R)', () => {
     expect(store().saveError).toBe('IndexedDB transaction aborted');
   });
 });
+
+describe('game details', () => {
+  it('edits several headers as one undoable change, removing emptied ones', () => {
+    store().loadPgn(
+      '[Event "Club"]\n[White "Smith, J"]\n[Black "?"]\n[Result "*"]\n[Opening "x"]\n\n1. e4 *',
+    );
+    store().setHeaderValues({
+      White: 'Smith, John',
+      Black: 'Jones, A',
+      Event: null,
+      Result: '1-0',
+    });
+    const headers = store().tree.headers;
+    expect(headers).toMatchObject({ White: 'Smith, John', Black: 'Jones, A', Result: '1-0' });
+    expect(headers.Event).toBeUndefined();
+    // A tag the dialog does not show is kept as it was.
+    expect(headers.Opening).toBe('x');
+
+    store().undo();
+    expect(store().tree.headers).toMatchObject({ Event: 'Club', White: 'Smith, J', Black: '?' });
+  });
+});
