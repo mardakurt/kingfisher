@@ -30,6 +30,7 @@ import { LocalSavedQueryRepository } from './saved-query-repository';
 import { LocalInboxDecisionRepository } from './inbox-decision-repository';
 import { LocalAnalysisWriteBackRepository } from './analysis-write-back-repository';
 import { LocalPuzzleAttemptRepository } from './puzzle-attempt-repository';
+import { LocalAnalysisHistoryRepository } from './analysis-history-repository';
 
 const fromDatabase = (database: PersistenceDatabase): AppRepositories => ({
   studies: new LocalStudyRepository(database),
@@ -59,6 +60,7 @@ const fromDatabase = (database: PersistenceDatabase): AppRepositories => ({
   inboxDecisions: new LocalInboxDecisionRepository(database),
   analysisWriteBacks: new LocalAnalysisWriteBackRepository(database),
   puzzleAttempts: new LocalPuzzleAttemptRepository(database),
+  analysisHistory: new LocalAnalysisHistoryRepository(database),
   raw: database,
   close: () => database.close(),
 });

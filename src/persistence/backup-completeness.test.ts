@@ -206,6 +206,17 @@ const authored: Partial<Record<StoreName, Record<string, unknown>>> = {
     durationMs: 12_000,
     attemptedAt: 2,
   },
+  analysisHistory: {
+    ...common,
+    positionKey: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq -',
+    fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
+    score: { kind: 'cp', cp: 31 },
+    depth: 24,
+    engine: 'Stockfish 18',
+    line: ['c5', 'Nf3', 'd6'],
+    title: 'Untitled analysis',
+    analysedAt: 2,
+  },
   inboxDecisions: {
     ...common,
     repertoireId: 'r1',

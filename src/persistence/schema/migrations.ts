@@ -1,5 +1,5 @@
 export const DATABASE_NAME = 'kingfisher';
-export const DATABASE_VERSION = 24;
+export const DATABASE_VERSION = 25;
 
 export const STORE_NAMES = {
   studies: 'studies',
@@ -59,6 +59,8 @@ export const STORE_NAMES = {
   analysisWriteBacks: 'analysisWriteBacks',
   /* Version 24: every tactics-puzzle attempt; the solver rating is derived from them. */
   puzzleAttempts: 'puzzleAttempts',
+  /* Version 25: the positions a person analysed, latest engine result per position. */
+  analysisHistory: 'analysisHistory',
 } as const;
 
 export type StoreName = (typeof STORE_NAMES)[keyof typeof STORE_NAMES];
@@ -607,6 +609,20 @@ export const MIGRATIONS: readonly Migration[] = [
       target.createStore(STORE_NAMES.puzzleAttempts, { keyPath: 'id' }, [
         { name: 'attemptedAt', keyPath: 'attemptedAt' },
         { name: 'puzzleId', keyPath: 'puzzleId' },
+      ]);
+    },
+  },
+  {
+    version: 25,
+    description: 'Keep the positions a person analysed, so they can be found again.',
+    apply(target) {
+      /*
+       * One record per position, its key derived from the position, so a
+       * second search of the same position replaces the first rather than
+       * filling the list with repeats. Read newest first.
+       */
+      target.createStore(STORE_NAMES.analysisHistory, { keyPath: 'id' }, [
+        { name: 'analysedAt', keyPath: 'analysedAt' },
       ]);
     },
   },

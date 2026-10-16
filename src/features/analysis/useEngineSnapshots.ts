@@ -21,6 +21,8 @@ import type { NodeId } from '@/chess/tree/types';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useEngine } from '@/stores/engine-store';
 
+import { recordAnalysis } from './analysis-history';
+
 /** The evaluation a snapshot of a finished search stands for. */
 export function evaluationFromAnalysis(
   analysis: EngineAnalysis,
@@ -83,7 +85,19 @@ export function useEngineSnapshots(): void {
         slot.analysis,
         slot.identity?.name ?? 'Unknown engine',
       );
-      if (evaluation) analysis.attachEvaluation(nodeId, evaluation);
+      if (evaluation) {
+        analysis.attachEvaluation(nodeId, evaluation);
+        // And note the position in the analysis history, so it can be found
+        // again from Recent, on this device or any other the account syncs.
+        void recordAnalysis({
+          fen: node.fen,
+          score: evaluation.score,
+          depth: slot.analysis.depth,
+          engine: evaluation.engine ?? 'Unknown engine',
+          moves: slot.analysis.lines[0]?.moves ?? [],
+          title: analysis.document.title,
+        });
+      }
     });
 
     return unsubscribe;

@@ -64,7 +64,7 @@ it). Then, and only while you are signed in:
   studies and chapters, unsaved analysis, repertoires, training
   cards and progress, preparation, opening files, journal and
   review, saved searches, pinned lines, stored engine results,
-  puzzle history — and your display, board and engine preferences.
+  puzzle history, the positions you analysed — and your display, board and engine preferences.
 - **Never stored there:** imported game collections, reference
   packs, engines, API tokens and keys, and settings that describe
   your machine.

@@ -10,6 +10,7 @@ import type {
   ImportedEvaluationRecord,
   InboxDecisionRecord,
   PuzzleAttemptRecord,
+  AnalysisHistoryRecord,
   AnalysisWriteBackRecord,
   SavedQueryRecord,
   ModelGameLinkRecord,
@@ -690,6 +691,22 @@ export const isPuzzleAttemptRecord = (value: unknown): value is PuzzleAttemptRec
   value.played.every((move) => typeof move === 'string') &&
   finite(value.durationMs) &&
   finite(value.attemptedAt) &&
+  finite(value.createdAt) &&
+  finite(value.updatedAt) &&
+  finite(value.revision);
+
+export const isAnalysisHistoryRecord = (value: unknown): value is AnalysisHistoryRecord =>
+  object(value) &&
+  text(value.id) &&
+  text(value.positionKey) &&
+  text(value.fen) &&
+  isStoredScore(value.score) &&
+  finite(value.depth) &&
+  typeof value.engine === 'string' &&
+  array(value.line) &&
+  value.line.every((move) => typeof move === 'string') &&
+  typeof value.title === 'string' &&
+  finite(value.analysedAt) &&
   finite(value.createdAt) &&
   finite(value.updatedAt) &&
   finite(value.revision);

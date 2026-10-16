@@ -815,6 +815,33 @@ describe('migrating a Phase 86 installation at v22 to current', () => {
   });
 });
 
+describe('migrating a 1.5.2 installation at v24 to current', () => {
+  it('v24 puzzle attempts survive; analysed positions arrive empty and read newest last by time', async () => {
+    const name = dbName();
+    const v24 = await openPersistenceDatabaseAt(24, name);
+    await v24.put(STORE_NAMES.puzzleAttempts, { id: 'a1', puzzleId: 'p', attemptedAt: 1 });
+    v24.close();
+    const current = await openPersistenceDatabaseAt(DATABASE_VERSION, name);
+    expect(await current.get(STORE_NAMES.puzzleAttempts, 'a1')).toEqual({
+      id: 'a1',
+      puzzleId: 'p',
+      attemptedAt: 1,
+    });
+    expect(await current.getAll(STORE_NAMES.analysisHistory)).toEqual([]);
+    await current.put(STORE_NAMES.analysisHistory, { id: 'h2', analysedAt: 2 });
+    await current.put(STORE_NAMES.analysisHistory, { id: 'h1', analysedAt: 1 });
+    expect(
+      (
+        await current.getAllFromIndex<Record<string, unknown>>(
+          STORE_NAMES.analysisHistory,
+          'analysedAt',
+        )
+      ).map((row) => row.id),
+    ).toEqual(['h1', 'h2']);
+    current.close();
+  });
+});
+
 describe('migrating a 1.4.1 installation at v23 to current', () => {
   it('v23 write-back batches survive; puzzle attempts arrive empty and indexed by time and puzzle', async () => {
     const name = dbName();

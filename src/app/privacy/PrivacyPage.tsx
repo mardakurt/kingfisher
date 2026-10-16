@@ -65,8 +65,8 @@ export function PrivacyPage(): JSX.Element {
           <strong>Stored in your account:</strong> your email address (and, with Google, the name
           Google supplies), and a copy of your authored work — studies and chapters, unsaved
           analysis, repertoires, training progress, preparation, opening files, journal and review,
-          saved searches, pinned lines, stored engine results, puzzle history — with your display,
-          board and engine preferences.
+          saved searches, pinned lines, stored engine results, puzzle history, the positions you
+          analysed — with your display, board and engine preferences.
         </li>
         <li>
           <strong>Never stored there:</strong> imported game collections, reference packs, engines,

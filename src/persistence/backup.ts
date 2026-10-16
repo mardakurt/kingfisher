@@ -47,6 +47,7 @@ import {
   isInboxDecisionRecord,
   isAnalysisWriteBackRecord,
   isPuzzleAttemptRecord,
+  isAnalysisHistoryRecord,
   isPreparationSessionRecord,
   isOpeningFileRecord,
   isEndgamePositionRecord,
@@ -93,6 +94,7 @@ export const PORTABLE_STORES = [
   STORE_NAMES.inboxDecisions,
   STORE_NAMES.analysisWriteBacks,
   STORE_NAMES.puzzleAttempts,
+  STORE_NAMES.analysisHistory,
 ] as const;
 
 export const LATER_AUTHORED_STORES = new Set<StoreName>([
@@ -112,6 +114,7 @@ export const LATER_AUTHORED_STORES = new Set<StoreName>([
   STORE_NAMES.inboxDecisions,
   STORE_NAMES.analysisWriteBacks,
   STORE_NAMES.puzzleAttempts,
+  STORE_NAMES.analysisHistory,
 ]);
 
 export const GAME_STORES = [
@@ -472,6 +475,7 @@ function validateRecord(store: StoreName, value: unknown, index: number): void {
     if (store === STORE_NAMES.inboxDecisions) return isInboxDecisionRecord(value);
     if (store === STORE_NAMES.analysisWriteBacks) return isAnalysisWriteBackRecord(value);
     if (store === STORE_NAMES.puzzleAttempts) return isPuzzleAttemptRecord(value);
+    if (store === STORE_NAMES.analysisHistory) return isAnalysisHistoryRecord(value);
     if (store === STORE_NAMES.games) return isGameSummary(value);
     if (store === STORE_NAMES.gameContent) {
       return (

@@ -1592,6 +1592,30 @@ export interface PuzzleAttemptRecord {
 }
 
 /**
+ * A position somebody analysed with an engine, and what the search settled
+ * on (`src/features/analysis/useEngineSnapshots.ts`). One per position: a
+ * later search of the same position replaces it. The line is stored as SAN
+ * so the list can show it without replaying anything.
+ */
+export interface AnalysisHistoryRecord {
+  readonly id: string;
+  readonly positionKey: string;
+  readonly fen: string;
+  /** From White's point of view, as every stored evaluation is. */
+  readonly score: Score;
+  readonly depth: number;
+  readonly engine: string;
+  /** The engine's best line from the position, at most ten moves. */
+  readonly line: readonly string[];
+  /** What was open when the search finished: a chapter, a game, "Untitled analysis". */
+  readonly title: string;
+  readonly analysedAt: number;
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  readonly revision: number;
+}
+
+/**
  * Stored evaluations written into a chapter, as one batch (Phase 86,
  * `src/evidence/write-back.ts`). `entries` is exactly what was written, so
  * undoing it removes those and nothing a person changed afterwards.

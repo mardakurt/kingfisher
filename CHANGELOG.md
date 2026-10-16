@@ -6,6 +6,11 @@ real users notice.
 
 ## Unreleased
 
+- **Analysis history.** Every position you analyse with the engine (to
+  depth 12 or more) is kept: Recent lists them with the score, the start of
+  the line, the depth and the engine, and a click reopens the position on
+  the board. One entry per position; it syncs with your account like the
+  rest of your work.
 - **Compare two positions.** Features → _Compare with another position_:
   pick an earlier position on the line or paste a FEN. Both diagrams tint
   the squares that differ, and the structural facts are split into only

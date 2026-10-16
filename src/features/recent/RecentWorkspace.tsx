@@ -38,7 +38,10 @@ import { Button, IconButton } from '@/components/ui/Button';
 import { getRepositories } from '@/persistence/repositories';
 import { gameTitle } from '@/persistence/describe';
 import { continueStoredDraft } from '@/features/persistence/useWorkspacePersistence';
-import { useAnalysis } from '@/stores/analysis-store';
+import { formatScore } from '@/chess/evaluation';
+import { createTree } from '@/chess/tree/tree';
+import type { Fen } from '@/chess/types';
+import { UNTITLED_DOCUMENT, useAnalysis } from '@/stores/analysis-store';
 import { usePins, type PinKind } from '@/stores/pins-store';
 import { useUi } from '@/stores/ui-store';
 import { cn } from '@/lib/cn';
@@ -135,11 +138,12 @@ export function RecentWorkspace() {
     retry: false,
     queryFn: async () => {
       const repositories = await getRepositories();
-      const [studies, repertoires, games, due] = await Promise.all([
+      const [studies, repertoires, games, due, analysed] = await Promise.all([
         repositories.studies.list(),
         repositories.repertoires.list(),
         repositories.games.search({ sortBy: 'importedAt', sortDirection: 'desc', limit: LIMIT }),
         repositories.training.due(Date.now(), 50),
+        repositories.analysisHistory.list(LIMIT),
       ]);
 
       // Chapters come from the most recent studies only: reading every chapter
@@ -157,7 +161,7 @@ export function RecentWorkspace() {
         .sort((a, b) => b.chapter.updatedAt - a.chapter.updatedAt)
         .slice(0, LIMIT);
 
-      return { studies: recentStudies, repertoires, games: games.games, chapters, due };
+      return { studies: recentStudies, repertoires, games: games.games, chapters, due, analysed };
     },
   });
 
@@ -205,6 +209,16 @@ export function RecentWorkspace() {
         detail: error instanceof Error ? error.message : undefined,
       });
     }
+  };
+
+  /*
+    An analysed position reopens on a fresh board at that position: the
+    record keeps the position and what the engine said, not the game around
+    it, and pretending otherwise would open a game that was never saved.
+  */
+  const openAnalysed = (fen: string) => {
+    openDocument({ tree: createTree(fen as Fen), document: UNTITLED_DOCUMENT });
+    router.push('/analysis');
   };
 
   /*
@@ -379,6 +393,26 @@ export function RecentWorkspace() {
           ))}
         </Section>
 
+        <Section title="Analysed positions" icon={<Board />}>
+          {data.data?.analysed.length === 0 && (
+            <p className="px-3 py-2 text-xs text-tertiary" data-analysed-empty>
+              Positions you analyse with the engine are listed here.
+            </p>
+          )}
+          {data.data?.analysed.map((entry) => (
+            <Row
+              key={entry.id}
+              label={
+                entry.line.length
+                  ? `${formatScore(entry.score)} · ${entry.line.slice(0, 4).join(' ')}`
+                  : formatScore(entry.score)
+              }
+              meta={`${entry.title} · depth ${entry.depth}, ${entry.engine} · ${ago(entry.analysedAt)}`}
+              onOpen={() => openAnalysed(entry.fen)}
+            />
+          ))}
+        </Section>
+
         <Section title="Repertoires" icon={<Repertoire />}>
           {data.data?.repertoires.length === 0 && <Empty what="repertoires" href="/repertoire" />}
           {data.data?.repertoires.map((repertoire) => (
@@ -419,7 +453,10 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="min-w-0 rounded-[var(--radius-control)] border border-line-subtle bg-surface-1">
+    <section
+      aria-label={title}
+      className="min-w-0 rounded-[var(--radius-control)] border border-line-subtle bg-surface-1"
+    >
       <h2 className="flex items-center gap-2 border-b border-line-subtle px-3 py-2 text-xs font-semibold text-tertiary">
         <span className="[&>svg]:h-4 [&>svg]:w-4">{icon}</span>
         {title}
