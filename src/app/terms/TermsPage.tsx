@@ -62,7 +62,8 @@ export function TermsPage(): JSX.Element {
 
       <h2 id="account">Account, sync, telemetry</h2>
       <p>
-        There is no Kingfisher account and no Sync. The web build does not set cookies; the website
+        A Kingfisher account is optional; signed in, your work syncs between your devices, and
+        signed out nothing leaves your machine. The web build does not set cookies; the website
         counts page views and load times and nothing more. See the <a href="/privacy">Privacy</a>{' '}
         page for the full statement.
       </p>

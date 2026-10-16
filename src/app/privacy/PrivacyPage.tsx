@@ -256,14 +256,15 @@ export function PrivacyPage(): JSX.Element {
         logs. There is no Kingfisher-side server processing them.
       </p>
 
-      <h2 id="account">Account status</h2>
+      <h2 id="account-status">Account status</h2>
       <p>
-        There is no Kingfisher account, no Kingfisher sign-in, and no Kingfisher-controlled profile
-        on a server. The local profile that holds a display name (Phase 55) is one row in your own
-        IndexedDB or desktop profile directory; it does not sync to anywhere. The <em>Accounts</em>{' '}
-        section of Settings records Lichess and Chess.com usernames so their games can be pulled
-        into your local collection; that linkage lives in your IndexedDB and desktop profile, and is
-        the only thing that connects a Lichess username to a Kingfisher install.
+        A Kingfisher account is optional. Without one there is no sign-in and no profile on a
+        server; with one, what it stores is described under <a href="#account">Optional account</a>{' '}
+        above. The local profile that holds a display name and your player names is one row in your
+        own IndexedDB or desktop profile directory, and syncs only when you are signed in. The{' '}
+        <em>Accounts</em> section of Settings records Lichess and Chess.com usernames so their games
+        can be pulled into your local collection; that linkage lives in your IndexedDB and desktop
+        profile, and is the only thing that connects a Lichess username to a Kingfisher install.
       </p>
       <p>
         If a Kingfisher-controlled account is ever added, this page will be updated before any data
@@ -272,12 +273,11 @@ export function PrivacyPage(): JSX.Element {
 
       <h2 id="sync">Sync status</h2>
       <p>
-        <strong>There is no cloud sync today.</strong> Your work lives on the machine you created it
-        on, and Kingfisher does not push it anywhere. To move work between machines, two browsers,
-        or a browser and a desktop install: <em>Settings → Database → Export backup</em> on the
-        source machine; <em>Settings → Database → Choose backup to restore…</em> on the destination
-        machine. The backup file is portable JSON, is held on disk under your control, and is never
-        sent to a server.
+        Signed in, your work is copied to your account and follows you to every device you sign in
+        on. Signed out, it lives on the machine you created it on and Kingfisher pushes it nowhere.
+        Either way you can move it yourself: <em>Settings → Database → Export backup</em> on one
+        machine and <em>Choose backup to restore…</em> on the other. The backup file is portable
+        JSON, held on disk under your control.
       </p>
       <p>
         A future Kingfisher version may add an opt-in cloud sync. If it does, this page will be

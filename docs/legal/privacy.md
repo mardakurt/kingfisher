@@ -220,19 +220,22 @@ logs. There is no Kingfisher-side server processing them.
 
 ### Account status
 
-There is no Kingfisher account, no sign-in, no profile, no
-email capture, no mailing list. If a Kingfisher-controlled
-account is ever added, this page will be updated before any
-data is collected.
+A Kingfisher account is optional. Without one, there is no
+sign-in, no server-side profile, no email capture and no mailing
+list. With one, what it stores, where, and who can read it is
+described under _Optional account_ above; the email address
+is used to sign you in and for messages about the account, never
+for a mailing list.
 
 ### Sync status
 
-**Cross-device Sync is not currently available.** Your work
-lives on the machine you created it on. To move work between
-machines: _Settings → Database → Export backup_ on the source
-machine; _Settings → Database → Choose backup to restore…_ on the
-destination machine. The backup file is portable JSON and is
-under your control at all times.
+Signed in, your work is copied to your account and follows you
+to every device you sign in on (see _Optional account_).
+Signed out, it lives on the machine you created it on. Either
+way you can move it yourself: _Settings → Database → Export
+backup_ on one machine and _Choose backup to restore…_ on the
+other. The backup file is portable JSON and is under your control
+at all times.
 
 ### Feedback
 

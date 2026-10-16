@@ -690,6 +690,22 @@ const services = JSON.parse(
         new RegExp(String(services.accounts.region ?? '\u0000')),
         'privacy page names the region the account data is stored in',
       );
+      // With accounts live, nothing a person reads may still deny them. Five
+      // pages said "there is no Kingfisher account" for a day after the
+      // account went live, and this check had not been asked.
+      for (const file of [
+        'docs/legal/privacy.md',
+        'docs/legal/terms.md',
+        'src/app/privacy/PrivacyPage.tsx',
+        'src/app/terms/TermsPage.tsx',
+        'src/features/shell/SettingsDialog.tsx',
+      ]) {
+        mustNotMatch(
+          file,
+          /There is no Kingfisher account|no Kingfisher account exists|no cloud sync today|Sync is not currently available|no account and no Sync|Nothing here needs an account/i,
+          `${file} does not deny the account or sync the descriptor says are live`,
+        );
+      }
     }
     mustMatch(
       'docs/legal/privacy.md',

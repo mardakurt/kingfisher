@@ -463,4 +463,21 @@ test.describe('accounts', () => {
     await expect.poll(() => gameCount(second), { timeout: 15_000 }).toBe(1);
     await desktop.close();
   });
+
+  test('Settings names the Kingfisher account alongside Lichess and Chess.com', async ({
+    context,
+    page,
+  }) => {
+    await serveCloud(context, new StubCloud());
+    await signIn(page);
+    await expect(page.getByRole('status').filter({ hasText: /^Synced/ })).toBeVisible();
+    await page.locator('[data-page-header]').getByRole('button', { name: 'Settings' }).click();
+    const settings = page.getByRole('dialog', { name: 'Settings' });
+    await settings.getByRole('tab', { name: 'Accounts' }).click();
+    const account = settings.locator('[data-kingfisher-account]');
+    await expect(account).toContainText(`Signed in as ${EMAIL}.`);
+    await account.getByRole('link', { name: 'Open your account' }).click();
+    await expect(settings).toBeHidden();
+    await expect(page).toHaveURL(/\/account$/);
+  });
 });

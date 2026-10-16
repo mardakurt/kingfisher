@@ -10,6 +10,7 @@
  * piece set is the piece set.
  */
 
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -28,6 +29,7 @@ import { PIECE_SETS, PieceIcon } from '@/features/board/pieces';
 import { MiniBoard } from '@/features/board/MiniBoard';
 import { ENGINE_PRESETS, detectCores, enginePreset, resolveThreads } from '@/engine/presets';
 import { useEngine } from '@/stores/engine-store';
+import { useAccount } from '@/stores/account-store';
 import type { AnalysisLimit } from '@/engine/types';
 import {
   createWorkspaceBackup,
@@ -188,7 +190,7 @@ export function SettingsDialog() {
       open={open}
       onClose={close}
       title="Settings"
-      description="Stored on this machine. Nothing here needs an account."
+      description="Stored on this machine, and synced with your account when you are signed in — except what describes this machine, such as threads, memory and installed sources."
       width="w-[960px]"
       /*
         Wide, with the sections down the left. Twelve tabs in a 640px row
@@ -1135,6 +1137,35 @@ function CompanionSection() {
  * why it failed. An account whose last sync was rate-limited must never be
  * presented as an account with no games.
  */
+/**
+ * Your own account, first: the Accounts tab listed Lichess and Chess.com and
+ * never said Kingfisher had one of its own. One line and a link — the
+ * account's page holds everything about it.
+ */
+function KingfisherAccount() {
+  const status = useAccount((state) => state.status);
+  const email = useAccount((state) => state.user?.email ?? null);
+  const close = useUi((state) => state.setSettingsOpen);
+  if (status === 'unconfigured' || status === 'loading') return null;
+  return (
+    <div className="border-b border-line-subtle pb-4" data-kingfisher-account>
+      <h3 className="text-xs text-primary">Kingfisher account</h3>
+      <p className="mt-1 text-2xs leading-relaxed text-tertiary">
+        {status === 'signed-in'
+          ? `Signed in as ${email ?? 'your account'}. Your work and settings sync to every device you sign in on.`
+          : 'Optional. Sign in to keep your studies, repertoires and analysis on every device.'}
+      </p>
+      <Link
+        href={status === 'signed-in' ? '/account' : '/sign-in?next=/account'}
+        onClick={() => close(false)}
+        className="mt-1.5 inline-block text-xs text-accent-ink hover:underline"
+      >
+        {status === 'signed-in' ? 'Open your account' : 'Sign in or create an account'}
+      </Link>
+    </div>
+  );
+}
+
 function AccountsSection() {
   const queryClient = useQueryClient();
   const notify = useUi((state) => state.notify);
@@ -1195,6 +1226,7 @@ function AccountsSection() {
 
   return (
     <div className="flex flex-col gap-4">
+      <KingfisherAccount />
       <LichessAccess />
 
       <div className="border-t border-line-subtle pt-4">
@@ -1202,7 +1234,7 @@ function AccountsSection() {
         <p className="mt-1 text-2xs leading-relaxed text-tertiary">
           Games from a Lichess or Chess.com username, pulled into the ordinary local collection —
           same fingerprint, same duplicate handling, same searches as anything else imported.
-          Nothing is uploaded and no Kingfisher account exists.
+          Nothing is sent to Lichess or Chess.com.
         </p>
       </div>
 
@@ -2090,9 +2122,9 @@ function LichessAccess() {
         ) : null}
       </div>
       <p className="mt-2 text-[10px] leading-relaxed text-tertiary">
-        You approve the connection on lichess.org and come back here. There is no Kingfisher account
-        and no server in between: the token is issued to this browser, kept in this browser, and
-        excluded from workspace backups. Disconnecting revokes it with Lichess.
+        You approve the connection on lichess.org and come back here. No Kingfisher server is in
+        between: the token is issued to this browser, kept in this browser, and excluded from
+        workspace backups and from your Kingfisher account. Disconnecting revokes it with Lichess.
       </p>
 
       <button
