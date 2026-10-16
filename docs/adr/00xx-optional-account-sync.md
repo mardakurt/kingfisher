@@ -263,3 +263,24 @@ authorisation to provision a Supabase project.
 - Phase 28 brief, parts G through V.
 - Supabase Auth docs — https://supabase.com/docs/guides/auth
 - Supabase RLS docs — https://supabase.com/docs/guides/auth/row-level-security
+
+## Addendum, 2026-10-16: My games, opt-in and additive
+
+Imported collections were left out because one profile with a hundred
+thousand games would fill the shared project. The owner's brief named
+personal game collections among the things that should follow a person,
+so My games now syncs on request: `syncMyGames`, a device preference that
+is off by default, puts `gamesSource` into the engine. It carries the
+newest 2,000 games as `{ id, pgn }`.
+
+Two decisions follow from the list being bounded and switchable:
+
+- **Additive.** A record that stops being listed is not a deletion
+  (`LocalSource.additive`). Otherwise a newer import pushing an old game past
+  the limit, or the switch turned off, would delete games on every other
+  device. Deleting a game deletes it where it was deleted, and signing out
+  leaves games in place and does not count them as removed.
+- **The sender's identity is kept.** A stored PGN gains the Seven Tag
+  Roster's placeholders, so re-fingerprinting it on arrival gives a new id.
+  The receiver stores the sender's id, fingerprint and text exactly, so the
+  next run has nothing to send back.

@@ -6,11 +6,14 @@ import { useEffect, useState, type ReactNode } from 'react';
 
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
+import { Toggle } from '@/components/ui/Toggle';
 import { PageHeader } from '@/features/shell/PageHeader';
 import { cn } from '@/lib/cn';
 import type { SyncConflictRecord } from '@/persistence/sync-state';
+import { GAME_SYNC_LIMIT } from '@/sync/cloud/games-source';
 import { DEVICE_ONLY_STORES } from '@/sync/cloud/scope';
 import { useAccount } from '@/stores/account-store';
+import { usePreferences } from '@/stores/preferences-store';
 
 import {
   describeAuthError,
@@ -58,6 +61,39 @@ function Section({
         <div className="min-w-0">{children}</div>
       </div>
     </section>
+  );
+}
+
+/**
+ * The one switch on this page: whether this device carries My games.
+ *
+ * Per device and off by default (`src/sync/cloud/games-source.ts`). The
+ * sentence under it states the two things that differ from the rest of
+ * sync, because both would surprise somebody who assumed a mirror: only the
+ * newest games travel, and deleting one deletes it here only.
+ */
+function MyGamesSync() {
+  const on = usePreferences((state) => state.syncMyGames);
+  const set = usePreferences((state) => state.set);
+  return (
+    <div
+      className="mt-5 rounded-[var(--radius-control)] border border-line-subtle p-3"
+      data-my-games-sync
+    >
+      <div className="flex items-center gap-3">
+        <Toggle
+          label="Sync My games on this device"
+          checked={on}
+          onChange={(value) => set('syncMyGames', value)}
+        />
+        <p className="text-sm text-primary">Sync My games on this device</p>
+      </div>
+      <p className="mt-1.5 text-[12.5px] leading-relaxed text-secondary">
+        Your newest {GAME_SYNC_LIMIT.toLocaleString()} games travel to every device where this is
+        also on. Games are added, never removed: deleting a game deletes it from this device only,
+        and signing out leaves them here.
+      </p>
+    </div>
   );
 }
 
@@ -435,6 +471,7 @@ export function AccountRoute() {
                 {account.phase === 'syncing' ? 'Syncing…' : 'Sync now'}
               </Button>
             </div>
+            <MyGamesSync />
             <details className="mt-5 text-[13px] text-secondary">
               <summary className="cursor-pointer text-primary">
                 What syncs, and what stays on this device
@@ -444,14 +481,14 @@ export function AccountRoute() {
                   <strong className="font-medium text-primary">Syncs:</strong> studies and chapters
                   with every variation, comment and annotation; unsaved analysis; repertoires;
                   training cards and progress; preparation; opening files; journal, decisions and
-                  review; saved searches; pinned lines; stored engine results; puzzle history; and
-                  your display, board and engine preferences.
+                  review; saved searches; pinned lines; stored engine results; puzzle history; the
+                  positions you analysed; and your display, board and engine preferences.
                 </p>
                 <p>
                   <strong className="font-medium text-primary">Stays here:</strong> imported game
-                  collections and reference packs (large, and re-importable), engines and
-                  tablebases, secrets such as API tokens, settings that describe this machine
-                  (threads, memory, installed sources), and{' '}
+                  collections (except My games when you switch it on above) and reference packs
+                  (large, and re-importable), engines and tablebases, secrets such as API tokens,
+                  settings that describe this machine (threads, memory, installed sources), and{' '}
                   {Object.values(DEVICE_ONLY_STORES).length} kinds of in-progress engine job.
                 </p>
               </div>

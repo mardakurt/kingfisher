@@ -125,6 +125,12 @@ export interface Preferences {
    */
   showPlayerPhotos: boolean;
   /**
+   * Carry the newest games of My games to this account's other devices
+   * (`src/sync/cloud/games-source.ts`). Per device and off by default: games
+   * can be enormous, and the account's database is shared.
+   */
+  syncMyGames: boolean;
+  /**
    * How moves are drawn: SAN letters (`Nf3`) or figurines (`♘f3`), as
    * ChessBase and printed books show them. Display only; PGN stays letters.
    */
@@ -259,6 +265,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   explorerSinceYear: null,
   explorerBoardArrows: false,
   showPlayerPhotos: true,
+  syncMyGames: false,
   pieceNotation: 'letters',
   databaseIcons: {},
   boardPriority: DEFAULT_BOARD_PRIORITY,

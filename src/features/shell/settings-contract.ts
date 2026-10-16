@@ -417,6 +417,18 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     verifiedBy: 'e2e/player-photo.spec.ts',
   },
   {
+    key: 'syncMyGames',
+    label: 'Sync My games',
+    surface: 'in-place',
+    control: 'features/account/AccountRoute.tsx',
+    consumer: 'stores/account-store.ts',
+    effect:
+      'Signed in, the newest 2,000 games of My games are uploaded to the account and games other devices uploaded are imported here. Off, the game source is not in the sync engine at all.',
+    indexedAs: null,
+    previewable: true,
+    verifiedBy: 'e2e/account-sync.spec.ts',
+  },
+  {
     key: 'explorerSinceYear',
     label: 'Explorer earliest year',
     surface: 'in-place',

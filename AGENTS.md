@@ -698,7 +698,12 @@ privacy page to it.
 - **What syncs is `PORTABLE_STORES` minus `DEVICE_ONLY_STORES`**
   (`src/sync/cloud/scope.ts`) plus `SYNCED_PREFERENCE_KEYS`. A new portable
   store syncs automatically; if it must not, add it to `DEVICE_ONLY_STORES`
-  with a reason. Secrets and imported game collections never sync.
+  with a reason. Secrets never sync. Imported game collections do not
+  either, with one opt-in exception: `syncMyGames` (per device, off by
+  default) carries the newest 2,000 games of My games through
+  `src/sync/cloud/games-source.ts`, an **additive** source — a game that
+  leaves its list is never sent as a deletion, because the list is bounded
+  and switchable.
 - **Writes are announced by `withChangeFeed`** after commit; sync's own
   writes go through the unannounced database (`getSyncDatabase()`).
 - **The server wins a conflict and the local loser is kept**

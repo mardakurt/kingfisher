@@ -69,8 +69,13 @@ export function PrivacyPage(): JSX.Element {
           analysed — with your display, board and engine preferences.
         </li>
         <li>
-          <strong>Never stored there:</strong> imported game collections, reference packs, engines,
-          API tokens and keys, and settings that describe your machine.
+          <strong>Only if you switch it on:</strong> your newest 2,000 games in My games, when you
+          turn on <em>Sync My games on this device</em> on the Account page. It is off by default,
+          and set separately on each device.
+        </li>
+        <li>
+          <strong>Never stored there:</strong> other imported game collections, reference packs,
+          engines, API tokens and keys, and settings that describe your machine.
         </li>
         <li>
           <strong>Who can read it:</strong> only you. The database itself refuses every other

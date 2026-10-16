@@ -65,7 +65,10 @@ it). Then, and only while you are signed in:
   cards and progress, preparation, opening files, journal and
   review, saved searches, pinned lines, stored engine results,
   puzzle history, the positions you analysed — and your display, board and engine preferences.
-- **Never stored there:** imported game collections, reference
+- **Only if you switch it on:** your newest 2,000 games in My games,
+  when you turn on _Sync My games on this device_ on the Account page.
+  It is off by default, and set separately on each device.
+- **Never stored there:** other imported game collections, reference
   packs, engines, API tokens and keys, and settings that describe
   your machine.
 - **Who can read it:** only you. Every row is tied to your account

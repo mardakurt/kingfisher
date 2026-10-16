@@ -35,6 +35,7 @@ import { CloudSyncEngine, type ImportSummary } from '@/sync/cloud/sync-engine';
 
 import { usePreferences } from './preferences-store';
 import { preferencesSource } from './synced-preferences-source';
+import { gamesSource } from '@/sync/cloud/games-source';
 import { SYNCED_PREFERENCE_KEYS } from './synced-preferences';
 
 export type AccountStatus = 'unconfigured' | 'loading' | 'signed-out' | 'signed-in';
@@ -247,6 +248,7 @@ export const useAccount = create<AccountState & AccountActions>()((set, get) => 
       sources: [
         ...SYNCED_STORES.map((store) => databaseSource(database, store)),
         preferencesSource(),
+        ...(usePreferences.getState().syncMyGames ? [gamesSource(database)] : []),
       ],
       onApplied: (changes) => announceApplied(changes),
     });
@@ -269,6 +271,12 @@ export const useAccount = create<AccountState & AccountActions>()((set, get) => 
       usePreferences.subscribe((next, previous) => {
         if (SYNCED_PREFERENCE_KEYS.some((key) => next[key] !== previous[key]))
           soon(LOCAL_DEBOUNCE_MS);
+        // The game source is in the engine or not: switching it restarts sync
+        // with the new set of sources.
+        if (next.syncMyGames !== previous.syncMyGames) {
+          stop();
+          void start(client, userId);
+        }
       }),
     );
 

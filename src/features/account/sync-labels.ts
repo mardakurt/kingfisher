@@ -3,10 +3,13 @@
  */
 
 import { STORE_NAMES, type StoreName } from '@/persistence/schema/migrations';
+import { MY_GAMES_STORE } from '@/sync/cloud/games-source';
 import { PREFERENCES_STORE } from '@/sync/cloud/scope';
 import type { AccountState } from '@/stores/account-store';
 
-const STORE_LABELS: Partial<Record<StoreName | typeof PREFERENCES_STORE, [string, string]>> = {
+const STORE_LABELS: Partial<
+  Record<StoreName | typeof PREFERENCES_STORE | typeof MY_GAMES_STORE, [string, string]>
+> = {
   [STORE_NAMES.studies]: ['study', 'studies'],
   [STORE_NAMES.chapters]: ['chapter', 'chapters'],
   [STORE_NAMES.drafts]: ['unsaved analysis', 'unsaved analyses'],
@@ -25,12 +28,13 @@ const STORE_LABELS: Partial<Record<StoreName | typeof PREFERENCES_STORE, [string
   [STORE_NAMES.savedQueries]: ['saved search', 'saved searches'],
   [STORE_NAMES.puzzleAttempts]: ['puzzle attempt', 'puzzle attempts'],
   [STORE_NAMES.analysisHistory]: ['analysed position', 'analysed positions'],
+  [MY_GAMES_STORE]: ['game', 'games'],
   [STORE_NAMES.engineEvidence]: ['stored engine result', 'stored engine results'],
   [PREFERENCES_STORE]: ['settings', 'settings'],
 };
 
 export function describeStore(store: string, count: number): string {
-  const label = STORE_LABELS[store as StoreName];
+  const label = STORE_LABELS[store as keyof typeof STORE_LABELS];
   if (!label) return `${count} other ${count === 1 ? 'record' : 'records'}`;
   if (store === PREFERENCES_STORE) return 'your settings';
   return `${count.toLocaleString()} ${count === 1 ? label[0] : label[1]}`;
@@ -40,7 +44,7 @@ export function describeSummary(byStore: Readonly<Record<string, number>>): stri
   const named: string[] = [];
   let other = 0;
   for (const [store, count] of Object.entries(byStore).sort((a, b) => b[1] - a[1])) {
-    if (STORE_LABELS[store as StoreName]) named.push(describeStore(store, count));
+    if (STORE_LABELS[store as keyof typeof STORE_LABELS]) named.push(describeStore(store, count));
     else other += count;
   }
   if (other > 0)

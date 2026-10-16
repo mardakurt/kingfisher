@@ -32,7 +32,8 @@ import { LocalAnalysisWriteBackRepository } from './analysis-write-back-reposito
 import { LocalPuzzleAttemptRepository } from './puzzle-attempt-repository';
 import { LocalAnalysisHistoryRepository } from './analysis-history-repository';
 
-const fromDatabase = (database: PersistenceDatabase): AppRepositories => ({
+/** Repositories over a given database: sync uses this with its unannounced one. */
+export const fromDatabase = (database: PersistenceDatabase): AppRepositories => ({
   studies: new LocalStudyRepository(database),
   games: new LocalGameRepository(database),
   drafts: new LocalDraftRepository(database),

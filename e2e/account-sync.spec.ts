@@ -404,4 +404,63 @@ test.describe('accounts', () => {
     ).toBeVisible();
     await desktop.close();
   });
+
+  test('My games travels only between devices that switched it on', async ({ browser }) => {
+    const cloud = new StubCloud();
+    const gameCount = (page: Page) =>
+      page.evaluate(async () => {
+        const handle = (
+          globalThis as unknown as { __kingfisher: { games: { count(): Promise<number> } } }
+        ).__kingfisher;
+        return handle.games.count();
+      });
+
+    const laptop = await browser.newContext();
+    await serveCloud(laptop, cloud);
+    const first = await laptop.newPage();
+    await signIn(first);
+    await expect(first.getByRole('status').filter({ hasText: /^Synced/ })).toBeVisible();
+    const sync = first.getByRole('switch', { name: 'Sync My games on this device' });
+    await expect(sync).toHaveAttribute('aria-checked', 'false');
+    await first.waitForFunction(() =>
+      Boolean((globalThis as { __kingfisher?: unknown }).__kingfisher),
+    );
+    await first.evaluate(async () => {
+      const handle = (
+        globalThis as unknown as {
+          __kingfisher: {
+            games: unknown;
+            importGames(pgn: string, games: unknown): Promise<unknown>;
+          };
+        }
+      ).__kingfisher;
+      await handle.importGames(
+        '[White "Laptop, L"]\n[Black "Opponent, O"]\n[Result "1-0"]\n\n1. d4 d5 2. c4 1-0',
+        handle.games,
+      );
+    });
+    // Off: an imported game stays on the laptop.
+    await first.waitForTimeout(2_500);
+    expect(cloud.live('myGames')).toHaveLength(0);
+
+    await sync.click();
+    await expect(sync).toHaveAttribute('aria-checked', 'true');
+    await expect.poll(() => cloud.live('myGames').length, { timeout: 15_000 }).toBe(1);
+    await laptop.close();
+
+    const desktop = await browser.newContext();
+    await serveCloud(desktop, cloud);
+    const second = await desktop.newPage();
+    await signIn(second);
+    await expect(second.getByRole('status').filter({ hasText: /^Synced/ })).toBeVisible();
+    await second.waitForFunction(() =>
+      Boolean((globalThis as { __kingfisher?: unknown }).__kingfisher),
+    );
+    // Not switched on here: the game does not arrive.
+    expect(await gameCount(second)).toBe(0);
+
+    await second.getByRole('switch', { name: 'Sync My games on this device' }).click();
+    await expect.poll(() => gameCount(second), { timeout: 15_000 }).toBe(1);
+    await desktop.close();
+  });
 });

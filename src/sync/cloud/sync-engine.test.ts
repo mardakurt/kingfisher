@@ -9,7 +9,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { START_FEN } from '@/chess/fen';
+import { positionKey as positionKeyOf, START_FEN } from '@/chess/fen';
 import { playSanAt } from '@/chess/game';
 import { expect as unwrap } from '@/chess/result';
 import { createTree } from '@/chess/tree/tree';
@@ -19,6 +19,9 @@ import { STORE_NAMES } from '@/persistence/schema/migrations';
 import type { AppRepositories } from '@/persistence/types';
 import { lineToEntries } from '@/repertoire';
 
+import { importGames } from '@/persistence/import-game';
+
+import { gamesSource, MY_GAMES_STORE } from './games-source';
 import { databaseSource, type LocalSource } from './local-sources';
 import { SYNCED_STORES } from './scope';
 import { CloudSyncEngine } from './sync-engine';
@@ -48,14 +51,16 @@ function device(
   userId: string,
   name: string,
   shared?: { repositories: AppRepositories; state: MemorySyncStateStore },
+  options: { readonly games?: boolean } = {},
 ): Device {
   const repositories = shared?.repositories ?? createMemoryRepositories();
   const state = shared?.state ?? new MemorySyncStateStore();
   const remote = new PgliteRemote(harness, userId);
   const applied: { store: string; key: string }[] = [];
-  const sources: LocalSource[] = SYNCED_STORES.map((store) =>
-    databaseSource(repositories.raw, store),
-  );
+  const sources: LocalSource[] = [
+    ...SYNCED_STORES.map((store) => databaseSource(repositories.raw, store)),
+    ...(options.games ? [gamesSource(repositories.raw)] : []),
+  ];
   const engine = new CloudSyncEngine({
     userId,
     deviceId: name,
@@ -340,5 +345,72 @@ describe('scope', () => {
     for (const store of PORTABLE_STORES) {
       expect(SYNCED_STORES.includes(store) !== store in DEVICE_ONLY_STORES).toBe(true);
     }
+  });
+});
+
+describe('My games, switched on', () => {
+  const PGN = `[White "Alpha, A"]
+[Black "Beta, B"]
+[Result "1-0"]
+
+1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 1-0`;
+
+  it('carries a game to the other device, indexed by position there', async () => {
+    const mac = device(user, 'mac', undefined, { games: true });
+    const pc = device(user, 'pc', undefined, { games: true });
+    await mac.engine.decideImport('imported');
+    await importGames(PGN, mac.repositories.games);
+    const [sent] = (await mac.repositories.games.search({})).games;
+
+    await mac.engine.sync();
+    expect(await pc.engine.sync()).toMatchObject({ status: 'synced', conflicts: 0 });
+
+    const arrived = await pc.repositories.games.get(sent!.id);
+    expect(arrived?.white).toBe('Alpha, A');
+    // Indexed as an import would index it: the explorer of My games finds it
+    // at the position before 5...a6 (a position is indexed with its next move).
+    const najdorf = 'rnbqkb1r/pp2pppp/3p1n2/8/3NP3/2N5/PPP2PPP/R1BQKB1R b KQkq - 1 5';
+    expect(await pc.repositories.games.countAtPosition(positionKeyOf(najdorf))).toBe(1);
+    expect(pc.applied).toContainEqual({ store: MY_GAMES_STORE, key: sent!.id });
+    // Stored exactly as sent: nothing to send back on the next run.
+    expect(await pc.engine.pending()).toBe(0);
+  });
+
+  it('never deletes a game elsewhere: removing it here removes it here', async () => {
+    const mac = device(user, 'mac', undefined, { games: true });
+    const pc = device(user, 'pc', undefined, { games: true });
+    await mac.engine.decideImport('imported');
+    await importGames(PGN, mac.repositories.games);
+    const [game] = (await mac.repositories.games.search({})).games;
+    await mac.engine.sync();
+    await pc.engine.sync();
+
+    await mac.repositories.games.delete(game!.id);
+    expect(await mac.engine.sync()).toMatchObject({ pushed: 0 });
+    await pc.engine.sync();
+    expect(await pc.repositories.games.get(game!.id)).not.toBeNull();
+  });
+
+  it('is nothing at all to a device that has not switched it on', async () => {
+    const mac = device(user, 'mac', undefined, { games: true });
+    const pc = device(user, 'pc');
+    await mac.engine.decideImport('imported');
+    await importGames(PGN, mac.repositories.games);
+    await mac.engine.sync();
+    await pc.engine.sync();
+    expect(await pc.repositories.games.count()).toBe(0);
+
+    // And a game imported on that device does not leave it.
+    await importGames(PGN.replace('1-0', '0-1').replace('1-0', '0-1'), pc.repositories.games);
+    expect(await pc.engine.pending()).toBe(0);
+  });
+
+  it('leaves games on the device when signing out removes synced copies, and does not count them', async () => {
+    const mac = device(user, 'mac', undefined, { games: true });
+    await mac.engine.decideImport('imported');
+    await importGames(PGN, mac.repositories.games);
+    await mac.engine.sync();
+    expect(await mac.engine.removeSyncedCopies()).toEqual({ removed: 0, kept: 0 });
+    expect(await mac.repositories.games.count()).toBe(1);
   });
 });

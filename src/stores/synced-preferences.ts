@@ -32,6 +32,8 @@ export const DEVICE_PREFERENCE_KEYS: ReadonlySet<keyof Preferences> = new Set<ke
   'autoBackupEnabled',
   'autoBackupReminderDays',
   'autoBackupRetention',
+  // Each device decides whether it sends and receives games.
+  'syncMyGames',
 ]);
 
 export const SYNCED_PREFERENCE_KEYS: readonly (keyof Preferences)[] = (

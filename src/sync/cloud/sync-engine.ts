@@ -404,6 +404,8 @@ export class CloudSyncEngine {
     const deletedHash = await contentHash(DELETED_HASH_INPUT);
     for (const [ref, state] of states) {
       if (state.localOnly || present.has(ref) || !this.sources.has(state.store)) continue;
+      // An additive source's missing record left its window; it was not deleted.
+      if (this.sources.get(state.store)?.additive) continue;
       changes.push({
         store: state.store,
         key: state.key,
@@ -540,7 +542,9 @@ export class CloudSyncEngine {
       let removed = 0;
       let kept = 0;
       for (const source of this.sources.values()) {
-        if (source.singleton) continue;
+        // Games stay: an additive source never removes anything, so counting
+        // them as removed would tell the person something that did not happen.
+        if (source.singleton || source.additive) continue;
         for (const record of await source.list()) {
           const state = states.get(recordRef(source.store, record.key));
           if (!state || state.localOnly) continue;

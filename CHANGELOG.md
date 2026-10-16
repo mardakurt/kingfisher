@@ -6,6 +6,10 @@ real users notice.
 
 ## Unreleased
 
+- **Sync My games, if you want it.** Account → _Sync My games on this
+  device_ carries your newest 2,000 games to every device where it is also
+  on. Off by default and set per device. Games are added, never removed: a
+  game deleted on one device stays on the others.
 - **Analysis history.** Every position you analyse with the engine (to
   depth 12 or more) is kept: Recent lists them with the score, the start of
   the line, the depth and the engine, and a click reopens the position on

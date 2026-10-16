@@ -37,6 +37,13 @@ export interface LocalSource {
   readonly singleton?: boolean;
   /** For a singleton: true when the record is still the defaults nobody chose. */
   isPristine?(value: unknown): boolean;
+  /**
+   * Records that stop being listed are not deletions. Set for "My games"
+   * (`games-source.ts`), whose list is bounded and switchable: a record that
+   * leaves it has left the window, not the person's collection, and sending
+   * it as a deletion would remove it from every other device.
+   */
+  readonly additive?: boolean;
 }
 
 const keyOf = (value: unknown): string | null => {
