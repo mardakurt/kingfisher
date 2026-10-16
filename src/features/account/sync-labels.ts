@@ -24,6 +24,7 @@ const STORE_LABELS: Partial<Record<StoreName | typeof PREFERENCES_STORE, [string
   [STORE_NAMES.reviewItems]: ['review item', 'review items'],
   [STORE_NAMES.savedQueries]: ['saved search', 'saved searches'],
   [STORE_NAMES.puzzleAttempts]: ['puzzle attempt', 'puzzle attempts'],
+  [STORE_NAMES.analysisHistory]: ['analysed position', 'analysed positions'],
   [STORE_NAMES.engineEvidence]: ['stored engine result', 'stored engine results'],
   [PREFERENCES_STORE]: ['settings', 'settings'],
 };

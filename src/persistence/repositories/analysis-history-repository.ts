@@ -41,12 +41,14 @@ export class LocalAnalysisHistoryRepository implements AnalysisHistoryRepository
       STORE_NAMES.analysisHistory,
       'analysedAt',
     );
-    return rows
-      .map((row) => assertValid(row, isAnalysisHistoryRecord, 'analysed position'))
-      // Sorted here, not trusted to the index: every backing store then
-      // agrees on "newest first", including the in-memory one.
-      .sort((a, b) => b.analysedAt - a.analysedAt)
-      .slice(0, limit);
+    return (
+      rows
+        .map((row) => assertValid(row, isAnalysisHistoryRecord, 'analysed position'))
+        // Sorted here, not trusted to the index: every backing store then
+        // agrees on "newest first", including the in-memory one.
+        .sort((a, b) => b.analysedAt - a.analysedAt)
+        .slice(0, limit)
+    );
   }
 
   async record(input: AnalysisHistoryInput, now = Date.now()): Promise<AnalysisHistoryRecord> {
