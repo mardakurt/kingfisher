@@ -271,3 +271,66 @@ Supabase's paid plan.
 
 **Still open:** branding re-verification (owner, after 24 h), Realtime
 across two live devices, and `npm run cloud:verify` with the secret key.
+
+## 9. Overnight, 2026-10-16
+
+Unattended, after the owner approved pushing to `master`, Search Console
+changes and a free hand with the Studio's layout. Every item below was
+pushed and deployed; the commit is named so it can be checked.
+
+### Shipped
+
+| Change                                                                                                                                                                            | Commit     | Evidence                                                                                                                                                     |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| The sidebar keeps the current section in view when the account row arrives (a real bug the full suite caught)                                                                     | `20b008ae` | `sidebar-overflow.spec.ts` 5/5                                                                                                                               |
+| Sitemap dates per page from `git log`; `WebSite` structured data for Google's site name; the Twitter card no longer credits `@kingfisher`, an account Kingfisher does not own     | `492b519f` | production `sitemap.xml` and `/` read back after deploy                                                                                                      |
+| No tab strip while one tab is open (New tab moves into the header with its own icon); Recent's header first and empty sections one line each; the engine's 1–5 labelled _Lines_   | `7d2a88b7` | 117 targeted browser tests, the three regressions they found fixed and re-run (18/18); visual baselines regenerated, then two consecutive clean runs (43/43) |
+| **Opening map** in the Explorer: three plies of a local source as nested blocks, width = share, shade = White's score, click plays the line; remote sources refused with a reason | `708e6f1d` | `opening-map.test.ts` (8, two mutations caught), `e2e/opening-map.spec.ts` (2, two mutations caught: a remote source asked; only the first move played)      |
+| Landing images re-shot from the current Studio with `scripts/landing-captures.mjs` (whose dock handle selector had broken)                                                        | `f8f9735c` | `landing-chrome`, `layout-integrity` 12/12                                                                                                                   |
+| **Opening map in Preparation**, from the opponent's own games, shaded by their score; a click walks the report there and Back retraces it                                         | `09edcb8f` | `src/preparation/opening-map.test.ts` (3, mutation caught), browser test with a Back-stack mutation caught                                                   |
+| Landing copy describes the map; "A moves history" typo fixed; `public-claims.md` row                                                                                              | `122d26ee` | `docs:check` 365/365                                                                                                                                         |
+| An empty Review no longer offers an accent _Reveal_ (which revealed nothing) or _Mark for review_                                                                                 | `d5437477` | `empty-states.spec.ts`, mutation caught; `phase8.spec.ts` still passes                                                                                       |
+| An empty Training says "Nothing to train yet." and where cards come from, instead of "The review queue is empty."                                                                 | `db23baba` | `empty-states.spec.ts`                                                                                                                                       |
+
+A scan of all 22 Studio routes for controls with no accessible name, or a
+one- or two-character name outside a labelled group, found only the engine's
+line count (fixed above).
+
+### Gates, run at the end of the night
+
+| Command                                         | Result                                                                                                                                                                                                                                                                                                           |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npx playwright test` (full, Chrome, retries 0) | **563 passed, 2 failed** of 565, 57.9 min. Both explained and fixed after the run: `recurring-mistakes` had fixture games on fixed September dates that aged out of the 30-day window (now dated relative to today; 2/2); `playouts` resume ran out of its 120 s wait while still playing (no stall; 240 s, 3/3) |
+| `npm test`                                      | 4,381 passed / 4,381, 432 files, 0 skipped                                                                                                                                                                                                                                                                       |
+| typecheck, lint, format, `git diff --check`     | clean                                                                                                                                                                                                                                                                                                            |
+| `npm run docs:check`, `test:no-skips`           | 365/365; OK                                                                                                                                                                                                                                                                                                      |
+| `npm run build`                                 | succeeded                                                                                                                                                                                                                                                                                                        |
+| `npm run benchmark`                             | every stage exit 0 (the chess.js "FAIL" line is the recorded verdict for keeping Kingfisher's own rules); heaviest route `/games` 598.4 kB gzipped (597.6 kB before tonight)                                                                                                                                     |
+
+The full suite ran before the last two fixes; the two specs were re-run
+after them, not the whole suite again.
+
+### Production, checked after deploy
+
+`/`, `/sign-in`, `/sign-up`, `/privacy`, `/sitemap.xml` return 200; the
+sign-in pages carry `X-Robots-Tag: noindex`; the privacy page names Seoul;
+the sign-in page shows _Continue with Google_ (it appears once the
+project's settings are read); Vercel has both public Supabase variables
+for Production. Sync on production with a real account was **not**
+exercised overnight — it needs the owner's password; it was verified
+live against the same project on 2026-10-15 (§8).
+
+### Not done, and why
+
+- **Search Console** (sitemap submission, indexing requests): the browser
+  pane's Google session had ended, and the owner was asleep. Everything the
+  site itself tells Google was fixed instead (above). In the morning: sign in
+  at search.google.com/search-console → property `kingfisherchess.app` →
+  Sitemaps → submit `sitemap.xml`; URL inspection → request indexing for `/`
+  and `/install`.
+- **Firefox and WebKit runs**: the browsers are not installed here and CI
+  runs Chrome only; installing them is a download that needs the owner's
+  approval (`npx playwright install firefox webkit`, about 200 MB from
+  Playwright's CDN). Then `KF_E2E_MATRIX=1 npx playwright test`.
+- **`npm run cloud:verify`** with the secret key, in the owner's Terminal.
+- **Google branding re-verification** after the 24-hour wait.
