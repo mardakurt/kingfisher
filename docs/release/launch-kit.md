@@ -1,6 +1,6 @@
-# Launch kit — Kingfisher 1.5.2
+# Launch kit — Kingfisher 1.5.3
 
-Draft copy for the current public release: Kingfisher 1.5.2 on the web and
+Draft copy for the current public release: Kingfisher 1.5.3 on the web and
 macOS (Apple Silicon, macOS 14 or later, Developer ID signed and notarised).
 This kit contains no user counts, endorsements or claims of complete ChessBase
 parity. Check [`marketing-facts.md`](../product/marketing-facts.md) before posting.
@@ -10,17 +10,23 @@ parity. Check [`marketing-facts.md`](../product/marketing-facts.md) before posti
 Kingfisher is a local-first chess research workstation for serious players:
 analysis, studies, opening research across separately labelled sources, native
 engines, personal databases, repertoire, review and training. It is free and
-open source under the MIT licence. Local study does not require an account.
+open source under the MIT licence. Local study does not require an account;
+an optional one keeps your work in step across devices.
 Optional online features contact their named services; the website's disclosed
 page-view and performance analytics do not run in the Mac application.
 
 ## Release announcement draft
 
-> Kingfisher 1.5.2 lists every database in the sidebar, names an opened
-> game's players with photographs and flags, shows a database's openings, top
-> games, annotators and teams, a player's opening families by colour in
-> Preparation, searches several databases at once, and offers figurine
-> notation.
+> Kingfisher 1.5.3 adds an optional account: sign in with email or Google,
+> and your studies, repertoires, training, preparation and analysed
+> positions follow you to every device. Your games travel too if you switch
+> that on. When the same thing changed in two places, neither copy is
+> thrown away. Without an account nothing changes.
+>
+> New research tools: an opening map of the next three moves in a local
+> source, openings to reconsider where your own results are poor (with
+> every count, and the source named), position comparison, a history of the
+> positions you analysed, and training progress over eight weeks.
 >
 > Stockfish 18 runs in the browser. The Apple Silicon application offers real
 > native Stockfish, Stormphrax, Viridithas, Halogen, PlentyChess and Lc0 engines,
@@ -31,7 +37,7 @@ page-view and performance analytics do not run in the Mac application.
 > events. Other installed or remote sources retain separate counts, licences
 > and provenance. No combined statistic is presented as a single population.
 >
-> `Kingfisher-1.5.2-arm64.dmg` is Developer ID signed and notarised by Apple.
+> `Kingfisher-1.5.3-arm64.dmg` is Developer ID signed and notarised by Apple.
 > Sparkle checks quietly at launch; Check for Updates opens its native interface.
 > Download and installation require a user action. Work remains in the profile.
 >

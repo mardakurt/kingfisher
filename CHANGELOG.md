@@ -6,8 +6,8 @@ real users notice.
 
 ## 1.5.3 — 2026-10-16
 
-The source and web release; the Mac download stays 1.5.2 until the 1.5.3
-build is published ([release notes](docs/release/1.5.3.md)).
+The web release, and the Mac download `Kingfisher-1.5.3-arm64.dmg`
+(build 1228, Developer ID signed and notarised; [release notes](docs/release/1.5.3.md)).
 
 - **Game details on the board.** Document actions → _Game details…_ edits
   the players, ratings, event, site, date, round, ECO, annotator and result
