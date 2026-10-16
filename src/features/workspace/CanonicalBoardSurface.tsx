@@ -399,7 +399,7 @@ export function CanonicalBoardSurface({
         </p>
       ) : null}
       {showContext && caps.allowContextActions ? (
-        <div className="mx-auto mt-2 flex w-full max-w-[860px] shrink-0 items-center gap-3 pt-1">
+        <div className="@container mx-auto mt-2 flex w-full max-w-[860px] shrink-0 items-center gap-3 pt-1">
           {/*
             A concealing workspace (Review before reveal, Calculation,
             Training) withholds evidence; the position page is exactly that

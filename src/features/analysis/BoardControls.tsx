@@ -73,8 +73,19 @@ export function BoardControls({
         <Flip />
       </IconButton>
       {showPositionPage ? (
-        <Button onClick={openPositionPage} data-position-page-control>
-          Open position page
+        <Button
+          onClick={openPositionPage}
+          aria-label="Open position page"
+          data-position-page-control
+        >
+          {/*
+            Beside a dock below 1100px the strip under the board is ~470px,
+            and the full label left the status line 71px — "White to play"
+            needs 74 and was clipped mid-word. The verb is the first thing a
+            narrow strip can spare; the name a reader hears stays whole.
+          */}
+          <span className="@max-[520px]:hidden">Open position page</span>
+          <span className="hidden @max-[520px]:inline">Position page</span>
         </Button>
       ) : null}
       {/*

@@ -33,7 +33,7 @@ import { useModuleAvailability } from './use-module-availability';
 import { useWorkspaceArrangement } from './use-arrangement';
 import { DEFAULT_PINNED_TOOLS, WORKSPACE_PRESETS } from './presets';
 
-import { DESKTOP_MIN_WIDTH_QUERY, TALL_VIEWPORT_QUERY } from './breakpoints';
+import { TALL_VIEWPORT_QUERY } from './breakpoints';
 
 export interface WorkspaceLock {
   readonly message: string;
@@ -104,7 +104,6 @@ export function WorkspaceToolDock({
    */
   readonly narrow?: boolean;
 }) {
-  const wide = useMediaQuery(DESKTOP_MIN_WIDTH_QUERY);
   /*
     The notation is stacked above the tools on any desk-width screen with room
     for both; below 600px (a window dragged small) it becomes the first tab.
@@ -112,7 +111,9 @@ export function WorkspaceToolDock({
   const roomForNotation = useMediaQuery('(min-height: 600px)');
   const tall = useMediaQuery(TALL_VIEWPORT_QUERY);
   const view = useWorkspaceArrangement(workspace, { withMoveTree });
-  const { device, dockModules, activeDock, foldedFromLower } = view;
+  // Beside the board or under it is the frame's call, not the viewport's:
+  // below the board breakpoint the frame may still have the width for both.
+  const { device, wide, dockModules, activeDock, foldedFromLower } = view;
   const chosenWidth = useWorkspaceLayout(
     (state) => state.arrangements[`${device}:${workspace}`]?.dockWidth,
   );

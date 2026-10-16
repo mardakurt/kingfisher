@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { useWorkspaceLayout, type DeviceClass } from '@/stores/workspace-layout-store';
@@ -47,8 +47,22 @@ export function useDeviceClass(): DeviceClass {
  */
 export const useShortScreen = (): boolean => !useMediaQuery(TALL_VIEWPORT_QUERY);
 
+/**
+ * The frame's own verdict that it is wide enough to go side by side.
+ *
+ * Only `WorkspaceFrame` can measure itself, and the dock and the lower panel
+ * render inside it, so it hands them the answer rather than each re-deriving
+ * it from the viewport — the failure mode `useWorkspaceArrangement` exists to
+ * prevent is two regions disagreeing about where a module lives.
+ */
+export const SideBySideContext = createContext(false);
+
 export interface WorkspaceArrangementView {
   readonly device: DeviceClass;
+  /**
+   * Board column beside the dock (rather than stacked over it). True on a
+   * desktop-class screen, and below one when the frame measured room for it.
+   */
   readonly wide: boolean;
   readonly priority: BoardPriority;
   /** The largest board the current policy will draw. */
@@ -80,10 +94,11 @@ export interface WorkspaceArrangementView {
  */
 export function useWorkspaceArrangement(
   workspace: string,
-  options: { readonly withMoveTree?: boolean } = {},
+  options: { readonly withMoveTree?: boolean; readonly sideBySide?: boolean } = {},
 ): WorkspaceArrangementView {
   const device = useDeviceClass();
-  const wide = device === 'desktop';
+  const fromFrame = useContext(SideBySideContext);
+  const wide = device === 'desktop' || (options.sideBySide ?? fromFrame);
   const shortScreen = useShortScreen();
   const storedPriority = usePreferences((state) => state.boardPriority);
   const priority = resolveBoardPriority(storedPriority);

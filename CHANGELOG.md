@@ -6,6 +6,15 @@ real users notice.
 
 ## Unreleased
 
+- **A small window shows the board and the tools together.** Below 1100px
+  wide, the notation, engine and explorer used to sit under the board, out
+  of sight. Now, whenever the window is landscape and has room for a 400px
+  board beside the tools, they go side by side. At 1024×720 the board is
+  438px with the navigation open and 584px with it folded. The page no
+  longer scrolls, and the notation, the first engine line and the first
+  explorer row are all on screen. Portrait tablets keep the stacked layout.
+  Under a narrow board the button reads _Position page_, and "move 11"
+  drops out whole rather than clipping "White to play".
 - **Analysis reads faster.** Engine lines use the whole row: the preview,
   pin and insert buttons appear over the line you point at instead of
   taking room from every line, so three full lines fit on a laptop screen.

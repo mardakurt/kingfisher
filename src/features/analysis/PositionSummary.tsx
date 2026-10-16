@@ -53,7 +53,7 @@ export function PositionSummary() {
               ` — ${outcome.winner === 'w' ? 'White' : 'Black'} wins`}
           </span>
         ) : (
-          <span>
+          <>
             <span className="text-secondary">
               {position.turn === 'w' ? 'White' : 'Black'} to play
             </span>
@@ -63,11 +63,18 @@ export function PositionSummary() {
             move 1" in the position after 1.e4 e5 — where White has already
             played move 1 and is about to play move 2. Wrong on every White
             move, on the status line a player reads most often.
+
+            Its own item in the row, so that in a strip too narrow for both
+            (beside a dock at 1024px) it wraps away whole instead of clipping
+            the fact before it. The negative margin takes back the row's gap
+            and leaves the 6px it always had.
           */}
             {node.ply > 0 && (
-              <span className="ml-1.5 tabular">move {moveNumberOfPly(node.ply + 1)}</span>
+              <span className="-ml-0.5 tabular sm:-ml-1.5">
+                move {moveNumberOfPly(node.ply + 1)}
+              </span>
             )}
-          </span>
+          </>
         )}
 
         {position.isCheck() && !outcome && <span className="text-caution">Check</span>}

@@ -67,14 +67,17 @@ import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
 
 import type { BoardCapabilities, BoardSurfaceMode } from './board-capabilities';
 import { CanonicalBoardSurface } from './CanonicalBoardSurface';
-import { useWorkspaceArrangement } from './use-arrangement';
+import { fitsSideBySide } from './layout-model';
+import { SideBySideContext, useDeviceClass, useWorkspaceArrangement } from './use-arrangement';
 import { usePositionActions, type UsePositionActionsOptions } from './usePositionActions';
 import { WorkspaceTabStrip } from '@/features/tabs/WorkspaceTabStrip';
 import { WorkspaceLowerPanel } from './WorkspaceLowerPanel';
 import { WorkspaceToolDock, type WorkspaceLock } from './WorkspaceToolDock';
 
 import {
+  LANDSCAPE_QUERY,
   LAPTOP_MAX_WIDTH_QUERY,
+  SIDE_BY_SIDE_BOARD_COLUMN_PX,
   NARROW_DOCK_MAX_WIDTH_QUERY,
   SHORT_VIEWPORT_PADDING_CLASS,
   TALL_VIEWPORT_PADDING_CLASS,
@@ -166,6 +169,8 @@ export interface WorkspaceFrameProps {
 }
 
 const DEFAULT_RAIL_WIDTH = 240;
+/** The folded rail: `w-9`. */
+const RAIL_STRIP_WIDTH = 36;
 const LAPTOP_RAIL_WIDTH = 220;
 
 export function WorkspaceFrame({
@@ -192,8 +197,6 @@ export function WorkspaceFrame({
   className,
   children,
 }: WorkspaceFrameProps) {
-  const view = useWorkspaceArrangement(workspace, { withMoveTree });
-  const { wide } = view;
   const setRailCollapsed = useWorkspaceLayout((state) => state.setRailCollapsed);
   /*
     The board is the thing that grows. A rail beside a dock is two fixed
@@ -207,83 +210,126 @@ export function WorkspaceFrame({
   */
   const laptop = useMediaQuery(LAPTOP_MAX_WIDTH_QUERY);
   const narrowDock = useMediaQuery(NARROW_DOCK_MAX_WIDTH_QUERY);
-  const railCollapsed = rail ? (view.arrangement.railCollapsed ?? false) : false;
-  const dockNarrow = Boolean(rail) && !railCollapsed && narrowDock;
+  const landscape = useMediaQuery(LANDSCAPE_QUERY);
+  const device = useDeviceClass();
+  const railCollapsed = useWorkspaceLayout((state) =>
+    rail ? (state.arrangements[`${device}:${workspace}`]?.railCollapsed ?? false) : false,
+  );
   const railWidth = rail
     ? laptop
       ? Math.min(rail.width ?? DEFAULT_RAIL_WIDTH, LAPTOP_RAIL_WIDTH)
       : (rail.width ?? DEFAULT_RAIL_WIDTH)
     : 0;
 
+  /*
+    Below the board breakpoint the frame decides for itself whether the dock
+    fits beside the board, from its own width — which the navigation sidebar
+    and the route's rail have already taken their share of. Measured before
+    paint; until then the stacked layout stands, as it always did.
+  */
+  const frame = useRef<HTMLDivElement>(null);
+  const [frameWidth, setFrameWidth] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const element = frame.current;
+    if (!element) return;
+    const measure = () => setFrameWidth(element.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  const sideBySide =
+    device === 'compact' &&
+    frameWidth !== null &&
+    fitsSideBySide({
+      frameWidth,
+      railWidth: rail ? (railCollapsed ? RAIL_STRIP_WIDTH : railWidth) : 0,
+      landscape,
+      boardColumn: SIDE_BY_SIDE_BOARD_COLUMN_PX,
+    });
+  const view = useWorkspaceArrangement(workspace, { withMoveTree, sideBySide });
+  const { wide } = view;
+  // Side by side on a compact screen is the tightest the frame gets: the dock
+  // takes its minimum, as it does beside an open rail on a laptop.
+  const dockNarrow = (Boolean(rail) && !railCollapsed && narrowDock) || sideBySide;
+
   const moveTreePanel = withMoveTree ? <MoveTreePanel withHeader={false} /> : undefined;
 
   return (
-    <div
-      className={cn('flex min-h-0 flex-1 flex-col', className)}
-      data-workspace-frame={workspace}
-      data-rail={rail ? (railCollapsed ? 'collapsed' : 'open') : undefined}
-    >
-      <Suspense fallback={null}>
-        <PositionFromUrl onPosition={onPositionFromUrl} />
-      </Suspense>
-      <FrameHeader
-        title={title}
-        subtitle={subtitle}
-        icon={icon}
-        toolbar={toolbar}
-        routeActions={routeActions}
-        actions={actions}
-        position={position}
-        railToggle={
-          rail && wide && !takeover ? (
-            <IconButton
-              label={railCollapsed ? `Show ${rail.label}` : `Hide ${rail.label}`}
-              onClick={() => setRailCollapsed(workspace, view.device, !railCollapsed)}
-              active={!railCollapsed}
-              className="-ml-1"
-            >
-              {railCollapsed ? <PanelRight /> : <PanelLeft />}
-            </IconButton>
-          ) : undefined
-        }
-      />
-      <WorkspaceTabStrip />
-      {banner}
-      {takeover ?? (
-        <div
-          className={cn(
-            'flex min-h-0 flex-1 flex-col overflow-y-auto',
-            wide && 'flex-row overflow-hidden',
-          )}
-        >
-          {rail ? (
-            <Rail
-              rail={rail}
-              width={railWidth}
-              wide={wide}
-              collapsed={railCollapsed}
-              onCollapse={(value) => setRailCollapsed(workspace, view.device, value)}
-            />
-          ) : null}
-
-          <section
-            className="flex min-h-[620px] min-w-0 flex-1 flex-col wide:min-h-0"
-            data-workspace-board-column
+    <SideBySideContext.Provider value={sideBySide}>
+      <div
+        ref={frame}
+        className={cn('flex min-h-0 flex-1 flex-col', className)}
+        data-workspace-frame={workspace}
+        data-rail={rail ? (railCollapsed ? 'collapsed' : 'open') : undefined}
+        data-layout={wide ? 'side-by-side' : 'stacked'}
+      >
+        <Suspense fallback={null}>
+          <PositionFromUrl onPosition={onPositionFromUrl} />
+        </Suspense>
+        <FrameHeader
+          title={title}
+          subtitle={subtitle}
+          icon={icon}
+          toolbar={toolbar}
+          routeActions={routeActions}
+          actions={actions}
+          position={position}
+          railToggle={
+            rail && wide && !takeover ? (
+              <IconButton
+                label={railCollapsed ? `Show ${rail.label}` : `Hide ${rail.label}`}
+                onClick={() => setRailCollapsed(workspace, view.device, !railCollapsed)}
+                active={!railCollapsed}
+                className="-ml-1"
+              >
+                {railCollapsed ? <PanelRight /> : <PanelLeft />}
+              </IconButton>
+            ) : undefined
+          }
+        />
+        <WorkspaceTabStrip />
+        {banner}
+        {takeover ?? (
+          <div
+            className={cn(
+              'flex min-h-0 flex-1 flex-col overflow-y-auto',
+              wide && 'flex-row overflow-hidden',
+            )}
           >
-            {empty ? (
-              <div className="flex min-h-[420px] flex-1 items-center justify-center px-4">
-                {empty}
-              </div>
-            ) : (
-              (boardSlot ?? (
-                <CanonicalBoardSurface
-                  mode={board?.mode ?? 'interactive'}
-                  showContext={board?.showContext ?? true}
-                  showEvaluationArtifacts={board?.showEvaluationArtifacts ?? false}
-                  {...(board?.capabilities ? { capabilities: board.capabilities } : {})}
-                  conceal={board?.conceal ?? false}
-                  concealPieces={board?.concealPieces ?? false}
-                  /*
+            {rail ? (
+              <Rail
+                rail={rail}
+                width={railWidth}
+                wide={wide}
+                collapsed={railCollapsed}
+                onCollapse={(value) => setRailCollapsed(workspace, view.device, value)}
+              />
+            ) : null}
+
+            <section
+              className={cn(
+                'flex min-w-0 flex-1 flex-col',
+                // `wide` here is the frame's layout, not the `wide:` media
+                // variant: side by side happens below that variant's width too.
+                wide ? 'min-h-0' : 'min-h-[620px]',
+              )}
+              data-workspace-board-column
+            >
+              {empty ? (
+                <div className="flex min-h-[420px] flex-1 items-center justify-center px-4">
+                  {empty}
+                </div>
+              ) : (
+                (boardSlot ?? (
+                  <CanonicalBoardSurface
+                    mode={board?.mode ?? 'interactive'}
+                    showContext={board?.showContext ?? true}
+                    showEvaluationArtifacts={board?.showEvaluationArtifacts ?? false}
+                    {...(board?.capabilities ? { capabilities: board.capabilities } : {})}
+                    conceal={board?.conceal ?? false}
+                    concealPieces={board?.concealPieces ?? false}
+                    /*
                     Air around the board — but only where it costs the board
                     nothing it needs. On a short screen the padding stays
                     tight, because 1280x720 is height-bound and every pixel
@@ -291,51 +337,53 @@ export function WorkspaceFrame({
                     everywhere, because the board as large as it will go is
                     what that policy promises.
                   */
-                  className={cn(
-                    `min-h-[460px] flex-1 px-2 py-2 sm:px-3 wide:min-h-0 ${SHORT_VIEWPORT_PADDING_CLASS}`,
-                    view.priority !== 'maximum' && TALL_VIEWPORT_PADDING_CLASS,
-                  )}
-                />
-              ))
-            )}
-            {belowBoard}
-            {/*
+                    className={cn(
+                      `flex-1 px-2 py-2 sm:px-3 ${SHORT_VIEWPORT_PADDING_CLASS}`,
+                      wide ? 'min-h-0' : 'min-h-[460px]',
+                      view.priority !== 'maximum' && TALL_VIEWPORT_PADDING_CLASS,
+                    )}
+                  />
+                ))
+              )}
+              {belowBoard}
+              {/*
             Exactly one region claims the move tree. `moveTreeInPrimary` is
             false unless the user pinned the notation back into the board
             column, so the default layout puts it in the lower panel.
           */}
-            {withMoveTree && view.moveTreeInPrimary && !empty ? (
-              <div className="h-[210px] shrink-0 border-t border-line-subtle">
-                <ErrorBoundary label="The move list">
-                  <MoveTreePanel />
-                </ErrorBoundary>
-              </div>
-            ) : null}
-            {empty ? null : (
-              <WorkspaceLowerPanel
-                workspace={workspace}
-                contextLabel={contextLabel}
-                contextPanel={contextPanel}
-                locked={locked}
-                withMoveTree={withMoveTree}
-                moveTreePanel={moveTreePanel}
-              />
-            )}
-          </section>
+              {withMoveTree && view.moveTreeInPrimary && !empty ? (
+                <div className="h-[210px] shrink-0 border-t border-line-subtle">
+                  <ErrorBoundary label="The move list">
+                    <MoveTreePanel />
+                  </ErrorBoundary>
+                </div>
+              ) : null}
+              {empty ? null : (
+                <WorkspaceLowerPanel
+                  workspace={workspace}
+                  contextLabel={contextLabel}
+                  contextPanel={contextPanel}
+                  locked={locked}
+                  withMoveTree={withMoveTree}
+                  moveTreePanel={moveTreePanel}
+                />
+              )}
+            </section>
 
-          <WorkspaceToolDock
-            workspace={workspace}
-            contextLabel={contextLabel}
-            contextPanel={contextPanel}
-            locked={locked}
-            withMoveTree={withMoveTree}
-            moveTreePanel={moveTreePanel}
-            narrow={dockNarrow}
-          />
-        </div>
-      )}
-      {children}
-    </div>
+            <WorkspaceToolDock
+              workspace={workspace}
+              contextLabel={contextLabel}
+              contextPanel={contextPanel}
+              locked={locked}
+              withMoveTree={withMoveTree}
+              moveTreePanel={moveTreePanel}
+              narrow={dockNarrow}
+            />
+          </div>
+        )}
+        {children}
+      </div>
+    </SideBySideContext.Provider>
   );
 }
 

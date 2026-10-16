@@ -20,6 +20,27 @@ export const BOARD_BREAKPOINT_PX = 1100;
 export const DESKTOP_MIN_WIDTH_QUERY = `(min-width: ${BOARD_BREAKPOINT_PX}px)`;
 
 /**
+ * Side by side below the board breakpoint, when the frame has the width.
+ *
+ * Below 1100px the workspace used to stack: board, then every tool under it.
+ * On a 1024x720 laptop window that put a 570px board on screen and the
+ * notation, the engine and the explorer entirely below the fold — a column
+ * 640px tall scrolling to 980. The width a board column and a dock need is a
+ * property of the *frame*, not the viewport: the navigation sidebar takes 228
+ * or 72 of it and a route's rail takes more. So the frame measures itself, and
+ * goes side by side whenever its width holds this board column next to the
+ * narrowest dock — in a landscape window only, because a portrait tablet has
+ * the height to stack and too little width to split.
+ *
+ * 458 is a 400px board plus the 58px the surface spends around it — padding,
+ * the evaluation bar and its gap — measured at 1024x720, where a 496px column
+ * drew a 438px board. The device class — which arrangement is stored, and
+ * the `wide:` CSS variant — still changes at 1100 and nowhere else.
+ */
+export const SIDE_BY_SIDE_BOARD_COLUMN_PX = 458;
+export const LANDSCAPE_QUERY = '(orientation: landscape)';
+
+/**
  * The height at which the workspace is "tall", and the negation of it.
  *
  * The two must partition the range with no gap between them, because they are

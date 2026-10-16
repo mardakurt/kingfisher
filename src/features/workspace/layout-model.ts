@@ -78,6 +78,27 @@ export interface ResolvedArrangement extends WorkspaceArrangement {
 
 export const DOCK_WIDTH_MIN = 300;
 export const DOCK_WIDTH_MAX = 640;
+
+/**
+ * Whether a frame narrower than the board breakpoint can still put the dock
+ * beside the board. See `SIDE_BY_SIDE_BOARD_COLUMN_PX` for why.
+ *
+ * `railWidth` is what the route's own list takes when the layout is side by
+ * side: its width when open, its folded strip when not, nothing without one.
+ */
+export function fitsSideBySide({
+  frameWidth,
+  railWidth,
+  landscape,
+  boardColumn,
+}: {
+  readonly frameWidth: number;
+  readonly railWidth: number;
+  readonly landscape: boolean;
+  readonly boardColumn: number;
+}): boolean {
+  return landscape && frameWidth - railWidth - DOCK_WIDTH_MIN >= boardColumn;
+}
 export const LOWER_HEIGHT_MIN = 96;
 export const LOWER_HEIGHT_MAX = 520;
 

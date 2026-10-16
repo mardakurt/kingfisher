@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { SIDE_BY_SIDE_BOARD_COLUMN_PX } from './breakpoints';
+
 import {
   activeInRegion,
   BOARD_PRIORITIES,
@@ -9,6 +11,7 @@ import {
   defaultArrangement,
   DOCK_WIDTH_MAX,
   DOCK_WIDTH_MIN,
+  fitsSideBySide,
   LOWER_HEIGHT_MAX,
   LOWER_HEIGHT_MIN,
   modulesInRegion,
@@ -291,5 +294,37 @@ describe('research arrangement compatibility', () => {
     expect(sanitizeArrangement({}, knownModules).dockEngine).toBeUndefined();
     expect(sanitizeArrangement({ dockEngine: 'true' }, knownModules).dockEngine).toBeUndefined();
     expect(sanitizeArrangement({ dockEngine: false }, knownModules).dockEngine).toBe(false);
+  });
+});
+
+describe('fitsSideBySide', () => {
+  const boardColumn = SIDE_BY_SIDE_BOARD_COLUMN_PX;
+  it('splits a 1024px window with the navigation open (796px frame) and folded (952px)', () => {
+    for (const frameWidth of [796, 952]) {
+      expect(fitsSideBySide({ frameWidth, railWidth: 0, landscape: true, boardColumn })).toBe(true);
+    }
+  });
+  it('counts the rail against the board column', () => {
+    // 796 - 220 - 300 = 276: a rail, a dock and no board.
+    expect(fitsSideBySide({ frameWidth: 796, railWidth: 220, landscape: true, boardColumn })).toBe(
+      false,
+    );
+    expect(fitsSideBySide({ frameWidth: 952, railWidth: 36, landscape: true, boardColumn })).toBe(
+      true,
+    );
+  });
+  it('holds the boundary exactly at the board column plus the narrowest dock', () => {
+    const edge = boardColumn + DOCK_WIDTH_MIN;
+    expect(fitsSideBySide({ frameWidth: edge, railWidth: 0, landscape: true, boardColumn })).toBe(
+      true,
+    );
+    expect(
+      fitsSideBySide({ frameWidth: edge - 1, railWidth: 0, landscape: true, boardColumn }),
+    ).toBe(false);
+  });
+  it('never splits a portrait window', () => {
+    expect(fitsSideBySide({ frameWidth: 1024, railWidth: 0, landscape: false, boardColumn })).toBe(
+      false,
+    );
   });
 });

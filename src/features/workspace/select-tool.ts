@@ -38,6 +38,12 @@ export function currentDeviceClass(): DeviceClass {
   return window.matchMedia(DESKTOP_MIN_WIDTH_QUERY).matches ? 'desktop' : 'compact';
 }
 
+/** The frame's own layout verdict, which it states on its root element. */
+function frameIsSideBySide(): boolean {
+  if (typeof document === 'undefined') return false;
+  return document.querySelector('[data-workspace-frame][data-layout="side-by-side"]') !== null;
+}
+
 /**
  * Show a tool in whichever workspace is on screen.
  *
@@ -56,9 +62,11 @@ export function showTool(pathname: string, tool: WorkspaceToolId): void {
   const arrangement = layout.arrangementFor(workspace, device);
   const region = regionOf(arrangement, tool, WORKSPACE_MODULES[tool].home);
   // On a narrow screen the lower panel is folded into the dock, so a tool
-  // placed there is still shown by un-collapsing the dock.
-  if (region === 'dock' || device === 'compact') {
+  // placed there is still shown by un-collapsing the dock — unless the frame
+  // measured room to lay out side by side, where the lower panel is its own.
+  const folded = device === 'compact' && !frameIsSideBySide();
+  if (region === 'dock' || folded) {
     layout.setDockCollapsed(workspace, device, false);
   }
-  layout.setActiveModule(workspace, device, device === 'compact' ? 'dock' : region, tool);
+  layout.setActiveModule(workspace, device, folded ? 'dock' : region, tool);
 }
