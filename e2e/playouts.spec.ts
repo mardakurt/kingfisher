@@ -58,7 +58,7 @@ test('playouts report how the games ended, with the engine and the time named', 
 test('an interrupted browser experiment resumes from its durable chapter after reload', async ({
   page,
 }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(360_000);
   await page.goto(`/analysis?fen=${encodeURIComponent(DRAWN)}`);
   await ready(page);
   await page.getByRole('tab', { name: 'Engine', exact: true }).click();
@@ -93,7 +93,14 @@ test('an interrupted browser experiment resumes from its durable chapter after r
   await page.getByRole('tab', { name: 'Engine', exact: true }).click();
   const resumed = page.getByRole('region', { name: 'Playouts' });
   await resumed.getByRole('button', { name: 'Resume saved experiment' }).click();
-  await expect(resumed).toHaveAttribute('data-playouts', 'done', { timeout: 120_000 });
+  /*
+    What is being tested is that the experiment resumes and finishes, not how
+    fast the engine plays out a drawn ending. Two minutes was marginal: on
+    2026-10-16 three of four runs ran out of it still playing ("game 10,
+    ply 61" on screen), never stalled. Four minutes is that run's worst case
+    with room to spare.
+  */
+  await expect(resumed).toHaveAttribute('data-playouts', 'done', { timeout: 240_000 });
   await expect(resumed.locator('[data-playouts-report]')).toContainText(
     'White won 0, drawn 10, Black won 0.',
   );
