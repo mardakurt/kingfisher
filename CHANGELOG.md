@@ -6,6 +6,11 @@ real users notice.
 
 ## Unreleased
 
+- **Openings to reconsider.** Review → Improvement finds the positions in
+  your own games where the move you usually play has lost most of at least
+  five games, and shows what the reference source played there that scored
+  better, each with its count. Moves that scored better in a named source,
+  not moves you are told to play.
 - **Sync My games, if you want it.** Account → _Sync My games on this
   device_ carries your newest 2,000 games to every device where it is also
   on. Off by default and set per device. Games are added, never removed: a

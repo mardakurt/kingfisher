@@ -30,6 +30,7 @@ import { useUi } from '@/stores/ui-store';
 import { cn } from '@/lib/cn';
 
 import { useDecisions, useReviewItems, useTrainingSets } from './queries';
+import { OpeningAdviceSection } from './OpeningAdviceSection';
 import { RecurringFacts } from './RecurringFacts';
 import {
   PERIODS,
@@ -148,6 +149,8 @@ export function ImprovementSummary({
         </section>
 
         <RecurringFacts aliases={profile.data?.aliases ?? []} from={from} to={now + 1} />
+
+        <OpeningAdviceSection aliases={profile.data?.aliases ?? []} />
 
         <section className="border-t border-line-subtle pt-3">
           <h3 className="text-[10px] font-semibold text-tertiary">Themes you assigned</h3>
