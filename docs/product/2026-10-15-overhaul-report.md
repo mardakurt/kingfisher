@@ -322,15 +322,13 @@ live against the same project on 2026-10-15 (§8).
 
 ### Not done, and why
 
-- **Search Console** (sitemap submission, indexing requests): the browser
-  pane's Google session had ended, and the owner was asleep. Everything the
-  site itself tells Google was fixed instead (above). In the morning: sign in
-  at search.google.com/search-console → property `kingfisherchess.app` →
-  Sitemaps → submit `sitemap.xml`; URL inspection → request indexing for `/`
-  and `/install`.
-- **Firefox and WebKit runs**: the browsers are not installed here and CI
-  runs Chrome only; installing them is a download that needs the owner's
-  approval (`npx playwright install firefox webkit`, about 200 MB from
-  Playwright's CDN). Then `KF_E2E_MATRIX=1 npx playwright test`.
-- **`npm run cloud:verify`** with the secret key, in the owner's Terminal.
-- **Google branding re-verification** after the 24-hour wait.
+- **Search Console** — done by the owner the next morning: sitemap
+  submitted (with its full URL, which a domain property requires) and
+  indexing requested for `/` and `/install`.
+- **`npm run cloud:verify`** — run by the owner the next morning:
+  `14/14 checks passed against mwrljfsnreplhmvzdhzl.supabase.co`. Step 5 is
+  complete.
+- **Firefox and WebKit runs** — not run, by the owner's decision; CI and
+  the local suite test Chrome only.
+- **Google branding re-verification** — after the 24-hour wait, by the
+  owner: Google Cloud → Branding → ⓘ → "I have fixed the issues".

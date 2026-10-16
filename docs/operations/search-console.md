@@ -127,6 +127,14 @@ done from the application.
   ships no `gtag.js`, no `clarity.ms`, no
   `seo-clients`.
 
+## State
+
+On 2026-10-16 the owner submitted `https://kingfisherchess.app/sitemap.xml`
+for the domain property `kingfisherchess.app` (verified by DNS TXT on
+2026-10-15) and requested indexing of `/` and `/install`. A domain property
+needs the sitemap's full URL; `sitemap.xml` alone is refused as "Invalid
+sitemap address".
+
 ## When Search Console reports a problem
 
 Most of the problems Search Console reports are **not**

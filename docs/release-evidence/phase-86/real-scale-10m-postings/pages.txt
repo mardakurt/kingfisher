@@ -1,3 +1,0 @@
-page_size 4096
-page_count 8879268
-freelist_count 133669

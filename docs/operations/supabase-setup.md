@@ -1,11 +1,12 @@
 # Turning on accounts: the Supabase and Google set-up
 
-> **State on 2026-10-15:** steps 1–6 and 8 are done for project
-> `mwrljfsnreplhmvzdhzl` (Seoul) — migrations, email with custom SMTP
-> and the five templates, redirect URLs, Vercel variables — except the
-> Google client in step 5. Step 7's `cloud:verify` needs the secret key
-> and is the owner's to run; the evidence used instead is in
-> `docs/product/2026-10-15-overhaul-report.md` §8.
+> **State on 2026-10-16:** every step is done for project
+> `mwrljfsnreplhmvzdhzl` (Seoul) — migrations, email with custom SMTP and
+> the five templates, redirect URLs, Vercel variables and Google sign-in.
+> Step 7 was run by the owner on 2026-10-16: `14/14 checks passed against
+mwrljfsnreplhmvzdhzl.supabase.co`. Still open: Google's branding
+> re-verification (after its 24-hour wait), so the consent screen names
+> Kingfisher rather than the Supabase host.
 
 Kingfisher's optional accounts are implemented in the repository and
 **off** until a Supabase project is connected. This is the runbook for
@@ -170,6 +171,13 @@ From a shell where the secret key exists only for this command:
 
 ```bash
 SUPABASE_URL=https://<ref>.supabase.co SUPABASE_PUBLISHABLE_KEY=sb_publishable_... SUPABASE_SECRET_KEY=sb_secret_... npm run cloud:verify
+```
+
+Or, in a checkout whose `.env.local` already names the project (the URL
+and the publishable key are read from it), only the secret on the line:
+
+```bash
+set -a && source .env.local && set +a && SUPABASE_SECRET_KEY=sb_secret_... npm run cloud:verify
 ```
 
 It creates two throwaway confirmed users, checks through the real API
