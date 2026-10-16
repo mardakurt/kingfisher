@@ -21,7 +21,7 @@ import type { NodeId } from '@/chess/tree/types';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useEngine } from '@/stores/engine-store';
 
-import { recordAnalysis } from './analysis-history';
+import { MIN_DEPTH, recordAnalysis } from './analysis-history';
 
 /** The evaluation a snapshot of a finished search stands for. */
 export function evaluationFromAnalysis(
@@ -51,6 +51,8 @@ export function useEngineSnapshots(): void {
   const analysedNode = useRef<NodeId | null>(null);
   const analysedFen = useRef<string | null>(null);
   const wasRunning = useRef(false);
+  /** The deepest search of the bound position already in the analysis history. */
+  const historyDepth = useRef(0);
 
   useEffect(() => {
     const unsubscribe = useEngine.subscribe((engine) => {
@@ -66,6 +68,38 @@ export function useEngineSnapshots(): void {
         analysedFen.current = slot.analysedFen;
         const current = analysis.tree.nodes[analysis.currentId];
         analysedNode.current = current?.fen === slot.analysedFen ? current.id : null;
+        historyDepth.current = 0;
+      }
+
+      /*
+        The history is written while the search deepens, not only when it
+        settles. Settling needs the engine to acknowledge a stop, and a person
+        who analyses and then goes to Recent, or closes the tab, never lets it:
+        the workspace unmounts first and the position was never noted. Each
+        new depth from MIN_DEPTH overwrites the position's one entry.
+      */
+      const bound = analysedNode.current;
+      const deepening = slot.analysis;
+      if (
+        slot.running &&
+        bound &&
+        deepening &&
+        deepening.depth >= MIN_DEPTH &&
+        deepening.depth > historyDepth.current
+      ) {
+        const node = analysis.tree.nodes[bound];
+        const score = deepening.lines[0]?.score;
+        if (node && node.fen === deepening.fen && score) {
+          historyDepth.current = deepening.depth;
+          void recordAnalysis({
+            fen: node.fen,
+            score,
+            depth: deepening.depth,
+            engine: slot.identity?.name ?? 'Unknown engine',
+            moves: deepening.lines[0]?.moves ?? [],
+            title: analysis.document.title,
+          });
+        }
       }
 
       const settled = wasRunning.current && !slot.running;
