@@ -1,6 +1,24 @@
 # Platform parity — the web application and the macOS application
 
-**Published revision check (2026-10-17, 1.5.3).** The public Mac download is
+**Published revision check (2026-10-23, 1.5.4).** The public Mac download is
+1.5.4 build 1237 from `c85f931427be1accc6de50a255d790ee16fb497f`, stable and
+clean at packaging. It is Developer ID signed, and the app and DMG are both
+notarised (DMG submission `4fc39534-d477-4a4c-b36b-488b85224752`) and
+stapled; the trust gate is GREEN (29 code objects), and the minimum is macOS
+14.0. `desktop:certify` passed 10 of 11 steps against that bundle — the
+seed-46 walk failed at its first step on a `du` of a profile directory not
+yet written, and passed when run alone (200 actions, 0 findings, 0 console
+errors); the unit step was 4,438/4,438. The staged update feed passed on the
+wire. After publishing, `desktop:update:real --public-feed` updated a copy of
+the installed 1.5.3 to 1.5.4 through Sparkle's own window from the live feed
+(the study written before the update was still there, and the default
+profile was not opened), and `desktop:public:verify -- --landing --full`
+downloaded the public DMG and passed 68/68. The browser and the Mac
+application are the same source at 1.5.4; everything 1.5.4 adds to the
+browser (collections kept beside My games, En Croissant from a file, PGN of
+any size, collection sync) is in the Mac application too.
+
+**Previous published revision (2026-10-17, 1.5.3).** The public Mac download is
 1.5.3 build 1228 from `9d9065d6a8a5723aa1be5374bcd336afd548b6cc`, stable and
 clean at packaging. It is Developer ID signed, and the app and DMG are both
 notarised and stapled; the trust gate is GREEN (29 code objects), and the
