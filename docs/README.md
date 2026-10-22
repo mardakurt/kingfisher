@@ -1,6 +1,7 @@
 # Kingfisher documentation
 
 - [1.5.4 release notes](release/1.5.4.md) — collections, En Croissant and large files in the browser, collection sync, phones, tablets and installed iPhones, Safari storage. Web, and the Mac download.
+- [2026-10-23 browser and devices report](reports/2026-10-23-browser-and-devices.md) — what was audited, found, fixed and run for 1.5.4, and what was not.
 - [1.5.3 release notes](release/1.5.3.md) — accounts and sync, opening map, openings to reconsider, analysis history, a faster-reading Studio. Web, and the Mac download (build 1228, notarised).
 - [1.5.2 release notes](release/1.5.2.md) — puzzle move marks, unsaved-work safety, engine fallback.
 - [2026-10-14 stream-hardening report](reports/2026-10-14-stream-hardening.md) — what was audited, found, fixed and run.
