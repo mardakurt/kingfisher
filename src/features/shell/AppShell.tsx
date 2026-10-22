@@ -11,6 +11,7 @@ import { ShortcutsDialog } from '@/features/shell/ShortcutsDialog';
 import { FirstRunTour } from '@/features/shell/FirstRunTour';
 import { ImportLocalWorkDialog } from '@/features/account/ImportLocalWorkDialog';
 import { useCompanionSync } from '@/companion/useCompanion';
+import { StorageRiskNotice } from '@/features/persistence/StorageRiskNotice';
 import { useBrowserCollectionSync } from '@/database/use-browser-collections';
 import { useBrowserEngineDiscovery } from '@/engine/use-engines';
 import { useDesktopIntegration } from '@/desktop/useDesktop';
@@ -198,7 +199,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <ChessWorkspaceProvider>
       <AnalysisQueueProvider />
-      <div className="flex h-dvh flex-col overflow-hidden bg-surface-0">
+      <div className="flex h-dvh flex-col overflow-hidden bg-surface-0 pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]">
         {/* Room for the macOS window buttons when no sidebar header is there to
             hold them — focus mode, or a viewport narrow enough that navigation
             has become the mobile bar. Zero-height in every other case, and in
@@ -214,6 +215,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 on whichever route the conflicting chapter is open in. */}
             <PostUpdateNotice />
             <PwaUpdateBanner />
+            <StorageRiskNotice />
             <ConflictNotice />
             <RecoveryNotice />
             <ResearchTrail />
@@ -225,7 +227,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {sidebarOpen && (
           <div
-            className="fixed inset-0 z-40 flex md:hidden"
+            className="fixed inset-0 z-40 flex pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] md:hidden"
             role="dialog"
             aria-modal
             aria-label="Navigation"

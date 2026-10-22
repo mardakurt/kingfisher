@@ -783,3 +783,18 @@ privacy page to it.
   320 px, Settings and 16 px text fields to it.
 - **Puzzles** pick the side by a fair coin, then a random puzzle within 75
   points of the target (`choosePuzzle`).
+- **Collections sync** with My games on `syncMyGames`
+  (`sync/cloud/collections-source.ts`): names and the newest 2,000 games
+  across collections, additive, keyed by the collection's key everywhere.
+- **Safe areas.** `viewport-fit=cover`; every edge that can sit under a notch
+  or home bar pads by `env(safe-area-inset-*)` (AppShell, drawer, Dialog,
+  Notices, landing and docs gutters, auth screens). Add the same to any new
+  fixed or full-screen element.
+- **Touch targets.** `data-touch-target` (Button, IconButton and a few
+  hand-made controls) is 32 px on a coarse pointer (`globals.css`). Put it on
+  any new hand-made button.
+- **Header labels** on Position and Set up yield to the page name by
+  measurement (`compactLabels` in `WorkspaceFrame.tsx`), not by breakpoint.
+- **Safari storage notice** (`persistence/storage-risk.ts`,
+  `StorageRiskNotice`): once there is work, never to an installed app, the
+  Mac app, a signed-in person or persistent storage.

@@ -60,6 +60,7 @@ export function Button({
     <button
       type="button"
       {...NOT_RESTORED}
+      data-touch-target
       className={cn(
         'inline-flex shrink-0 items-center rounded-[var(--radius-control)] whitespace-nowrap transition-colors duration-100',
         // A button given a width by its caller or stretched by a column keeps
@@ -102,6 +103,7 @@ export function IconButton({
       title={label}
       aria-label={label}
       aria-pressed={active}
+      data-touch-target
       className={cn(
         'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-control)] transition-colors duration-100',
         'text-secondary hover:bg-surface-3 hover:text-primary active:bg-surface-press',

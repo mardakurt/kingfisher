@@ -66,9 +66,11 @@ it). Then, and only while you are signed in:
   review, saved searches, pinned lines, stored engine results,
   puzzle history, the positions you analysed — and your display, board and engine preferences.
 - **Only if you switch it on:** your newest 2,000 games in My games,
-  when you turn on _Sync My games on this device_ on the Account page.
+  and the newest 2,000 across the collections you made in this browser
+  with their names, when you turn on _Sync My games and collections on
+  this device_ on the Account page.
   It is off by default, and set separately on each device.
-- **Never stored there:** other imported game collections, reference
+- **Never stored there:** SQLite collections held by the companion, reference
   packs, engines, API tokens and keys, and settings that describe
   your machine.
 - **Who can read it:** no other account. The database itself
@@ -104,7 +106,10 @@ A `localStorage` entry holds the small key/value preferences
 (theme, piece set, board theme, sound level, last-active route).
 The contents are visible in the browser's developer tools and
 are an inert JSON object with no PII beyond what you yourself
-typed (a study name, a repertoire name).
+typed (a study name, a repertoire name). In Safari, dismissing the
+note that Safari may delete this site's data writes the time you
+dismissed it, `kingfisher.storage-risk.dismissed`, so it is not said
+again for a month.
 
 The bulk of your work is in **IndexedDB**. IndexedDB is
 origin-scoped, so a profile on `kingfisherchess.app` is not the
@@ -118,8 +123,8 @@ versioned JSON file under your control.
 
 Collections you make on the Databases page are IndexedDB databases of
 their own in the same browser, listed in a small one named
-`kingfisher-collections`. They stay on that browser: they are not sent
-to your account, and a backup carries them only when it includes games.
+`kingfisher-collections`. They are sent to your account only with the
+switch above on, and a backup carries them only when it includes games.
 
 ### Reference cache
 

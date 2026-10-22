@@ -116,3 +116,96 @@ test.describe('text fields on a touch screen', () => {
     expect(size).toBeGreaterThanOrEqual(coarse ? 16 : 0);
   });
 });
+
+/*
+  2026-10-22, second pass: tablets, the iPhone's notch and home bar, and the
+  controls a finger still missed.
+*/
+for (const size of [
+  { width: 768, height: 1024 },
+  { width: 834, height: 1194 },
+]) {
+  test.describe(`a tablet at ${size.width} px`, () => {
+    test.use({ viewport: size });
+
+    // With the sidebar open the header is about 560 px; the labels on
+    // Position and Set up left "O" for Openings and "Endga…" for Endgame lab.
+    for (const route of ['/openings', '/review', '/studies', '/endgame']) {
+      test(`${route} shows its whole name`, async ({ page }) => {
+        await gotoRoute(page, route);
+        await page.locator(READY).waitFor();
+        const title = page.locator('header h1').first();
+        await expect(title).toBeVisible();
+        await expect
+          .poll(() => title.evaluate((element) => element.scrollWidth - element.clientWidth))
+          .toBeLessThanOrEqual(1);
+      });
+    }
+  });
+}
+
+test.describe('an iPhone with a notch and a home bar', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('keeps the navigation above the home bar and the header below the notch', async ({
+    page,
+    browserName,
+  }) => {
+    // Chromium can pretend to be a notched phone; the others have no insets,
+    // where the same padding must be nothing at all.
+    const insets = browserName === 'chromium' ? { top: 47, bottom: 34, left: 0, right: 0 } : null;
+    if (insets) {
+      const cdp = await page.context().newCDPSession(page);
+      await cdp.send('Emulation.setSafeAreaInsetsOverride', { insets });
+    }
+    await gotoRoute(page, '/analysis');
+    await page.locator(READY).waitFor();
+    const measured = await page.evaluate(() => {
+      const nav = document
+        .querySelector('nav[aria-label="Primary mobile navigation"]')!
+        .getBoundingClientRect();
+      const header = document.querySelector('[data-workspace-header]')!.getBoundingClientRect();
+      return { navBottom: nav.bottom, headerTop: header.top, height: innerHeight };
+    });
+    expect(measured.headerTop).toBe(insets?.top ?? 0);
+    expect(measured.height - measured.navBottom).toBe(insets?.bottom ?? 0);
+  });
+
+  test('a notice fits a 320 px phone and sits above the navigation', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 640 });
+    await gotoRoute(page, '/databases');
+    await page.locator(READY).waitFor();
+    // Raised the way the application raises one: a collection created.
+    await page.getByRole('button', { name: 'New collection', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'New collection' });
+    await dialog.getByLabel('Name').fill('A notice for a narrow phone');
+    await dialog.getByRole('button', { name: 'Create' }).click();
+    const notice = page.getByRole('status').filter({ hasText: 'in this browser' }).first();
+    await expect(notice).toBeVisible();
+    const box = (await notice.boundingBox())!;
+    const nav = (await page.locator('nav[aria-label="Primary mobile navigation"]').boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(320);
+    expect(box.y + box.height).toBeLessThanOrEqual(nav.y);
+  });
+});
+
+test.describe('controls on a touch screen', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test('are at least 32 px where a finger has to hit them', async ({ page, browserName }) => {
+    await gotoRoute(page, '/openings');
+    await page.locator(READY).waitFor();
+    const coarse = await page.evaluate(() => matchMedia('(pointer: coarse)').matches);
+    if (browserName === 'chromium') expect(coarse).toBe(true);
+    const chip = page.getByRole('button', { name: 'Sicilian', exact: true });
+    const box = (await chip.boundingBox())!;
+    expect(box.height).toBeGreaterThanOrEqual(coarse ? 32 : 0);
+
+    await gotoRoute(page, '/analysis');
+    await page.locator(READY).waitFor();
+    const line = page.getByRole('group', { name: 'Candidate lines' }).getByRole('button').first();
+    const lineBox = (await line.boundingBox())!;
+    expect(Math.min(lineBox.width, lineBox.height)).toBeGreaterThanOrEqual(coarse ? 32 : 0);
+  });
+});

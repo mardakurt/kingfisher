@@ -22,6 +22,10 @@ real users notice.
   - **PGN files of any size.** Import PGN reads a chosen file a few
     megabytes at a time; a file too large to hold as one piece of text used
     to fail before its first game.
+- **Collections on every device.** _Sync My games and collections on this
+  device_ (Account) now carries the collections you made in the browser
+  too: their names and their newest 2,000 games, into the collection of the
+  same name on each device where it is on. Added, never removed.
 - **Phones.** Page names are no longer cut to three letters by the header's
   buttons (New tab and Set up step aside on a phone; Settings is in the
   menu), Settings is one column with its sections across the top, the
@@ -29,6 +33,18 @@ real users notice.
   description stack, text fields no longer make iPhone Safari zoom in, and
   segmented choices and checkboxes are large enough for a finger. The
   public pages no longer scroll sideways on a 320 px phone.
+- **Tablets.** Page names are no longer cut off at 768–834 px with the
+  sidebar open: Position and Set up drop their labels when the name needs
+  the room, and keep them where it does not (Analysis on an iPad).
+- **Installed on an iPhone.** The navigation sits above the home bar, the
+  header below the notch, and nothing goes under the notch in landscape.
+  Notices fit a 320 px phone and appear above the navigation.
+- **Touch.** Buttons, fields, tabs and switches are at least 32 px for a
+  finger, and the status line is legible on a phone.
+- **Safari keeps your work.** Safari deletes a site's data after seven days
+  without a visit unless the site is installed. Kingfisher now says so, once
+  there is work to lose, with the three ways to keep it: add it to the Dock
+  or Home Screen, sign in, or download a backup.
 - **Puzzles are White or Black at random.** Each puzzle's side is a coin
   toss, then a random puzzle near your rating; they used to come in the runs
   of one colour that a fixed order happened to hold.

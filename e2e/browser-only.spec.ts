@@ -12,7 +12,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import path from 'node:path';
 
-import { isNavigationAbortNoise } from './tools';
+import { gotoRoute, isNavigationAbortNoise } from './tools';
 
 const READY = 'html[data-kingfisher-ready="true"]';
 const EN_CROISSANT = path.resolve('src/database/encroissant/__fixtures__/en-croissant-0.15.db');
@@ -52,7 +52,7 @@ function collectErrors(page: Page, browserName: string): string[] {
 const collections = (page: Page) => page.getByRole('list', { name: 'Collections' });
 
 async function newCollection(page: Page, name: string) {
-  await page.goto('/databases');
+  await gotoRoute(page, '/databases');
   await page.locator(READY).waitFor();
   await page.getByRole('button', { name: 'New collection', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'New collection' });
@@ -76,7 +76,7 @@ test('a collection is made, filled, searched, explored, copied, renamed and dele
   await importing.getByRole('button', { name: 'Import games' }).click();
   await expect(page.getByText('2 games added to “Club games”.')).toBeVisible({ timeout: 30_000 });
 
-  await page.goto('/databases');
+  await gotoRoute(page, '/databases');
   await page.locator(READY).waitFor();
   await expect(collections(page).getByRole('button', { name: /Club games/ })).toContainText(
     '2 games',
@@ -86,7 +86,7 @@ test('a collection is made, filled, searched, explored, copied, renamed and dele
   );
 
   // The Library lists it as a database, finds its games and opens one.
-  await page.goto('/games');
+  await gotoRoute(page, '/games');
   await page.locator(READY).waitFor();
   const database = page.locator('[data-library-database]');
   const club = await database.locator('option', { hasText: 'Club games' }).getAttribute('value');
@@ -95,7 +95,7 @@ test('a collection is made, filled, searched, explored, copied, renamed and dele
   await page.getByText('Gamma, Cy').first().click();
 
   // The explorer reads it as a source of its own.
-  await page.goto('/analysis');
+  await gotoRoute(page, '/analysis');
   await page.locator(READY).waitFor();
   await page.getByRole('tab', { name: 'Explorer' }).first().click();
   const source = page.getByLabel('Evidence source').first();
@@ -106,7 +106,7 @@ test('a collection is made, filled, searched, explored, copied, renamed and dele
   await expect(page.getByText('2 games here').first()).toBeVisible({ timeout: 30_000 });
 
   // Copy to My games, through the same transfer every collection uses.
-  await page.goto('/databases');
+  await gotoRoute(page, '/databases');
   await page.locator(READY).waitFor();
   await collections(page)
     .getByRole('button', { name: /Club games/ })
@@ -121,7 +121,7 @@ test('a collection is made, filled, searched, explored, copied, renamed and dele
   await transfer.getByRole('button', { name: 'Copy games' }).click();
   // A copy with nothing to warn about closes its dialog when it is done.
   await expect(transfer).toBeHidden({ timeout: 30_000 });
-  await page.goto('/databases');
+  await gotoRoute(page, '/databases');
   await page.locator(READY).waitFor();
   await expect(collections(page).getByRole('button', { name: /My games/ })).toContainText(
     '2 games',
@@ -141,7 +141,7 @@ test('a collection is made, filled, searched, explored, copied, renamed and dele
     .getByRole('dialog', { name: 'Delete this collection?' })
     .getByRole('button', { name: 'Delete permanently' })
     .click();
-  await page.goto('/databases');
+  await gotoRoute(page, '/databases');
   await page.locator(READY).waitFor();
   await expect(collections(page).getByRole('button', { name: /Club 2026/ })).toHaveCount(0);
   // My games keeps the copies.
@@ -157,7 +157,7 @@ test('an En Croissant database is chosen and read in the browser', async ({
 }) => {
   test.setTimeout(180_000);
   const errors = collectErrors(page, browserName);
-  await page.goto('/databases');
+  await gotoRoute(page, '/databases');
   await page.locator(READY).waitFor();
   await page.getByRole('button', { name: 'Import En Croissant', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Import En Croissant database', exact: true });
@@ -171,7 +171,7 @@ test('an En Croissant database is chosen and read in the browser', async ({
   await expect(dialog).toContainText('Import complete.', { timeout: 120_000 });
   await expect(dialog).toContainText('60 / 60 examined · 60 imported · 0 duplicates · 0 rejected');
   await dialog.getByRole('button', { name: 'Done', exact: true }).click();
-  await page.goto('/databases');
+  await gotoRoute(page, '/databases');
   await page.locator(READY).waitFor();
   await expect(collections(page).getByRole('button', { name: /From En Croissant/ })).toContainText(
     '60 games',
@@ -185,7 +185,7 @@ test('a ChessBase database goes into a new collection in the browser', async ({
 }) => {
   test.setTimeout(180_000);
   const errors = collectErrors(page, browserName);
-  await page.goto('/databases');
+  await gotoRoute(page, '/databases');
   await page.locator(READY).waitFor();
   await page.getByRole('button', { name: 'Import ChessBase', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Import ChessBase database', exact: true });
@@ -200,7 +200,7 @@ test('a ChessBase database goes into a new collection in the browser', async ({
     timeout: 60_000,
   });
   await dialog.getByRole('button', { name: 'Done', exact: true }).click();
-  await page.goto('/databases');
+  await gotoRoute(page, '/databases');
   await page.locator(READY).waitFor();
   await expect(
     collections(page).getByRole('button', { name: /World championships/ }),
@@ -212,7 +212,7 @@ test('a ChessBase database goes into a new collection in the browser', async ({
 });
 
 test('Import a large file sends a browser to the import that reads any size', async ({ page }) => {
-  await page.goto('/databases');
+  await gotoRoute(page, '/databases');
   await page.locator(READY).waitFor();
   await page.getByRole('button', { name: 'Import a large file…' }).click();
   await page

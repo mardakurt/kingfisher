@@ -601,6 +601,7 @@ function TabButton({
 }) {
   return (
     <button
+      data-touch-target
       type="button"
       onClick={onClick}
       disabled={disabled}

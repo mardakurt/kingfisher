@@ -180,7 +180,8 @@ function ImportForm() {
   if (minimized && busy) {
     return (
       <aside
-        className="fixed right-3 bottom-10 z-50 w-[340px] max-w-[calc(100vw-1.5rem)] rounded-[var(--radius-panel)] border border-line-strong bg-surface-1 p-3
+        // Above the phone's bottom navigation and the home bar.
+        className="fixed right-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-50 w-[340px] md:bottom-[calc(2.5rem+env(safe-area-inset-bottom))] max-w-[calc(100vw-1.5rem)] rounded-[var(--radius-panel)] border border-line-strong bg-surface-1 p-3
           shadow-[var(--shadow-popover)]"
         aria-live="polite"
       >

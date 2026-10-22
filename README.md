@@ -696,7 +696,7 @@ pinned lines, stored engine results, puzzle history, analysed positions and
 settings — is kept in your account (Supabase, Seoul) and on every device you
 sign in on, and IndexedDB stays the working copy. Imported game collections,
 reference packs, engines and tokens stay on the device, except the newest
-2,000 games of My games when you switch _Sync My games on this device_ on.
+2,000 games of My games when you switch _Sync My games and collections on this device_ on.
 What syncs and why is in `src/sync/cloud/scope.ts` and the
 [account ADR](docs/adr/00xx-optional-account-sync.md).
 

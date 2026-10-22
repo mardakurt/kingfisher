@@ -70,13 +70,14 @@ export function PrivacyPage(): JSX.Element {
           analysed — with your display, board and engine preferences.
         </li>
         <li>
-          <strong>Only if you switch it on:</strong> your newest 2,000 games in My games, when you
-          turn on <em>Sync My games on this device</em> on the Account page. It is off by default,
-          and set separately on each device.
+          <strong>Only if you switch it on:</strong> your newest 2,000 games in My games, and the
+          newest 2,000 across the collections you made in this browser with their names, when you
+          turn on <em>Sync My games and collections on this device</em> on the Account page. It is
+          off by default, and set separately on each device.
         </li>
         <li>
-          <strong>Never stored there:</strong> other imported game collections, reference packs,
-          engines, API tokens and keys, and settings that describe your machine.
+          <strong>Never stored there:</strong> SQLite collections held by the companion, reference
+          packs, engines, API tokens and keys, and settings that describe your machine.
         </li>
         <li>
           <strong>Who can read it:</strong> no other account. The database itself refuses every
@@ -115,7 +116,9 @@ export function PrivacyPage(): JSX.Element {
         A <code>localStorage</code> entry holds the small key/value preferences (theme, piece set,
         board theme, sound level, last-active route). The contents are visible in the browsers
         developer tools and are an inert JSON object with no PII beyond what you yourself typed (a
-        study name, a repertoire name, your display name).
+        study name, a repertoire name, your display name). In Safari, dismissing the note that
+        Safari may delete this site’s data writes the time you dismissed it,{' '}
+        <code>kingfisher.storage-risk.dismissed</code>, so it is not said again for a month.
       </p>
       <p>
         The landing page at <code>/</code> reads two further <code>localStorage</code> entries on
@@ -138,8 +141,8 @@ export function PrivacyPage(): JSX.Element {
       </p>
       <p>
         Collections you make on the Databases page are IndexedDB databases of their own in the same
-        browser, listed in a small one named <code>kingfisher-collections</code>. They stay on that
-        browser: they are not sent to your account, and a backup carries them only when it includes
+        browser, listed in a small one named <code>kingfisher-collections</code>. They are sent to
+        your account only with the switch above on, and a backup carries them only when it includes
         games.
       </p>
 

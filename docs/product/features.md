@@ -530,7 +530,7 @@ Optional. Email and password or Google; email verification and password
 reset with Kingfisher's own emails. Signed in, authored work and settings
 sync between devices; the server's version wins a conflict and yours is kept
 under _To review_ to restore or dismiss; the first sign-in on a device that
-already has work asks before uploading it. _Sync My games on this device_
+already has work asks before uploading it. _Sync My games and collections on this device_
 carries the newest 2,000 games, added and never removed. Sign out can keep or
 remove this device's synced copies; deleting the account deletes its data on
 the server. Settings → Accounts names the account and links here.

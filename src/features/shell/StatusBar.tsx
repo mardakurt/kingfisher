@@ -65,8 +65,9 @@ export function StatusBar() {
     }
   };
 
+  // 12 px on a phone, where 10.5 px could not be read at arm's length.
   return (
-    <footer className="flex h-6 min-w-0 shrink-0 items-center gap-3 overflow-hidden border-t border-line-subtle bg-surface-1 px-2.5 text-[10.5px] text-tertiary">
+    <footer className="flex h-7 min-w-0 shrink-0 items-center gap-3 overflow-hidden border-t border-line-subtle bg-surface-1 px-2.5 text-xs text-tertiary sm:h-6 sm:text-[10.5px]">
       <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap">
         <span
           className={cn(

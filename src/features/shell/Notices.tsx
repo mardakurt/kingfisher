@@ -12,7 +12,11 @@ export function Notices() {
   if (notices.length === 0) return null;
 
   return (
-    <div className="pointer-events-none fixed bottom-8 left-1/2 z-50 flex w-[380px] -translate-x-1/2 flex-col gap-1.5">
+    /*
+      Above the phone's bottom navigation (3.5 rem) and the home bar, and no
+      wider than the screen: at 380 px it ran off both sides of a 320 px phone.
+    */
+    <div className="pointer-events-none fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-1/2 z-50 flex w-[min(380px,calc(100vw-1.5rem))] -translate-x-1/2 flex-col gap-1.5 md:bottom-[calc(2rem+env(safe-area-inset-bottom))]">
       {notices.map((notice) => (
         <div
           key={notice.id}

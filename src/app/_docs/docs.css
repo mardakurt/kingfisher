@@ -12,7 +12,12 @@
 
 .kf-docs {
   --max: 860px;
-  --gutter: clamp(20px, 5vw, 56px);
+  /* Never less than a notch or rounded corner needs (viewport-fit=cover). */
+  --gutter: max(
+    clamp(20px, 5vw, 56px),
+    env(safe-area-inset-left, 0px),
+    env(safe-area-inset-right, 0px)
+  );
   background: var(--surface-0);
   color: var(--text-primary);
   font-family: var(--font-ui);

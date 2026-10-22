@@ -131,6 +131,15 @@ export const viewport: Viewport = {
   themeColor: PALETTE.light.canvas,
   width: 'device-width',
   initialScale: 1,
+  /*
+    The page fills the screen, under an iPhone's notch and home bar, and
+    every edge that could be under one is padded by the safe-area insets
+    instead (AppShell, the drawer, dialogs, notices, the landing and the
+    documents). Without it an installed Kingfisher drew its bottom
+    navigation where the home indicator sits. The insets are zero on every
+    screen without a notch, so nothing else moves.
+  */
+  viewportFit: 'cover',
 };
 
 /**

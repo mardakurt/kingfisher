@@ -441,6 +441,20 @@ function FrameHeader({
     draws everything.
   */
   const [available, setAvailable] = useState(-1);
+  /*
+    Position and Set up drop their labels when the page's own name would
+    otherwise be cut. At 768–834 px the sidebar is open and the header is
+    about 560 px: with both labels Openings read "O", Review "R..", Endgame
+    lab "Endga…". Measured rather than set at a width, because Analysis has
+    no name to protect and keeps its labels on an iPad (the owner's report
+    that asked for them). They return only when the window has grown by the
+    room they take, so the header settles instead of flickering between the
+    two.
+  */
+  const [compactLabels, setCompactLabels] = useState(false);
+  const compactRef = useRef(false);
+  const labelRoom = useRef(0);
+  const compactAt = useRef(0);
   const measure = useCallback(() => {
     const element = header.current;
     if (!element) return;
@@ -482,6 +496,30 @@ function FrameHeader({
     const others = trailing.offsetWidth - (row?.offsetWidth ?? 0);
     const next = Math.floor(inner - titleLeft - titleNeed - others - 12);
     setAvailable((current) => (current === next ? current : next));
+
+    if (titleBlock && name) {
+      const labels = [...element.querySelectorAll<HTMLElement>('[data-header-label]')];
+      const labelWidth = labels.reduce((sum, label) => sum + label.offsetWidth, 0);
+      if (!compactRef.current && labelWidth > 0 && textWidth(name) > name.clientWidth + 1) {
+        labelRoom.current = labelWidth;
+        compactAt.current = element.clientWidth;
+        compactRef.current = true;
+        setCompactLabels(true);
+      } else if (
+        compactRef.current &&
+        element.clientWidth >= compactAt.current + labelRoom.current + 12
+      ) {
+        /*
+          Back only when the header itself has grown by the labels' width —
+          a wider window. Deciding from the room inside the header looped:
+          hidden labels let the route's folded actions unfold into the room,
+          and labels shown again folded them back, for ever (Review with a
+          game open, "Maximum update depth exceeded").
+        */
+        compactRef.current = false;
+        setCompactLabels(false);
+      }
+    }
   }, []);
   useLayoutEffect(() => {
     const element = header.current;
@@ -589,7 +627,9 @@ function FrameHeader({
                 for the toolbar at 1080 px, the smallest size the workspaces
                 ship at.
               */}
-                <span className="hidden xs:inline">Position</span>
+                <span className={compactLabels ? 'hidden' : 'hidden xs:inline'} data-header-label>
+                  Position
+                </span>
               </Button>
             )}
           />
@@ -603,7 +643,9 @@ function FrameHeader({
             onClick={() => setPositionSetupOpen(true)}
             data-position-setup
           >
-            <span className="hidden xs:inline">Set up</span>
+            <span className={compactLabels ? 'hidden' : 'hidden xs:inline'} data-header-label>
+              Set up
+            </span>
           </Button>
         </span>
         {/*

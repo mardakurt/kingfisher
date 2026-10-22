@@ -256,6 +256,7 @@ export function ModuleTabStrip({
                 aria-expanded={open}
                 aria-haspopup="menu"
                 data-tab-strip-more
+                data-touch-target
                 title={compact ? `More — ${overflow.length} more tools` : undefined}
                 className={cn(
                   'flex h-7 shrink-0 items-center justify-center gap-1 rounded-[var(--radius-control)] text-xs font-medium whitespace-nowrap text-secondary hover:bg-surface-2 hover:text-primary',

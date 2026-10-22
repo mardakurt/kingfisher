@@ -35,7 +35,7 @@ function AuthFrame({
   footer?: ReactNode;
 }) {
   return (
-    <main className="flex min-h-dvh flex-col items-center bg-surface-0 px-4 py-10 text-primary sm:justify-center sm:py-16">
+    <main className="flex min-h-dvh flex-col items-center bg-surface-0 px-[max(1rem,env(safe-area-inset-left),env(safe-area-inset-right))] py-10 text-primary sm:justify-center sm:py-16">
       <div className="w-full max-w-[400px]">
         <Link
           href="/"

@@ -112,7 +112,7 @@ export function Dialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/45 p-3 pt-[5dvh] animate-fade-in sm:p-4 sm:pt-[10dvh]"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/45 p-3 pt-[max(5dvh,env(safe-area-inset-top))] pr-[max(0.75rem,env(safe-area-inset-right))] pb-[max(0.75rem,env(safe-area-inset-bottom))] pl-[max(0.75rem,env(safe-area-inset-left))] animate-fade-in sm:pt-[10dvh] sm:pr-[max(1rem,env(safe-area-inset-right))] sm:pb-[max(1rem,env(safe-area-inset-bottom))] sm:pl-[max(1rem,env(safe-area-inset-left))]"
       onPointerDown={onClose}
     >
       <div

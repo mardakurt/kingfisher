@@ -93,6 +93,7 @@ export function OpeningLibrary() {
                   key={family}
                   type="button"
                   onClick={() => setQuery(family)}
+                  data-touch-target
                   className="rounded-[var(--radius-control)] border border-line px-1.5 py-0.5 text-[11px] text-tertiary transition-colors hover:border-line-strong hover:text-secondary"
                 >
                   {family.replace(' Defense', '').replace(' Opening', '')}
