@@ -55,12 +55,21 @@ jobs:
         if: github.event.inputs.mode == 'compare'
         run: npx playwright test e2e/visual.spec.ts
 
+      # Drawing baselines is not a gate. The development server on the Linux
+      # runner sometimes renders /analysis from a manifest still being written
+      # ("Unexpected end of JSON input") and a layout smoke test times out;
+      # three runs on 2026-10-22 lost every redrawn picture to it, because the
+      # upload waited for a green run. A retry absorbs the fault here, and the
+      # pictures are uploaded whatever the outcome — the reviewer looks at
+      # them before committing. Compare mode keeps zero retries.
       - name: Update Linux baselines
         if: github.event.inputs.mode == 'update'
+        env:
+          PLAYWRIGHT_RETRIES: '2'
         run: npm run visual:baselines
 
       - name: Upload regenerated baselines
-        if: github.event.inputs.mode == 'update'
+        if: always() && github.event.inputs.mode == 'update'
         uses: actions/upload-artifact@v6
         with:
           name: visual-baselines-linux
