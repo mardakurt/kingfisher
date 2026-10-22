@@ -8,6 +8,7 @@ import type { Uci } from '@/chess/types';
 import {
   answerPuzzle,
   choosePuzzle,
+  puzzleSolver,
   puzzleBucket,
   puzzleFromRow,
   puzzleLine,
@@ -175,16 +176,91 @@ describe('choosing the next puzzle', () => {
       '',
     ]),
   );
-  it('prefers the nearest unattempted puzzle and honours a theme', () => {
-    const near = choosePuzzle(pool, { target: 1190, attempted: new Set(), seed: 0 });
+  // A generator that returns the given values in turn, for a draw we can name.
+  const draws =
+    (...values: number[]) =>
+    () =>
+      values.shift() ?? 0;
+
+  it('draws only near the target, skips attempts and honours a theme', () => {
+    const near = choosePuzzle(pool, { target: 1190, attempted: new Set(), random: draws(0, 0) });
     expect(near?.id).toBe('p1200');
-    const skip = choosePuzzle(pool, { target: 1190, attempted: new Set(['p1200']), seed: 0 });
+    const skip = choosePuzzle(pool, {
+      target: 1190,
+      attempted: new Set(['p1200']),
+      random: draws(0, 0),
+    });
     expect(skip?.id).not.toBe('p1200');
     expect(
-      choosePuzzle(pool, { target: 1600, attempted: new Set(), theme: 'fork', seed: 3 })?.id,
+      choosePuzzle(pool, { target: 1600, attempted: new Set(), theme: 'fork', random: draws(0.9) })
+        ?.id,
     ).toBe('p1200');
     expect(
-      choosePuzzle(pool, { target: 1600, attempted: new Set(['p1200']), theme: 'fork', seed: 0 }),
+      choosePuzzle(pool, { target: 1600, attempted: new Set(['p1200']), theme: 'fork' }),
     ).toBeNull();
+  });
+
+  /*
+    Fifty puzzles at one rating, alternate ones White's to solve. The old
+    choice walked the twelve nearest in id order, so its colours were whatever
+    runs that order held; the side must come from the coin alone.
+  */
+  const mixed = Array.from({ length: 50 }, (_, index) =>
+    puzzleFromRow([
+      `m${String(index).padStart(2, '0')}`,
+      `8/8/8/8/8/8/8/8 ${index % 2 === 0 ? 'b' : 'w'} - - 0 1`,
+      'a1a2 a2a3',
+      1500,
+      80,
+      90,
+      500,
+      'pin',
+      '',
+      '',
+    ]),
+  );
+
+  it('plays the side the coin names, whichever it is', () => {
+    const white = choosePuzzle(mixed, {
+      target: 1500,
+      attempted: new Set(),
+      random: draws(0.1, 0.5),
+    });
+    const black = choosePuzzle(mixed, {
+      target: 1500,
+      attempted: new Set(),
+      random: draws(0.6, 0.5),
+    });
+    expect(white && puzzleSolver(white)).toBe('w');
+    expect(black && puzzleSolver(black)).toBe('b');
+  });
+
+  it('gives each side about half the puzzles and reaches the whole window', () => {
+    let state = 12345;
+    const random = () => {
+      // A small linear congruential generator, so the run is reproducible.
+      state = (state * 1103515245 + 12345) % 2 ** 31;
+      return state / 2 ** 31;
+    };
+    const sides = { w: 0, b: 0 };
+    const seen = new Set<string>();
+    for (let draw = 0; draw < 2000; draw += 1) {
+      const puzzle = choosePuzzle(mixed, { target: 1500, attempted: new Set(), random })!;
+      sides[puzzleSolver(puzzle)] += 1;
+      seen.add(puzzle.id);
+    }
+    expect(sides.w).toBeGreaterThan(900);
+    expect(sides.b).toBeGreaterThan(900);
+    expect(seen.size).toBe(50);
+  });
+
+  it('falls back to the other side when the window holds only one', () => {
+    const onlyWhite = mixed.filter((puzzle) => puzzleSolver(puzzle) === 'w');
+    const chosen = choosePuzzle(onlyWhite, {
+      target: 1500,
+      attempted: new Set(),
+      random: draws(0.9, 0),
+    });
+    expect(chosen && puzzleSolver(chosen)).toBe('w');
   });
 });

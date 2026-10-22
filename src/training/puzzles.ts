@@ -185,10 +185,29 @@ export function solverRating(attempts: readonly PuzzleAttemptFacts[]): SolverRat
 }
 
 /**
- * The next puzzle: the closest in rating to `target` that matches the theme
- * (when one is chosen) and has not been attempted, picked deterministically
- * from the few nearest by `seed` so a session does not always open on the
- * same one.
+ * The side the solver plays: the one *not* to move in `fen`, since `fen` is
+ * the position before the opponent's move.
+ */
+export const puzzleSolver = (puzzle: Puzzle): Color =>
+  puzzle.fen.split(' ')[1] === 'w' ? 'b' : 'w';
+
+/** How far from the target a puzzle may be rated and still be a candidate. */
+export const PUZZLE_RATING_WINDOW = 75;
+/** The fewest candidates drawn from, widening past the window when it holds fewer. */
+const PUZZLE_MIN_CANDIDATES = 24;
+
+/**
+ * The next puzzle, at random: unattempted, of the theme when one is chosen,
+ * and rated within `PUZZLE_RATING_WINDOW` of `target` (or the nearest
+ * `PUZZLE_MIN_CANDIDATES` when the window holds fewer).
+ *
+ * The side is chosen first, by a fair coin, and only then a puzzle of that
+ * side. This used to pick by a seed stepped through the twelve nearest
+ * puzzles sorted by id, which is not random: the colours came in the runs the
+ * id order happened to hold, and a person could see White to play puzzle
+ * after puzzle while the set is half Black's. A coin per puzzle makes the
+ * side independent of the rating, the id and the previous puzzle.
+ * `random` returns [0, 1) and is there for tests.
  */
 export function choosePuzzle(
   pool: readonly Puzzle[],
@@ -196,20 +215,24 @@ export function choosePuzzle(
     readonly target: number;
     readonly attempted: ReadonlySet<string>;
     readonly theme?: string | null;
-    readonly seed: number;
+    readonly random?: () => number;
   },
 ): Puzzle | null {
-  const candidates = pool
+  const random = options.random ?? Math.random;
+  const distance = (puzzle: Puzzle) => Math.abs(puzzle.rating - options.target);
+  const eligible = pool
     .filter((puzzle) => !options.attempted.has(puzzle.id))
-    .filter((puzzle) => !options.theme || puzzle.themes.includes(options.theme))
-    .sort(
-      (a, b) =>
-        Math.abs(a.rating - options.target) - Math.abs(b.rating - options.target) ||
-        a.id.localeCompare(b.id),
-    )
-    .slice(0, 12);
-  if (candidates.length === 0) return null;
-  return candidates[Math.abs(Math.floor(options.seed)) % candidates.length]!;
+    .filter((puzzle) => !options.theme || puzzle.themes.includes(options.theme));
+  if (eligible.length === 0) return null;
+  const windowed = eligible.filter((puzzle) => distance(puzzle) <= PUZZLE_RATING_WINDOW);
+  const candidates =
+    windowed.length >= PUZZLE_MIN_CANDIDATES
+      ? windowed
+      : [...eligible].sort((a, b) => distance(a) - distance(b)).slice(0, PUZZLE_MIN_CANDIDATES);
+  const side: Color = random() < 0.5 ? 'w' : 'b';
+  const ofSide = candidates.filter((puzzle) => puzzleSolver(puzzle) === side);
+  const from = ofSide.length > 0 ? ofSide : candidates;
+  return from[Math.min(from.length - 1, Math.floor(random() * from.length))]!;
 }
 
 /** Rating buckets the shards are split by: 100 points wide, named by their floor. */

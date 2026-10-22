@@ -110,7 +110,6 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
   const played = useRef<string[]>([]);
   const started = useRef(0);
   // Seeded from the clock when the first puzzle is chosen, not during render.
-  const seed = useRef(0);
   const timers = useRef<number[]>([]);
 
   const clearTimers = () => {
@@ -155,14 +154,12 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
     setLastResult(null);
     try {
       const target = rating.rating + DIFFICULTY[difficulty];
-      seed.current += 7919;
       const chosen = requested
         ? await puzzleById(requested)
         : choosePuzzle(await puzzlesNear(target), {
             target,
             attempted,
             theme: theme || null,
-            seed: seed.current,
           });
       if (requested && !chosen) throw new Error(`There is no puzzle ${requested} in this set.`);
       if (!chosen) {
@@ -200,7 +197,6 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
   useEffect(() => {
     if (opened.current || !attempts.isSuccess) return;
     opened.current = true;
-    seed.current = Date.now() % 1_000_000;
     void next(initialPuzzleId);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, after the attempts load
   }, [attempts.isSuccess]);
