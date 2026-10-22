@@ -1139,3 +1139,32 @@
   background: var(--surface-2);
   text-decoration: none;
 }
+
+.kf-landing .nav-menu-list .nav-menu-account {
+  display: none;
+}
+
+/*
+  The narrowest phones. At 320 px the brand, Sign in, Open Studio and the
+  menu needed 335: Sign in broke onto two lines and the menu sat past the
+  right edge, so the whole page scrolled sideways.
+*/
+@media (max-width: 380px) {
+  .kf-landing .nav-inner {
+    gap: 8px;
+  }
+
+  .kf-landing .nav-actions {
+    gap: 4px;
+  }
+
+  /* Sign in moves into the menu, as "Account": /account is the sign-in
+     form when signed out and the account when signed in. */
+  .kf-landing .nav-account {
+    display: none;
+  }
+
+  .kf-landing .nav-menu-list .nav-menu-account {
+    display: block;
+  }
+}

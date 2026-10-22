@@ -231,14 +231,19 @@ function OpeningDetail({ entry }: { readonly entry: OpeningEntry }) {
   return (
     <div className="mx-auto max-w-5xl p-4 md:p-6" data-opening-detail={entry.key}>
       <div className="flex flex-wrap items-start gap-5">
-        <div className="w-[220px] shrink-0">
+        {/*
+          On a phone the board and the description share one row of 358 px,
+          which left the description a 120 px column beside a 220 px board.
+          Below `sm` the board takes the row and the text goes under it.
+        */}
+        <div className="mx-auto w-full max-w-[320px] shrink-0 sm:mx-0 sm:w-[220px]">
           <MiniBoard fen={fen} theme={prefs.boardTheme} pieceSet={prefs.pieceSet} />
           <Button icon={<Board />} className="mt-2 w-full justify-center" onClick={openOnBoard}>
             Open on the board
           </Button>
         </div>
 
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 basis-[240px]">
           <div className="flex flex-wrap items-baseline gap-2">
             <span className="rounded-[var(--radius-control)] bg-surface-3 px-1.5 py-0.5 font-mono text-xs text-accent-ink">
               {entry.eco}

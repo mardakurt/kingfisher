@@ -58,7 +58,9 @@ export function PageHeader({
       >
         <NavButton />
         {icon ? (
-          <span className="shrink-0 text-secondary [&>svg]:h-[18px] [&>svg]:w-[18px]">{icon}</span>
+          <span className="shrink-0 text-secondary max-sm:hidden [&>svg]:h-[18px] [&>svg]:w-[18px]">
+            {icon}
+          </span>
         ) : null}
         <div className="min-w-0 shrink" data-header-title>
           <h1 className="truncate text-[15px] font-semibold tracking-[-0.01em] text-primary">

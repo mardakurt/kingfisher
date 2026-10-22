@@ -300,9 +300,15 @@ export function CanonicalBoardSurface({
       /* The concealment contract, asserted in the DOM so a test can hold us to it. */
       data-board-conceals={caps.showEvaluation ? undefined : 'evidence'}
     >
+      {/*
+        A phone centres the board between the header and its controls; the
+        32 px band above it was empty there. `max-sm:`, not `sm:` overrides:
+        Tailwind orders the px breakpoint `mid` before the rem `sm`, so an
+        `sm:` class here beat `mid:` and moved every desktop board down.
+      */}
       <div
         ref={boardContainer}
-        className="flex min-h-0 flex-1 items-start justify-center pt-8 mid:items-center mid:pt-0"
+        className="flex min-h-0 flex-1 items-start justify-center pt-8 max-sm:items-center max-sm:pt-0 mid:items-center mid:pt-0"
         data-board-container
       >
         {/*

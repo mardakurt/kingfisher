@@ -14,7 +14,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
-import { NavButton } from '@/features/shell/NavButton';
 import { Panel, PanelBody } from '@/components/ui/Panel';
 import { useProfile } from '@/features/persistence/queries';
 import { buildSeason, seasonScope } from '@/season/season';
@@ -105,7 +104,6 @@ export function SeasonWorkspace({ predicate }: { readonly predicate: SeasonNamed
       subtitle="Your own games over a period, an event, a site or an opening."
       takeover={
         <WorkspaceDocument label="Season report">
-          <NavButton />
           <section className="flex flex-col gap-2" data-season-scope>
             <SeasonPicker
               games={games.data ?? []}

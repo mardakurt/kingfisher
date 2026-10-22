@@ -31,7 +31,14 @@ export function GlobalControls({ className }: { readonly className?: string }) {
 
   return (
     <div className={`flex shrink-0 items-center gap-1.5 ${className ?? ''}`}>
-      <NewTabButton />
+      {/*
+        Not on a phone. Its header is 390 px, and with New tab, Position, Set
+        up, Search and Settings at the right a route's own name was left three
+        letters ("Rep…"). A phone's tabs are the bottom navigation.
+      */}
+      <span className="hidden sm:contents">
+        <NewTabButton />
+      </span>
       {/*
         Search commands keeps a longer label than Position or Set up, so the
         threshold for it is wider: at `mid` (900 px) the rest of the toolbar
@@ -61,9 +68,20 @@ export function GlobalControls({ className }: { readonly className?: string }) {
         one command, two names a person could not tell apart. Both now name
         what they do and let the platform announce the key.
       */}
-      <IconButton label="Settings" aria-keyshortcuts="Meta+," onClick={() => setSettingsOpen(true)}>
-        <Settings />
-      </IconButton>
+      {/*
+        Not on a phone either: there Settings is the navigation drawer's last
+        row, one tap on More away, and the 36 px it took left a 320 px header
+        "O…" for Openings and "R." for Review.
+      */}
+      <span className="hidden sm:contents">
+        <IconButton
+          label="Settings"
+          aria-keyshortcuts="Meta+,"
+          onClick={() => setSettingsOpen(true)}
+        >
+          <Settings />
+        </IconButton>
+      </span>
     </div>
   );
 }

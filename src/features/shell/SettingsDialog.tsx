@@ -197,13 +197,18 @@ export function SettingsDialog() {
         scrolled sideways and the panels under them wrapped every control on
         its own line; a settings window is read, not squeezed through.
       */
-      bodyClassName="flex max-h-[calc(100dvh-11rem)] min-h-[420px] sm:max-h-[74vh]"
+      bodyClassName="flex max-h-[calc(100dvh-11rem)] min-h-[420px] flex-col sm:max-h-[74vh] sm:flex-row"
     >
       <nav
         role="tablist"
         aria-orientation="vertical"
         aria-label="Settings sections"
-        className="flex w-[176px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-line-subtle bg-surface-2/40 px-2 py-3"
+        /*
+          On a phone the rail is a row across the top that scrolls sideways:
+          beside the panel it left the panel 140 px, and every setting wrapped
+          a word to a line.
+        */
+        className="flex shrink-0 gap-0.5 overflow-x-auto border-b border-line-subtle bg-surface-2/40 px-2 py-2 sm:w-[176px] sm:flex-col sm:overflow-x-visible sm:overflow-y-auto sm:border-r sm:border-b-0 sm:py-3"
       >
         {/*
           Phase 57: a section-filter input above the rail. The input is
@@ -218,7 +223,7 @@ export function SettingsDialog() {
           placeholder="Filter sections…"
           aria-label="Filter settings sections"
           data-settings-section-filter=""
-          className="mb-1 h-7 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-2xs text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
+          className="mb-1 hidden h-7 rounded-[var(--radius-control)] border border-line bg-surface-inset px-2 text-2xs sm:block text-primary outline-none placeholder:text-tertiary/70 focus:border-accent/60"
         />
         {visibleSections.map((entry) => {
           const selected = entry.id === section;
@@ -230,7 +235,7 @@ export function SettingsDialog() {
               aria-selected={selected}
               onClick={() => choose(entry.id)}
               className={cn(
-                'rounded-[var(--radius-control)] px-3 py-1.5 text-left text-xs transition-colors',
+                'shrink-0 rounded-[var(--radius-control)] px-3 py-2 text-left text-xs whitespace-nowrap transition-colors sm:py-1.5',
                 selected
                   ? 'bg-accent-muted font-medium text-primary'
                   : 'text-secondary hover:bg-surface-2 active:bg-surface-press hover:text-primary',
@@ -244,7 +249,7 @@ export function SettingsDialog() {
           <p className="px-2 py-2 text-2xs text-tertiary">No section matches “{filter}”.</p>
         ) : null}
       </nav>
-      <div className="min-w-0 flex-1 overflow-y-auto px-6 py-4">
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
         <SettingsSearch onJump={choose} />
         {visibleSection === 'appearance' && <AppearanceSection />}
         {visibleSection === 'board' && <BoardSection />}

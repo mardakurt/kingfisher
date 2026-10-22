@@ -143,7 +143,8 @@ export function Dialog({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="mt-0.5 text-tertiary transition-colors hover:text-primary"
+            // The glyph is 16 px; the padding makes the target 32 px for a finger.
+            className="-m-2 mt-[-0.375rem] p-2 text-tertiary transition-colors hover:text-primary"
           >
             <Close className="h-4 w-4" />
           </button>

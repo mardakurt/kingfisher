@@ -246,8 +246,15 @@ function SaveButton({
 
   return (
     <>
-      <Button className={className} disabled={disabled} onClick={() => setOpen(true)}>
-        Save this position
+      <Button
+        className={className}
+        disabled={disabled}
+        onClick={() => setOpen(true)}
+        aria-label="Save this position"
+      >
+        {/* The long label left a phone's header "En…" for the page's name. */}
+        <span className="sm:hidden">Save</span>
+        <span className="hidden sm:inline">Save this position</span>
       </Button>
       {open ? (
         <Dialog open title="Save an endgame position" onClose={() => setOpen(false)}>

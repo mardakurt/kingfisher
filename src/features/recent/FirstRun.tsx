@@ -82,7 +82,7 @@ export function FirstRun({ onDismiss }: { readonly onDismiss: () => void }) {
             Nothing to download, no account needed, and no database to find first.
           </p>
 
-          <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+          <dl className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
             <Ready ok label="Engine" detail={`${engineName} — in this browser, sandboxed`} />
             <Ready ok={referenceState.ok} label="Opening Explorer" detail={referenceState.text} />
           </dl>

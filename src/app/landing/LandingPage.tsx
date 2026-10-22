@@ -312,6 +312,9 @@ export function LandingPage(): JSX.Element {
                 <a href="#local">Local-first</a>
                 <a href="#macos">macOS</a>
                 <a href="/install">Install guide</a>
+                <a href="/account" className="nav-menu-account">
+                  Account
+                </a>
               </nav>
             </details>
           </div>

@@ -417,8 +417,19 @@
     padding: 2px 0 0;
   }
 
+  /* At 320 px the five links wrapped inside words ("Insta / ll"); they keep
+     their words and the row scrolls instead. */
   .kf-docs .docs-links a {
+    flex-shrink: 0;
     padding: 6px 10px;
+    white-space: nowrap;
+  }
+
+  /* A three-column table is wider than a 320 px phone. It scrolls inside
+     itself rather than making the whole page scroll sideways. */
+  .kf-docs table {
+    display: block;
+    overflow-x: auto;
   }
 
   .kf-docs .docs-cta {

@@ -541,6 +541,34 @@ body {
     height: 44px;
     width: 44px;
   }
+  /*
+   * Text fields at 16 px. iOS Safari zooms the page into any field whose text
+   * is smaller when it is focused, and does not zoom back out: every search
+   * box, filter and form in the application left a phone at 1.15x, scrolled
+   * sideways, after one tap. 16 px is the size at which it does not.
+   */
+  input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+  /*
+   * Choices a finger has to hit. The segmented rows (engine count, line count,
+   * colour, theme) are 21 px tall for a mouse, and the checkboxes 13 px; on a
+   * touch screen they take 32 px and 20 px, which is what the platform's own
+   * compact controls use.
+   */
+  button[aria-pressed],
+  button[role='radio'],
+  button[role='tab'],
+  select {
+    min-height: 32px;
+  }
+  input[type='checkbox'],
+  input[type='radio'] {
+    width: 20px;
+    height: 20px;
+  }
 }
 
 /*

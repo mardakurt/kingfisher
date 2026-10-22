@@ -29,15 +29,19 @@ async function ready(page: Page) {
 
 async function labelVisibility(page: Page) {
   return page.evaluate(() => {
-    const position = [...document.querySelectorAll('span')].find(
-      (el) => el.textContent?.trim() === 'Position',
-    );
-    const setup = [...document.querySelectorAll('span')].find(
-      (el) => el.textContent?.trim() === 'Set up',
-    );
-    const search = [...document.querySelectorAll('span')].find(
-      (el) => el.textContent?.trim() === 'Search commands',
-    );
+    /*
+      The label itself: a span with no elements inside it. On a phone the
+      header wraps whole controls in spans of their own (to drop them below
+      \`sm\`), and the first span whose text was "Position" became that wrapper
+      — measuring a \`display: contents\` box, not the label.
+    */
+    const label = (text: string) =>
+      [...document.querySelectorAll('span')].find(
+        (el) => el.childElementCount === 0 && el.textContent?.trim() === text,
+      );
+    const position = label('Position');
+    const setup = label('Set up');
+    const search = label('Search commands');
     const visible = (el: Element | undefined) =>
       el ? getComputedStyle(el).display !== 'none' : false;
     return {

@@ -275,6 +275,7 @@ export function WorkspaceFrame({
           routeActions={routeActions}
           actions={actions}
           position={position}
+          boardShown={!takeover}
           railToggle={
             rail && wide && !takeover ? (
               <IconButton
@@ -421,11 +422,14 @@ function FrameHeader({
   actions,
   position,
   railToggle,
+  boardShown = true,
 }: Pick<
   WorkspaceFrameProps,
   'title' | 'subtitle' | 'icon' | 'toolbar' | 'routeActions' | 'actions' | 'position'
 > & {
   readonly railToggle?: ReactNode;
+  /** False while the route shows something else in the board's place (a library, an index). */
+  readonly boardShown?: boolean;
 }) {
   const header = useRef<HTMLElement>(null);
   /*
@@ -532,7 +536,11 @@ function FrameHeader({
         // rather than painting it under the actions.
         <div className="flex min-w-0 items-center gap-2 overflow-hidden">
           {icon ? (
-            <span className="shrink-0 text-accent-ink [&>svg]:h-5 [&>svg]:w-5">{icon}</span>
+            // Not on a phone: there the 28 px it takes is the difference
+            // between "Openings" and "Ope…".
+            <span className="shrink-0 text-accent-ink max-sm:hidden [&>svg]:h-5 [&>svg]:w-5">
+              {icon}
+            </span>
           ) : null}
           <div className="min-w-0" data-header-title>
             <h1 className="truncate text-[15px] font-semibold tracking-[-0.01em] text-primary">
@@ -551,19 +559,26 @@ function FrameHeader({
         ) : null}
         {actions}
         <ControlDivider />
-        <Menu
-          sections={positionActions.sections}
-          trigger={({ open, toggle, id }) => (
-            <Button
-              id={id}
-              aria-label="Position actions"
-              aria-haspopup="menu"
-              aria-expanded={open}
-              active={open}
-              icon={<Target />}
-              onClick={toggle}
-            >
-              {/*
+        {/*
+          A phone whose page is showing an index instead of the board has no
+          position on screen to act on, and the 36 px left "Openings" as
+          "Openi…" at 320 px. On a wider screen the menu stays: it is where
+          the position on the board is, one click away.
+        */}
+        <span className={boardShown ? 'contents' : 'max-sm:hidden sm:contents'}>
+          <Menu
+            sections={positionActions.sections}
+            trigger={({ open, toggle, id }) => (
+              <Button
+                id={id}
+                aria-label="Position actions"
+                aria-haspopup="menu"
+                aria-expanded={open}
+                active={open}
+                icon={<Target />}
+                onClick={toggle}
+              >
+                {/*
                 Position and Set up are the buttons a person reaches for first
                 on a workspace. Hiding their labels at any width below a 1500
                 px monitor made them icon-only on most laptops and every iPad,
@@ -574,19 +589,23 @@ function FrameHeader({
                 for the toolbar at 1080 px, the smallest size the workspaces
                 ship at.
               */}
-              <span className="hidden xs:inline">Position</span>
-            </Button>
-          )}
-        />
-        <Button
-          aria-label="Set up position — add or remove pieces"
-          title="Set up position — add or remove pieces"
-          icon={<Board />}
-          onClick={() => setPositionSetupOpen(true)}
-          data-position-setup
-        >
-          <span className="hidden xs:inline">Set up</span>
-        </Button>
+                <span className="hidden xs:inline">Position</span>
+              </Button>
+            )}
+          />
+        </span>
+        {/* On a phone, Set up is the Position menu's "Set up position…". */}
+        <span className="hidden sm:contents">
+          <Button
+            aria-label="Set up position — add or remove pieces"
+            title="Set up position — add or remove pieces"
+            icon={<Board />}
+            onClick={() => setPositionSetupOpen(true)}
+            data-position-setup
+          >
+            <span className="hidden xs:inline">Set up</span>
+          </Button>
+        </span>
         {/*
           Search commands and Settings are the same on every route, and they
           are the same *component* — see `GlobalControls.tsx` for what that
