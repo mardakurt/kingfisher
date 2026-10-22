@@ -160,6 +160,20 @@ export interface WorkspaceBackup {
    * `sourceSettings` and `sourcePriority`, and is restored with them.
    */
   readonly referenceSources: readonly BackedUpReferenceSource[];
+  /**
+   * The game collections kept in this browser beside My games, with their
+   * games (`browser-collections.ts`). Present only when `includesGames` is,
+   * and absent from every backup written before 2026-10-22.
+   */
+  readonly collections?: readonly BackedUpCollection[];
+}
+
+/** One browser collection: its listing and its three game stores. */
+export interface BackedUpCollection {
+  readonly key: string;
+  readonly name: string;
+  readonly createdAt: number;
+  readonly stores: Readonly<Partial<Record<(typeof GAME_STORES)[number], readonly unknown[]>>>;
 }
 
 /**
@@ -194,6 +208,8 @@ export interface RestoreResult {
    * one without asking.
    */
   readonly referenceSources: readonly BackedUpReferenceSource[];
+  /** The browser collections the backup carries, for the caller to restore. */
+  readonly collections: readonly BackedUpCollection[];
 }
 
 export async function createWorkspaceBackup(
@@ -203,6 +219,8 @@ export async function createWorkspaceBackup(
     readonly includeGames?: boolean;
     readonly now?: number;
     readonly referenceSources?: readonly BackedUpReferenceSource[];
+    /** Browser collections, read by `snapshotBrowserCollections`; only with games. */
+    readonly collections?: readonly BackedUpCollection[];
   } = {},
 ): Promise<WorkspaceBackup> {
   const included = options.includeGames
@@ -224,6 +242,9 @@ export async function createWorkspaceBackup(
     preferences: structuredClone(preferences),
     stores,
     referenceSources: (options.referenceSources ?? []).map((source) => ({ ...source })),
+    ...(options.includeGames && options.collections?.length
+      ? { collections: options.collections }
+      : {}),
   };
 }
 
@@ -282,10 +303,41 @@ export function parseWorkspaceBackup(value: unknown): WorkspaceBackup {
     throw invalid('The backup contains game data but is not marked as including games.');
   }
 
+  const collections = parseCollections(value.collections, value.includesGames);
+
   return {
     ...(structuredClone(value) as unknown as WorkspaceBackup),
     referenceSources,
+    ...(collections.length ? { collections } : {}),
   };
+}
+
+function parseCollections(value: unknown, includesGames: boolean): readonly BackedUpCollection[] {
+  if (value === undefined) return [];
+  if (!includesGames) {
+    throw invalid('The backup contains game collections but is not marked as including games.');
+  }
+  if (!Array.isArray(value)) throw invalid('The collections section is invalid.');
+  return value.map((entry, index) => {
+    if (!isObject(entry)) throw invalid(`Collection ${index} is not an object.`);
+    if (typeof entry.key !== 'string' || !/^[\w-]{1,80}$/.test(entry.key)) {
+      throw invalid(`Collection ${index} has no usable key.`);
+    }
+    if (typeof entry.name !== 'string' || !entry.name.trim()) {
+      throw invalid(`Collection ${index} has no name.`);
+    }
+    if (!Number.isFinite(entry.createdAt)) throw invalid(`Collection ${index} has no date.`);
+    if (!isObject(entry.stores)) throw invalid(`Collection ${index} has no games section.`);
+    const stores = entry.stores;
+    for (const store of GAME_STORES) {
+      const records = stores[store];
+      if (!Array.isArray(records)) {
+        throw invalid(`The ${store} store of collection “${entry.name}” is missing or invalid.`);
+      }
+      records.forEach((record, at) => validateRecord(store, record, at));
+    }
+    return structuredClone(entry) as unknown as BackedUpCollection;
+  });
 }
 
 function parseReferenceSources(value: unknown): readonly BackedUpReferenceSource[] {
@@ -321,21 +373,7 @@ export async function restoreWorkspaceBackup(
   const stores = (
     backup.includesGames ? [...PORTABLE_STORES, ...GAME_STORES] : [...PORTABLE_STORES]
   ).filter((store) => backup.stores[store] !== undefined);
-  let records = 0;
-
-  await database.transaction(stores, 'readwrite', async (transaction) => {
-    if (mode === 'replace') {
-      for (const store of stores) await transaction.clear(store);
-    } else {
-      await clearMergeCollisions(transaction, backup, stores);
-    }
-    for (const store of stores) {
-      for (const record of backup.stores[store] ?? []) {
-        await transaction.put(store, record);
-        records += 1;
-      }
-    }
-  });
+  const records = await writeStores(database, backup.stores, stores, mode);
 
   return {
     mode,
@@ -344,7 +382,38 @@ export async function restoreWorkspaceBackup(
     includesGames: backup.includesGames,
     preferences: backup.preferences,
     referenceSources: backup.referenceSources,
+    collections: backup.collections ?? [],
   };
+}
+
+/**
+ * Write a backup's records for `stores` into `database`, in one transaction:
+ * cleared first for a replace, or with unique-key collisions removed for a
+ * merge. Returns the number of records written. Browser collections restore
+ * their games through this too, so a collection merges exactly as My games
+ * does.
+ */
+export async function writeStores(
+  database: PersistenceDatabase,
+  data: Readonly<Partial<Record<StoreName, readonly unknown[]>>>,
+  stores: readonly StoreName[],
+  mode: RestoreMode,
+): Promise<number> {
+  let records = 0;
+  await database.transaction([...stores], 'readwrite', async (transaction) => {
+    if (mode === 'replace') {
+      for (const store of stores) await transaction.clear(store);
+    } else {
+      await clearMergeCollisions(transaction, data, stores);
+    }
+    for (const store of stores) {
+      for (const record of data[store] ?? []) {
+        await transaction.put(store, record);
+        records += 1;
+      }
+    }
+  });
+  return records;
 }
 
 /**
@@ -384,12 +453,12 @@ export const UNIQUE_KEY: Partial<
 
 async function clearMergeCollisions(
   transaction: PersistenceTransaction,
-  backup: WorkspaceBackup,
+  data: Readonly<Partial<Record<StoreName, readonly unknown[]>>>,
   stores: readonly StoreName[],
 ): Promise<void> {
   for (const store of stores) {
     const uniqueKey = UNIQUE_KEY[store];
-    const incoming = backup.stores[store];
+    const incoming = data[store];
     if (!uniqueKey || !incoming?.length) continue;
 
     const existing = await transaction.getAll<Record<string, unknown>>(store);
@@ -535,8 +604,13 @@ export async function downloadWorkspaceBackup(
     */
     const { getRepositories } = await import('./repositories');
     const database = (await getRepositories()).raw;
+    // Imported lazily: browser-collections reads this module's game stores.
+    const collections = options.includeGames
+      ? await (await import('./browser-collections')).snapshotBrowserCollections()
+      : undefined;
     const backup = await createWorkspaceBackup(database, options.preferences ?? {}, {
       includeGames: options.includeGames,
+      ...(collections ? { collections } : {}),
     });
     const json = JSON.stringify(backup, null, 2);
     const blob = new Blob([json], { type: 'application/json' });

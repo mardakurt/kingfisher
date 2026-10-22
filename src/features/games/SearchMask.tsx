@@ -18,6 +18,7 @@ import { Position } from '@/chess/position';
 import { STRATEGIC_THEMES, themeById } from '@/chess/themes';
 import { useAnalysis } from '@/stores/analysis-store';
 import type { Color } from '@/chess/types';
+import { browserCollectionRepositories } from '@/persistence/browser-collections';
 import { getRepositories } from '@/persistence/repositories';
 import type { GameSearchQuery } from '@/persistence/types';
 import { hasDeepFilters, type DeepQuery } from '@/search/game-scan';
@@ -573,7 +574,10 @@ export function useDeepSearch() {
         }
         return;
       }
-      const repositories = await getRepositories();
+      const repositories =
+        source.kind === 'browser'
+          ? await browserCollectionRepositories(source.key)
+          : await getRepositories();
       await runDeepSearch({
         games: repositories.games,
         header,

@@ -25,6 +25,11 @@ import { companionClient } from '@/companion/session';
 import { packReader } from '@/reference/manager';
 import { packGamePgn } from '@/reference/provider';
 import { referenceGamePgn } from '@/reference/player-games';
+import {
+  browserCollectionKey,
+  browserCollectionRepositories,
+  isBrowserCollectionId,
+} from '@/persistence/browser-collections';
 import { getRepositories } from '@/persistence/repositories';
 import type { GameSearchQuery, GameSearchResult, GameSummary } from '@/persistence/types';
 import { gameTitle } from '@/persistence/describe';
@@ -48,6 +53,17 @@ export type LibrarySource =
       readonly name: string;
     }
   | {
+      /**
+       * A collection kept in this browser beside My games
+       * (`persistence/browser-collections.ts`): the same store and matcher as
+       * My games, in a database of its own.
+       */
+      readonly kind: 'browser';
+      readonly id: string;
+      readonly key: string;
+      readonly name: string;
+    }
+  | {
       /** An installed reference pack, searched by player (`reference-library.ts`). */
       readonly kind: 'reference';
       readonly id: string;
@@ -62,6 +78,9 @@ export function librarySource(id: string | null | undefined, name?: string): Lib
   if (id && id.startsWith('sqlite:')) {
     const key = id.slice('sqlite:'.length);
     return { kind: 'companion', id, key, name: name ?? key };
+  }
+  if (id && isBrowserCollectionId(id)) {
+    return { kind: 'browser', id, key: browserCollectionKey(id), name: name ?? 'Collection' };
   }
   if (id && id.startsWith('reference:')) {
     const packId = id.slice('reference:'.length);
@@ -85,7 +104,7 @@ export function queryForSource(
   query: GameSearchQuery,
   source: LibrarySource,
 ): { readonly query: GameSearchQuery; readonly dropped: readonly string[] } {
-  if (source.kind === 'local') return { query, dropped: [] };
+  if (source.kind === 'local' || source.kind === 'browser') return { query, dropped: [] };
   const unsupported = source.kind === 'reference' ? REFERENCE_UNSUPPORTED : COMPANION_UNSUPPORTED;
   const kept: Record<string, unknown> = {};
   const dropped: string[] = [];
@@ -107,6 +126,9 @@ export async function searchSource(
   signal?: AbortSignal,
 ): Promise<GameSearchResult> {
   if (source.kind === 'local') return (await getRepositories()).games.search(query);
+  if (source.kind === 'browser') {
+    return (await browserCollectionRepositories(source.key)).games.search(query);
+  }
   if (source.kind === 'reference') {
     const reader = packReader(source.packId);
     if (!reader) throw new Error(`${source.name} is not installed on this device.`);
@@ -127,6 +149,9 @@ export async function searchSource(
 /** The moves of one game, as a tree the rules code built. */
 export async function sourceTree(source: LibrarySource, id: string): Promise<GameTree | null> {
   if (source.kind === 'local') return (await (await getRepositories()).games.get(id))?.tree ?? null;
+  if (source.kind === 'browser') {
+    return (await (await browserCollectionRepositories(source.key)).games.get(id))?.tree ?? null;
+  }
   if (source.kind === 'reference') {
     const pgn = await referenceGamePgn(source.packId, id);
     if (!pgn) return null;

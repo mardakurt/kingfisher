@@ -25,6 +25,8 @@ test('an En Croissant user imports the authentic database and opens its games', 
   await settings.getByRole('button', { name: 'Close', exact: true }).click();
   await page.getByRole('button', { name: 'Import En Croissant', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Import En Croissant database', exact: true });
+  // Reading by path is the companion's way, folded under the browser's own.
+  await dialog.getByText('Or read it by path through the companion').click();
   await dialog.getByLabel('En Croissant file path').fill(fixture);
   await dialog.getByRole('button', { name: 'Inspect database', exact: true }).click();
   await expect(dialog.getByText('En Croissant database detected', { exact: true })).toBeVisible();

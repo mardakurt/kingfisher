@@ -770,7 +770,7 @@ what a feature _does_; each adds a way of reaching it.
 | Capability                                    |               Web               |    macOS    | Why the difference exists                                                                                                                                                 | Evidence                                                                             |
 | --------------------------------------------- | :-----------------------------: | :---------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | Native engines (Stockfish, Lc0, …)            | ◐ via a companion the user runs | ✅ built in | A page cannot start a process; the shell starts and pairs its companion                                                                                                   | `desktop:engines -- --packaged`; smoke                                               |
-| Local SQLite collections                      |         ◐ via companion         | ✅ built in | as above                                                                                                                                                                  | smoke: companion paired; `database-chaos`                                            |
+| Local SQLite collections                      |         ◐ via companion         | ✅ built in | as above. Several collections need neither: a browser keeps any number beside My games (`browser-collections.ts`, 2026-10-22)                                             | smoke: companion paired; `database-chaos`; `e2e/browser-only.spec.ts`                |
 | Local Syzygy tables                           |         ◐ via companion         | ✅ built in | Reading table files needs a filesystem                                                                                                                                    | `tbprobe-real.test.mjs`                                                              |
 | Open a collection or PGN by path, Open Recent |                ✗                |     ✅      | A page cannot turn a chosen file into a _path_                                                                                                                            | `files.test.mjs`, `menu.test.mjs`; smoke                                             |
 | Browse… beside a path field                   |          ◐ typed path           |     ✅      | A native picker returns a path                                                                                                                                            | `bridge-contract.test.ts`                                                            |
@@ -802,12 +802,18 @@ what a feature _does_; each adds a way of reaching it.
 ## The one asymmetry worth stating plainly
 
 On the web, three things need a companion the user starts themselves:
-SQLite collections, native engines and local Syzygy tables. On the
-desktop they need nothing, because the shell starts and pairs one. That
-is the largest practical difference between the two identities, and it
-is a difference in _setup_, not in behaviour — the same code answers
-the same questions once a companion exists either way. The desktop adds
-native capability and loses nothing the web has.
+native engines, local Syzygy tables and SQLite files. None of them is
+needed to keep and work on your games: since 2026-10-22 a browser keeps
+any number of collections of its own, reads an En Croissant database
+from a chosen file (up to 1 GB) and imports a PGN file of any size, all
+with nothing installed (`e2e/browser-only.spec.ts`). What remains is what
+a page is not permitted to do: start a native engine process (the
+browser has Stockfish 18, in WebAssembly), read table files from disk
+(the browser asks the Lichess tablebase), and open a file by its path.
+On the desktop these need nothing, because the shell starts and pairs a
+companion. It is a difference in _setup_, not in behaviour — the same
+code answers the same questions once a companion exists either way. The
+desktop adds native capability and loses nothing the web has.
 
 [`web-desktop-parity.md`](web-desktop-parity.md) is the Phase 45 version
 of this table, kept as a record.

@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { companionClient } from '@/companion/session';
 import type { CollectionFacts } from '@/database/collections/types';
-import { getRepositories } from '@/persistence/repositories';
+import { repositoriesForCollection } from '@/database/collections/registry';
 import type { GameSearchResult } from '@/persistence/types';
 import { openingDisplay } from '@/theory/classify-games';
 import { useUi } from '@/stores/ui-store';
@@ -73,7 +73,8 @@ export function CollectionGames({ collection, onTransfer, onChanged }: Collectio
         sortDirection: 'desc',
       } as const;
       if (!sqliteKey) {
-        const repositories = await getRepositories();
+        const repositories = await repositoriesForCollection(collection.id);
+        if (!repositories) throw new Error('That collection is not in this browser.');
         return repositories.games.search(query);
       }
       const client = companionClient();
@@ -104,7 +105,8 @@ export function CollectionGames({ collection, onTransfer, onChanged }: Collectio
             : 'The integrity check needs attention; use Rebuild aggregates.',
         });
       } else {
-        const repositories = await getRepositories();
+        const repositories = await repositoriesForCollection(collection.id);
+        if (!repositories) throw new Error('That collection is not in this browser.');
         const ids =
           confirm === 'selected'
             ? rows.filter((game) => selected.has(game.fingerprint)).map((game) => game.id)

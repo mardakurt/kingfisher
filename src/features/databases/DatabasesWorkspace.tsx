@@ -44,6 +44,7 @@ import { PageHeader } from '@/features/shell/PageHeader';
 import type { CollectionFacts } from '@/database/collections/types';
 import { Button } from '@/components/ui/Button';
 import { PromptDialog } from '@/components/ui/PromptDialog';
+import { browserCollectionId, createBrowserCollection } from '@/persistence/browser-collections';
 import { companionClient } from '@/companion/session';
 import { useCompanionStatus } from '@/companion/useCompanion';
 import { listCollections } from '@/database/collections/registry';
@@ -136,9 +137,16 @@ export function DatabasesWorkspace() {
   };
   const [filter, setFilter] = useTabField('filter', '');
   const [transfer, setTransfer] = useState<TransferRequest | null>(null);
-  const [creating, setCreating] = useState<null | { query?: GameSearchQuery; sourceId?: string }>(
-    null,
-  );
+  /*
+    Where a new collection lives. In this browser by default, which works on
+    every machine and needs nothing installed; a SQLite file only when a
+    companion is answering and the person asks for one.
+  */
+  const [creating, setCreating] = useState<null | {
+    query?: GameSearchQuery;
+    sourceId?: string;
+    where: 'browser' | 'sqlite';
+  }>(null);
 
   const collections = useQuery({
     queryKey: ['collections', referenceProviderId, companion.data?.databases.length ?? 0],
@@ -173,7 +181,7 @@ export function DatabasesWorkspace() {
     if (!wantsNew) return;
     // The address is the request; the prompt is the answer to it, once.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCreating({});
+    setCreating({ where: 'browser' });
     router.replace('/databases');
   }, [wantsNew, router]);
   const selected = list.filter((entry) => checked.has(entry.id));
@@ -183,10 +191,42 @@ export function DatabasesWorkspace() {
 
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['collections'] });
-    await companion.refetch();
+    // `refetch` runs a disabled query too: with no companion paired it asked
+    // this site for `/status` and logged a 404 after every browser collection.
+    if (companionClient()) await companion.refetch();
   };
 
   const createCollection = async (name: string) => {
+    const request = creating;
+    if (request?.where !== 'sqlite') {
+      try {
+        const created = await createBrowserCollection(name);
+        notify({ tone: 'success', message: `Created “${created.name}” in this browser.` });
+        await refresh();
+        if (request?.sourceId && request.query) {
+          const source = list.find((entry) => entry.id === request.sourceId);
+          if (source) {
+            setTransfer({
+              kind: 'copy',
+              source,
+              query: request.query,
+              scopeLabel: 'The current search results',
+              destinationId: browserCollectionId(created.key),
+            });
+          }
+        } else {
+          openDatabase(browserCollectionId(created.key));
+        }
+      } catch (error) {
+        notify({
+          tone: 'error',
+          message: error instanceof Error ? error.message : 'The collection could not be created.',
+        });
+      } finally {
+        setCreating(null);
+      }
+      return;
+    }
     const client = companionClient();
     if (!client) {
       notify({
@@ -261,9 +301,14 @@ export function DatabasesWorkspace() {
           className="max-w-[320px] min-w-[200px] flex-1"
         />
         <div className="ml-auto flex flex-wrap items-center gap-1.5">
-          <Button size="sm" icon={<Plus />} onClick={() => setCreating({})}>
+          <Button size="sm" icon={<Plus />} onClick={() => setCreating({ where: 'browser' })}>
             New collection
           </Button>
+          {companion.data ? (
+            <Button size="sm" icon={<Plus />} onClick={() => setCreating({ where: 'sqlite' })}>
+              New SQLite collection
+            </Button>
+          ) : null}
           <Button size="sm" icon={<Import />} onClick={() => setImportOpen(true)}>
             Import PGN
           </Button>
@@ -331,7 +376,11 @@ export function DatabasesWorkspace() {
               <MultiSearchPanel
                 selected={selected}
                 onCreateFromResults={(query, sourceId, label) => {
-                  setCreating({ query, sourceId });
+                  setCreating({
+                    query,
+                    sourceId,
+                    where: companion.data && sourceId.startsWith('sqlite:') ? 'sqlite' : 'browser',
+                  });
                   notify({
                     tone: 'info',
                     message: `Name the new collection for “${label}”.`,
@@ -420,11 +469,21 @@ export function DatabasesWorkspace() {
 
       <PromptDialog
         open={creating !== null}
-        title={creating?.query ? 'Create collection from these results' : 'New SQLite collection'}
-        description={
+        title={
           creating?.query
-            ? 'A new SQLite collection is created and the current search results are copied into it. The source is not changed.'
-            : 'A SQLite collection file is created by the companion, in its own data directory.'
+            ? 'Create collection from these results'
+            : creating?.where === 'sqlite'
+              ? 'New SQLite collection'
+              : 'New collection'
+        }
+        description={
+          creating?.where === 'sqlite'
+            ? creating.query
+              ? 'A new SQLite collection is created and the current search results are copied into it. The source is not changed.'
+              : 'A SQLite collection file is created by the companion, in its own data directory.'
+            : creating?.query
+              ? 'A new collection is created in this browser and the current search results are copied into it. The source is not changed.'
+              : 'Kept in this browser beside My games, with its own games and its own position index. Nothing to install.'
         }
         label="Name"
         placeholder="Tournament prep"

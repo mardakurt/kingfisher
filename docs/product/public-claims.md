@@ -1,5 +1,22 @@
 # Public claims
 
+## Web additions after 1.5.3 (2026-10-22)
+
+README, CHANGELOG and the privacy page say a browser keeps any number of
+game collections beside My games, reads an En Croissant database from a
+chosen file, imports PGN files of any size, and keeps collections on that
+browser (not in the account; in a backup only with games). Implementations:
+`persistence/browser-collections.ts`, `database/collections/registry.ts`,
+`database/providers/browser-collections.ts`,
+`database/encroissant/sqlite-read.ts` and `browser-reader.worker.ts`,
+`persistence/pgn-chunks.ts`. Evidence: `browser-collections.test.ts`,
+`sqlite-read.test.ts` (row for row against the companion's reader),
+`pgn-chunks.test.ts`, `e2e/browser-only.spec.ts`. Limits stated, not hidden:
+En Croissant files above 1 GB need the companion (sql.js holds the file in
+memory); native engines other than Stockfish 18 and local Syzygy files still
+need it. Never claim collections sync, or that every engine runs in a
+browser.
+
 ## 1.4.6 source additions
 
 README describes databases in the sidebar, a game header with players'

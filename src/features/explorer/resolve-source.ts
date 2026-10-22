@@ -23,6 +23,8 @@ export interface RegistrySettling {
   readonly references: boolean;
   /** A companion is paired and has not answered its first status request yet. */
   readonly companion: boolean;
+  /** The list of collections kept in this browser has not been read yet. */
+  readonly browser?: boolean;
 }
 
 export type ExplorerSource =
@@ -41,7 +43,9 @@ export function resolveExplorerSource(
   if (chosen) return { kind: 'ready', provider: chosen };
   const couldStillArrive = isCompanionSourceId(preferredId)
     ? settling.companion
-    : settling.references;
+    : preferredId.startsWith('browser:')
+      ? (settling.browser ?? false)
+      : settling.references;
   if (couldStillArrive) return { kind: 'waiting', preferredId };
   const first = providers[0];
   return first ? { kind: 'ready', provider: first } : { kind: 'none' };

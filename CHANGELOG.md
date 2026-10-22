@@ -4,6 +4,35 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## Unreleased (web)
+
+- **Everything in the browser, nothing to install.** What needed the Mac
+  application's companion now works on the website, on any computer:
+  - **More than one game collection.** Databases → _New collection_ makes a
+    collection in your browser beside My games, with its own games, its own
+    position index and its own explorer source. Import PGN into it, open its
+    games from the Library, search them, explore them, copy, move or merge
+    them into another collection, rename it, delete it. A backup that
+    includes games includes every collection, and restores them.
+  - **En Croissant databases from a file.** _Import En Croissant_ reads the
+    `.db3` file you choose, in the browser, into a new collection (files up
+    to 1 GB; the companion still reads larger ones by path).
+  - **ChessBase into its own collection.** _Import ChessBase_ can put the
+    games in a new collection rather than My games.
+  - **PGN files of any size.** Import PGN reads a chosen file a few
+    megabytes at a time; a file too large to hold as one piece of text used
+    to fail before its first game.
+- **Phones.** Page names are no longer cut to three letters by the header's
+  buttons (New tab and Set up step aside on a phone; Settings is in the
+  menu), Settings is one column with its sections across the top, the
+  board sits with even space around it, the opening library's board and
+  description stack, text fields no longer make iPhone Safari zoom in, and
+  segmented choices and checkboxes are large enough for a finger. The
+  public pages no longer scroll sideways on a 320 px phone.
+- **Puzzles are White or Black at random.** Each puzzle's side is a coin
+  toss, then a random puzzle near your rating; they used to come in the runs
+  of one colour that a fixed order happened to hold.
+
 ## 1.5.3 — 2026-10-16
 
 The web release, and the Mac download `Kingfisher-1.5.3-arm64.dmg`

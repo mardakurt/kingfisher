@@ -11,6 +11,7 @@ import { ShortcutsDialog } from '@/features/shell/ShortcutsDialog';
 import { FirstRunTour } from '@/features/shell/FirstRunTour';
 import { ImportLocalWorkDialog } from '@/features/account/ImportLocalWorkDialog';
 import { useCompanionSync } from '@/companion/useCompanion';
+import { useBrowserCollectionSync } from '@/database/use-browser-collections';
 import { useBrowserEngineDiscovery } from '@/engine/use-engines';
 import { useDesktopIntegration } from '@/desktop/useDesktop';
 import { useMenuCommands } from '@/features/command/useMenuCommands';
@@ -110,6 +111,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEnginePositionGuard();
   useWorkspacePersistence();
   useCompanionSync();
+  useBrowserCollectionSync();
   useBrowserEngineDiscovery();
   // Phase 85: a deep analysis the last page left running is picked up again.
   useDeepAnalysisResume();

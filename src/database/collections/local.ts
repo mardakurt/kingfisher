@@ -38,15 +38,19 @@ export const LOCAL_COLLECTION_ID = 'local';
 const afterKey = (id: string): KeyRange => ({ kind: 'lowerBound', lower: id, lowerOpen: true });
 
 export class LocalGameCollection implements GameCollection {
-  readonly ref: GameCollectionRef = {
-    id: LOCAL_COLLECTION_ID,
-    kind: 'indexeddb',
-    name: 'My games',
-  };
-
+  /**
+   * My games by default. A collection kept in this browser beside it
+   * (`persistence/browser-collections.ts`) is the same store in a database of
+   * its own, so it is this class with its own name.
+   */
   constructor(
     private readonly database: PersistenceDatabase,
     private readonly repository: GameRepository,
+    readonly ref: GameCollectionRef = {
+      id: LOCAL_COLLECTION_ID,
+      kind: 'indexeddb',
+      name: 'My games',
+    },
   ) {}
 
   count(): Promise<number> {

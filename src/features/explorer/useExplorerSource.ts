@@ -14,6 +14,7 @@
 import { useMemo } from 'react';
 
 import { useCompanionStatus } from '@/companion/useCompanion';
+import { useBrowserCollections } from '@/database/use-browser-collections';
 import { useDatabaseProviders } from '@/database/use-database-providers';
 import { useSourcesFor } from '@/reference/sources';
 import { useReferenceSources } from '@/reference/use-references';
@@ -25,6 +26,7 @@ export function useExplorerSource(preferredId: string): ExplorerSource {
   const offered = useSourcesFor('explorer');
   const catalog = useReferenceSources();
   const companion = useCompanionStatus();
+  const browser = useBrowserCollections();
   const usable = useMemo(
     () =>
       offered.flatMap((source) => {
@@ -35,6 +37,8 @@ export function useExplorerSource(preferredId: string): ExplorerSource {
   );
   return resolveExplorerSource(usable, preferredId, {
     references: !catalog.loaded,
+    // A collection kept in this browser registers once the list is read.
+    browser: browser.isPending,
     /*
       A companion collection is still arriving while the first status
       request is in flight, and for the one effect between the status

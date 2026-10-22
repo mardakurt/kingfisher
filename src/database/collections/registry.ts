@@ -8,7 +8,16 @@
  */
 
 import { companionClient } from '@/companion/session';
+import {
+  browserCollectionId,
+  browserCollectionKey,
+  browserCollectionRepositories,
+  getBrowserCollection,
+  isBrowserCollectionId,
+  listBrowserCollections,
+} from '@/persistence/browser-collections';
 import { getRepositories } from '@/persistence/repositories';
+import type { AppRepositories } from '@/persistence/types';
 
 import { LOCAL_COLLECTION_ID, LocalGameCollection } from './local';
 import { SqliteGameCollection, sqliteCollectionId } from './sqlite';
@@ -44,6 +53,30 @@ export async function listCollections(
       reference: referenceId === LOCAL_COLLECTION_ID,
     },
   ];
+
+  /*
+    The collections kept in this browser beside My games. A list that cannot
+    be read (storage disabled, a private window that refuses IndexedDB) costs
+    these rows, never My games or the companion's.
+  */
+  try {
+    for (const entry of await listBrowserCollections()) {
+      const id = browserCollectionId(entry.key);
+      facts.push({
+        id,
+        kind: 'indexeddb',
+        name: entry.name,
+        games: await (await browserCollectionRepositories(entry.key)).games.count(),
+        // The browser reports storage for the whole origin, never per database.
+        bytes: null,
+        modifiedAt: null,
+        location: 'This browser',
+        reference: referenceId === id,
+      });
+    }
+  } catch {
+    // My games is still listed, and is where a person would look first.
+  }
 
   const client = companionClient();
   if (client) {
@@ -91,6 +124,16 @@ export async function openCollection(id: string): Promise<GameCollection | null>
     const repositories = await getRepositories();
     return new LocalGameCollection(repositories.raw, repositories.games);
   }
+  if (isBrowserCollectionId(id)) {
+    const entry = await getBrowserCollection(browserCollectionKey(id));
+    if (!entry) return null;
+    const repositories = await browserCollectionRepositories(entry.key);
+    return new LocalGameCollection(repositories.raw, repositories.games, {
+      id,
+      kind: 'indexeddb',
+      name: entry.name,
+    });
+  }
   if (!id.startsWith('sqlite:')) return null;
   const key = id.slice('sqlite:'.length);
   const client = companionClient();
@@ -99,6 +142,16 @@ export async function openCollection(id: string): Promise<GameCollection | null>
   const entry = status.databases.find((database) => database.key === key);
   if (!entry) return null;
   return new SqliteGameCollection(client, key, entry.name);
+}
+
+/**
+ * The repositories behind a collection stored in this browser — My games or
+ * one kept beside it — or null for a SQLite file, which the companion holds.
+ */
+export async function repositoriesForCollection(id: string): Promise<AppRepositories | null> {
+  if (id === LOCAL_COLLECTION_ID) return getRepositories();
+  if (isBrowserCollectionId(id)) return browserCollectionRepositories(browserCollectionKey(id));
+  return null;
 }
 
 /** Open several, dropping any that are not present. Order is preserved. */

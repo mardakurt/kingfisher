@@ -48,6 +48,8 @@ export interface TransferRequest {
   readonly fingerprints?: readonly string[];
   /** What the restriction is, in the user's words. */
   readonly scopeLabel?: string;
+  /** The collection to offer first — one just created for these games. */
+  readonly destinationId?: string;
 }
 
 interface TransferDialogProps {
@@ -84,7 +86,11 @@ export function TransferDialog({ request, collections, onClose, onChanged }: Tra
   const requestKey = request ? `${request.kind}:${request.source.id}` : null;
   if (requestKey !== openedFor) {
     setOpenedFor(requestKey);
-    setDestinationId(candidates[0]?.id ?? '');
+    setDestinationId(
+      candidates.find((entry) => entry.id === request?.destinationId)?.id ??
+        candidates[0]?.id ??
+        '',
+    );
   }
 
   const destination = candidates.find((entry) => entry.id === destinationId) ?? null;
@@ -209,8 +215,8 @@ export function TransferDialog({ request, collections, onClose, onChanged }: Tra
         <dd>
           {candidates.length === 0 ? (
             <p className="text-xs text-caution">
-              There is nowhere to put them. Create a second collection first — a SQLite collection
-              needs the companion running.
+              There is nowhere to put them yet. Create a collection first with New collection on the
+              Databases page.
             </p>
           ) : (
             <select

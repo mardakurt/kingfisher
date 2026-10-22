@@ -136,6 +136,12 @@ export function PrivacyPage(): JSX.Element {
         move it is the <em>Settings → Database → Export backup… / Choose backup to restore…</em>{' '}
         flow, which produces and consumes a versioned JSON file under your control.
       </p>
+      <p>
+        Collections you make on the Databases page are IndexedDB databases of their own in the same
+        browser, listed in a small one named <code>kingfisher-collections</code>. They stay on that
+        browser: they are not sent to your account, and a backup carries them only when it includes
+        games.
+      </p>
 
       <h2 id="reference-cache">Reference cache</h2>
       <p>

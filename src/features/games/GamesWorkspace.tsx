@@ -51,6 +51,7 @@ import {
 } from '@/features/persistence/queries';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { cn } from '@/lib/cn';
+import { isBrowserCollectionId } from '@/persistence/browser-collections';
 import { formatPgnDate, gameTitle } from '@/persistence/describe';
 import { playerKey } from '@/persistence/schema/migrations';
 import type { GameId, GameSearchQuery, GameSummary } from '@/persistence/types';
@@ -815,7 +816,7 @@ export function GamesWorkspace() {
           >
             <option value={LOCAL_SOURCE.id}>My games</option>
             {(collections.data ?? [])
-              .filter((entry) => entry.kind === 'sqlite')
+              .filter((entry) => entry.kind === 'sqlite' || isBrowserCollectionId(entry.id))
               .map((entry) => (
                 <option key={entry.id} value={entry.id}>
                   {entry.name}
@@ -1190,7 +1191,11 @@ export function GamesWorkspace() {
                       <td className="px-2 py-[5px]" onClick={(event) => event.stopPropagation()}>
                         <input
                           disabled={!local}
-                          title={local ? undefined : 'Selecting games works in My games'}
+                          title={
+                            local
+                              ? undefined
+                              : 'Select, copy and delete this collection’s games on the Databases page'
+                          }
                           type="checkbox"
                           checked={selected.has(game.id)}
                           onChange={() => toggle(game.id)}

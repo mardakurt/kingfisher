@@ -219,6 +219,16 @@ export function ChessBaseImportDialog({ open, onClose }: { open: boolean; onClos
                 <input
                   type="radio"
                   name="chessbase-destination"
+                  checked={destination === 'browser'}
+                  onChange={() => setDestination('browser')}
+                  disabled={job.running}
+                />
+                A new collection in this browser, named above
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="chessbase-destination"
                   checked={destination === 'companion'}
                   onChange={() => setDestination('companion')}
                   disabled={job.running || !paired}

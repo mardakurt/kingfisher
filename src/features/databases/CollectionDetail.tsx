@@ -21,9 +21,18 @@ import { companionClient } from '@/companion/session';
 import type { CompanionAggregateIntegrity } from '@/companion/client';
 import { parsePgn } from '@/chess/pgn';
 import { chessBaseArchive, downloadArchive } from '@/database/chessbase/export';
-import { openCollection, providerIdForCollection } from '@/database/collections/registry';
+import {
+  openCollection,
+  providerIdForCollection,
+  repositoriesForCollection,
+} from '@/database/collections/registry';
 import type { CollectionFacts } from '@/database/collections/types';
-import { getRepositories } from '@/persistence/repositories';
+import {
+  browserCollectionKey,
+  deleteBrowserCollection,
+  isBrowserCollectionId,
+  renameBrowserCollection,
+} from '@/persistence/browser-collections';
 import { backfillStructures, type BackfillProgress } from '@/persistence/structure-backfill';
 import { usePreferences } from '@/stores/preferences-store';
 import { useUi } from '@/stores/ui-store';
@@ -56,6 +65,10 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
   const [backfill, setBackfill] = useState<BackfillProgress | null>(null);
 
   const sqliteKey = collection.kind === 'sqlite' ? collection.id.slice('sqlite:'.length) : null;
+  /** A collection kept in this browser beside My games: named, renamed and deleted here. */
+  const browserKey = isBrowserCollectionId(collection.id)
+    ? browserCollectionKey(collection.id)
+    : null;
 
   const integrity = useQuery<CompanionAggregateIntegrity | { consistent: boolean; note: string }>({
     queryKey: ['collection-integrity', collection.id],
@@ -63,7 +76,8 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
     retry: false,
     queryFn: async () => {
       if (!sqliteKey) {
-        const repositories = await getRepositories();
+        const repositories = await repositoriesForCollection(collection.id);
+        if (!repositories) throw new Error('That collection is not in this browser.');
         const { scanIntegrity } = await import('@/persistence/integrity');
         const report = await scanIntegrity(repositories.raw);
         return {
@@ -79,7 +93,8 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
 
   const rename = useMutation({
     mutationFn: async (name: string) => {
-      if (!sqliteKey) throw new Error("The browser's own collection cannot be renamed.");
+      if (browserKey) return renameBrowserCollection(browserKey, name);
+      if (!sqliteKey) throw new Error('My games keeps its name.');
       const client = companionClient();
       if (!client) throw new Error('The companion is not connected.');
       return client.renameDatabase(sqliteKey, name);
@@ -168,9 +183,12 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
         return client.clearDatabase(sqliteKey);
       }
       if (scope === 'delete') {
-        throw new Error("The browser's own collection cannot be removed, only emptied.");
+        if (!browserKey) throw new Error('My games cannot be removed, only emptied.');
+        await deleteBrowserCollection(browserKey);
+        return { deleted: collection.games ?? 0 };
       }
-      const repositories = await getRepositories();
+      const repositories = await repositoriesForCollection(collection.id);
+      if (!repositories) throw new Error('That collection is not in this browser.');
       await repositories.games.clear();
       return { deleted: collection.games ?? 0 };
     },
@@ -225,7 +243,9 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
           <p className="mt-1 text-sm text-secondary">
             {collection.kind === 'sqlite'
               ? 'SQLite collection, held by the companion.'
-              : 'Stored in this browser and indexed by position.'}
+              : browserKey
+                ? 'Kept in this browser beside My games, with its own games and position index.'
+                : 'Stored in this browser and indexed by position.'}
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             <StatusChip
@@ -302,7 +322,14 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
           >
             Merge into…
           </Button>
-          <Button icon={<Import />} onClick={() => setImportOpen(true)}>
+          <Button
+            icon={<Import />}
+            onClick={() =>
+              browserKey
+                ? setImportOpen(true, { id: collection.id, name: collection.name })
+                : setImportOpen(true)
+            }
+          >
             Import PGN
           </Button>
           <Button
@@ -339,7 +366,8 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
             if (!client) throw new Error('The companion is not connected.');
             return new SqliteClassificationTarget(client, sqliteKey);
           }
-          const repositories = await getRepositories();
+          const repositories = await repositoriesForCollection(collection.id);
+          if (!repositories) throw new Error('That collection is not in this browser.');
           return new LocalClassificationTarget(repositories.raw);
         }}
       />
@@ -376,7 +404,11 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
       <section className="py-5">
         <h3 className="text-xs font-semibold text-tertiary">Collection</h3>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button icon={<Pencil />} disabled={!sqliteKey} onClick={() => setRenaming(true)}>
+          <Button
+            icon={<Pencil />}
+            disabled={!sqliteKey && !browserKey}
+            onClick={() => setRenaming(true)}
+          >
             Rename
           </Button>
           <Button
@@ -387,7 +419,7 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
           >
             Empty collection
           </Button>
-          {sqliteKey ? (
+          {sqliteKey || browserKey ? (
             <Button variant="danger" icon={<Trash />} onClick={() => setConfirming('delete')}>
               Delete collection
             </Button>
@@ -403,7 +435,11 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
       <PromptDialog
         open={renaming}
         title="Rename collection"
-        description="The display name only. The file on disk keeps the name it was created with."
+        description={
+          browserKey
+            ? 'The name this collection is listed under.'
+            : 'The display name only. The file on disk keeps the name it was created with.'
+        }
         label="Name"
         initialValue={collection.name}
         confirmLabel="Rename"
@@ -417,14 +453,18 @@ export function CollectionDetail({ collection, onTransfer, onChanged }: Collecti
         // from disk and emptying the browser's own collection does not.
         title={
           confirming === 'delete'
-            ? 'Delete this SQLite collection?'
+            ? browserKey
+              ? 'Delete this collection?'
+              : 'Delete this SQLite collection?'
             : sqliteKey
               ? 'Empty this SQLite collection?'
               : 'Empty this collection?'
         }
         description={
           confirming === 'delete'
-            ? `The file ${collection.location} and every game in it will be permanently removed.`
+            ? browserKey
+              ? `“${collection.name}” and its ${(collection.games ?? 0).toLocaleString()} games will be permanently removed from this browser. My games and your other collections are not touched.`
+              : `The file ${collection.location} and every game in it will be permanently removed.`
             : `All ${(collection.games ?? 0).toLocaleString()} games will be removed. The collection itself remains.`
         }
         confirmLabel={destroy.isPending ? 'Working…' : 'Delete permanently'}

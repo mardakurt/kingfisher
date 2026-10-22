@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 
-import { createPgnParser, describeRefusals } from '@/chess/pgn';
+import { createPgnParser, describeRefusals, type PgnRefusal } from '@/chess/pgn';
+import { pgnPieces } from '@/persistence/pgn-chunks';
 import { indexGame, normalizeGame } from '@/persistence/prepare-game';
 import { classifyTree } from '@/theory/classify-games';
 import { loadOpeningIndex, type OpeningIndex } from '@/theory/openings';
@@ -44,72 +45,82 @@ async function run(request: Extract<PgnWorkerRequest, { type: 'start' }>) {
   } catch {
     openings = null;
   }
-  const source = typeof request.source === 'string' ? request.source : await request.source.text();
-  const parser = createPgnParser(source);
   const batchSize = Math.max(1, request.batchSize);
   let parsed = 0;
   let issues = 0;
   let batchId = 0;
   let batch: PreparedLocalGame[] | PreparedSqliteGame[] = [];
+  const refused: PgnRefusal[] = [];
+  let unreadable = 0;
 
-  while (!parser.done) {
-    const parsedGame = parser.next();
-    if (!parsedGame) continue;
-    const prepared = normalizeGame(parsedGame.tree);
-    const game = openings ? { ...prepared, ...classifyTree(openings, prepared.tree) } : prepared;
-    const positions = indexGame(game);
-    parsed += 1;
-    issues += parsedGame.issues.length;
+  // A file is read a few megabytes of whole games at a time (`pgn-chunks.ts`):
+  // reading it as one string failed outright on a large download.
+  for await (const piece of pgnPieces(request.source)) {
+    const parser = createPgnParser(piece);
+    while (!parser.done) {
+      const parsedGame = parser.next();
+      if (!parsedGame) continue;
+      const prepared = normalizeGame(parsedGame.tree);
+      const game = openings ? { ...prepared, ...classifyTree(openings, prepared.tree) } : prepared;
+      const positions = indexGame(game);
+      parsed += 1;
+      issues += parsedGame.issues.length;
 
-    if (request.target === 'local') {
-      (batch as PreparedLocalGame[]).push({ game, positions });
-    } else {
-      (batch as PreparedSqliteGame[]).push({
-        game: {
-          fingerprint: game.fingerprint,
-          white: game.white,
-          black: game.black,
-          whiteKey: game.whiteKey,
-          blackKey: game.blackKey,
-          result: game.result,
-          ...(game.date ? { date: game.date } : {}),
-          ...(game.year ? { year: game.year } : {}),
-          ...(game.event ? { event: game.event } : {}),
-          ...(game.site ? { site: game.site } : {}),
-          ...(game.round ? { round: game.round } : {}),
-          ...(game.whiteRating ? { whiteRating: game.whiteRating } : {}),
-          ...(game.blackRating ? { blackRating: game.blackRating } : {}),
-          ...(game.eco ? { eco: game.eco } : {}),
-          ...(game.opening ? { opening: game.opening } : {}),
-          ...(game.classification ? { classification: game.classification } : {}),
-          ...(game.classifiedWith ? { classifiedWith: game.classifiedWith } : {}),
-          plyCount: positions.length,
-          importedAt: game.importedAt,
-        },
-        pgn: game.normalizedPgn,
-        positions: positions.map((position) => ({
-          positionKey: position.positionKey,
-          ply: position.ply,
-          moveUci: position.moveUci,
-          moveSan: position.moveSan,
-          mover: position.mover,
-          fen: position.fen,
-          nodeId: position.nodeId,
-          pawnSkeleton: position.pawnSkeleton,
-          structureSignature: position.structureSignature,
-          structureClaims: position.structureClaims,
-        })),
-      });
+      if (request.target === 'local') {
+        (batch as PreparedLocalGame[]).push({ game, positions });
+      } else {
+        (batch as PreparedSqliteGame[]).push({
+          game: {
+            fingerprint: game.fingerprint,
+            white: game.white,
+            black: game.black,
+            whiteKey: game.whiteKey,
+            blackKey: game.blackKey,
+            result: game.result,
+            ...(game.date ? { date: game.date } : {}),
+            ...(game.year ? { year: game.year } : {}),
+            ...(game.event ? { event: game.event } : {}),
+            ...(game.site ? { site: game.site } : {}),
+            ...(game.round ? { round: game.round } : {}),
+            ...(game.whiteRating ? { whiteRating: game.whiteRating } : {}),
+            ...(game.blackRating ? { blackRating: game.blackRating } : {}),
+            ...(game.eco ? { eco: game.eco } : {}),
+            ...(game.opening ? { opening: game.opening } : {}),
+            ...(game.classification ? { classification: game.classification } : {}),
+            ...(game.classifiedWith ? { classifiedWith: game.classifiedWith } : {}),
+            plyCount: positions.length,
+            importedAt: game.importedAt,
+          },
+          pgn: game.normalizedPgn,
+          positions: positions.map((position) => ({
+            positionKey: position.positionKey,
+            ply: position.ply,
+            moveUci: position.moveUci,
+            moveSan: position.moveSan,
+            mover: position.mover,
+            fen: position.fen,
+            nodeId: position.nodeId,
+            pawnSkeleton: position.pawnSkeleton,
+            structureSignature: position.structureSignature,
+            structureClaims: position.structureClaims,
+          })),
+        });
+      }
+
+      if (batch.length >= batchSize) {
+        const id = ++batchId;
+        post({ type: 'batch', batchId: id, parsed, issues, batch });
+        batch = [];
+        await acknowledged(id);
+      } else if (parsed % 25 === 0) {
+        post({ type: 'progress', parsed, issues });
+      }
     }
-
-    if (batch.length >= batchSize) {
-      const id = ++batchId;
-      post({ type: 'batch', batchId: id, parsed, issues, batch });
-      batch = [];
-      await acknowledged(id);
-    } else if (parsed % 25 === 0) {
-      post({ type: 'progress', parsed, issues });
-    }
+    refused.push(...parser.refused);
+    // A piece with no game in it reports "no games found"; across a whole file
+    // that is said once, by the caller, if no piece held one.
+    if (parser.parsedGames > 0) unreadable += parser.issues.length;
+    else unreadable += parser.issues.filter((issue) => !issue.message.startsWith('No ')).length;
   }
 
   if (batch.length > 0) {
@@ -120,9 +131,9 @@ async function run(request: Extract<PgnWorkerRequest, { type: 'start' }>) {
   post({
     type: 'done',
     total: parsed,
-    issues: issues + parser.issues.length,
-    refused: parser.refused.length,
-    refusedDetail: describeRefusals(parser.refused),
+    issues: issues + unreadable,
+    refused: refused.length,
+    refusedDetail: describeRefusals(refused),
   });
 }
 

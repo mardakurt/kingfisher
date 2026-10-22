@@ -31,7 +31,7 @@ const builtIn: readonly ChessDatabaseProvider[] = [
  * going offline must not un-register the reference packs stored in this
  * browser, and installing a pack must not disturb the companion's list.
  */
-export type DynamicProviderGroup = 'companion' | 'reference';
+export type DynamicProviderGroup = 'companion' | 'reference' | 'browser';
 
 const dynamic = new Map<DynamicProviderGroup, readonly ChessDatabaseProvider[]>();
 let current: readonly ChessDatabaseProvider[] = builtIn;
@@ -44,7 +44,13 @@ export const setDynamicDatabaseProviders = (
   dynamic.set(group, providers);
   // Reference packs first: they are the sources that answer without a network
   // or a companion, and a list is read top-down.
-  current = [...(dynamic.get('reference') ?? []), ...builtIn, ...(dynamic.get('companion') ?? [])];
+  current = [
+    ...(dynamic.get('reference') ?? []),
+    ...builtIn,
+    // Collections kept in this browser beside My games, then the companion's.
+    ...(dynamic.get('browser') ?? []),
+    ...(dynamic.get('companion') ?? []),
+  ];
   for (const listener of listeners) listener();
 };
 

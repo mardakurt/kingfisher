@@ -552,8 +552,11 @@ and
 Everything was stored in your browser — at the time there was no account, no
 cloud and no sync (optional accounts arrived on 2026-10-15) — and the
 application works with the network off. An **optional** local
-companion adds native engines and SQLite collections, the two native
-capabilities shipped in Phase 4, and nothing depends on it. Tablebase evidence
+companion adds native engines and SQLite files, the two native
+capabilities shipped in Phase 4, and nothing depends on it: since
+2026-10-22 a browser keeps any number of game collections of its own,
+reads En Croissant databases from a chosen file and imports PGN files of
+any size. Tablebase evidence
 currently comes from the separate Lichess Syzygy provider.
 
 **Working today**
@@ -762,7 +765,10 @@ code — the same board, the same rules, the same explorer, the same repertoire.
 
 **In a browser.** Open it and study chess. Nothing to install, no companion, no
 account; everything under "What you get on a fresh installation" above works on
-an empty profile with the network off.
+an empty profile with the network off. Your games can be kept in as many
+collections as you like, each searchable, explorable and in your backups;
+only native engines other than Stockfish and local Syzygy files need the
+companion.
 
 **As a Mac application.** One launch, no terminal. The shell starts the
 companion for you and pairs it — there is no token to copy out of a terminal

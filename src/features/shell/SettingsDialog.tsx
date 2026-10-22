@@ -38,6 +38,10 @@ import {
   type BackedUpReferenceSource,
   type WorkspaceBackup,
 } from '@/persistence/backup';
+import {
+  restoreBrowserCollections,
+  snapshotBrowserCollections,
+} from '@/persistence/browser-collections';
 import { getRepositories } from '@/persistence/repositories';
 import {
   useProfile,
@@ -2219,6 +2223,8 @@ function BackupControls() {
       const preferences = portablePreferences(usePreferences.getState());
       const backup = await createWorkspaceBackup((await getRepositories()).raw, preferences, {
         includeGames,
+        // The collections kept beside My games travel with the games, or not at all.
+        ...(includeGames ? { collections: await snapshotBrowserCollections() } : {}),
         // Names and sizes only. The packs themselves are hundreds of megabytes
         // and can be fetched again; what cannot be recovered is knowing which
         // ones the workspace was reading from.
@@ -2339,6 +2345,7 @@ function BackupControls() {
     setBusy(true);
     try {
       const result = await restoreWorkspaceBackup((await getRepositories()).raw, pending, mode);
+      const restoredCollections = await restoreBrowserCollections(result.collections, mode);
       applyPortablePreferences(result.preferences);
       await queryClient.invalidateQueries();
       const here = new Set(installedReferenceSources().map((source) => source.id));
@@ -2349,7 +2356,9 @@ function BackupControls() {
         tone: 'success',
         message: `${result.records} records restored by ${mode}.`,
         detail: result.includesGames
-          ? 'The imported game collection was included.'
+          ? restoredCollections.collections > 0
+            ? `My games and ${restoredCollections.collections} other collection${restoredCollections.collections === 1 ? '' : 's'} were included.`
+            : 'The imported game collection was included.'
           : 'Existing imported games were left untouched.',
       });
     } catch (error) {
@@ -2432,7 +2441,7 @@ function BackupControls() {
           checked={includeGames}
           onChange={(event) => setIncludeGames(event.target.checked)}
         />
-        Include imported games and position indexes
+        Include imported games, every collection in this browser, and their position indexes
       </label>
       <div className="mt-3 flex flex-wrap gap-2">
         <Button variant="accent" onClick={() => void runBackupNow()} disabled={busy}>

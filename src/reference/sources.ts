@@ -90,11 +90,24 @@ const COMPANION: {
   offline: true,
 };
 
+/*
+  A collection kept in this browser beside My games. It answers the explorer
+  question from its own position index; the player, report and preparation
+  questions are asked of My games and the companion's files, which is where
+  they are wired.
+*/
+const BROWSER_COLLECTION: {
+  readonly kind: ReferenceSource['kind'];
+  readonly capabilities: readonly SourceCapability[];
+  readonly offline: boolean;
+} = { kind: 'local', capabilities: ['explorer'], offline: true };
+
 const describeProvider = (
   provider: ChessDatabaseProvider,
   preference: SourcePreference,
 ): ReferenceSource => {
-  const shape = BUILT_IN[provider.id] ?? COMPANION;
+  const shape =
+    BUILT_IN[provider.id] ?? (provider.id.startsWith('browser:') ? BROWSER_COLLECTION : COMPANION);
   return {
     id: provider.id,
     name: provider.name,

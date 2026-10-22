@@ -17,6 +17,10 @@ import type { ImportWorkerMessage, ImportWorkerRequest } from '@/database/chessb
 import type { ChessBaseInspection } from '@/database/chessbase/types';
 import { openCollection } from '@/database/collections/registry';
 import { companionClient } from '@/companion/session';
+import {
+  browserCollectionId,
+  createBrowserCollectionNamed,
+} from '@/persistence/browser-collections';
 
 export interface ChessBaseSource {
   /** Base name of the database, e.g. `twic1600`. */
@@ -26,7 +30,9 @@ export interface ChessBaseSource {
   readonly files?: Record<string, ArrayBuffer>;
 }
 
-export type ImportDestination = { readonly kind: 'local' } | { readonly kind: 'companion' };
+/** My games, a new collection kept in this browser, or a new SQLite file in the companion. */
+export type ImportDestination =
+  { readonly kind: 'local' } | { readonly kind: 'browser' } | { readonly kind: 'companion' };
 
 interface ImportState {
   running: boolean;
@@ -204,6 +210,11 @@ export const useChessBaseImport = create<ImportState>((set, get) => ({
         if (!client) throw new Error('Pair the companion in Settings first.');
         set({ message: 'Creating collection…' });
         destinationId = `sqlite:${(await client.createDatabase(collectionName)).key}`;
+      } else if (destination.kind === 'browser') {
+        set({ message: 'Creating collection…' });
+        destinationId = browserCollectionId(
+          (await createBrowserCollectionNamed(collectionName, 'ChessBase import')).key,
+        );
       }
       const collection = await openCollection(destinationId);
       if (!collection) throw new Error('The destination collection is not available.');

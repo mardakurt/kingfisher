@@ -42,9 +42,33 @@ const crossOriginIsolation = process.env.KINGFISHER_CROSS_ORIGIN_ISOLATION === '
  */
 const desktop = process.env.KINGFISHER_DESKTOP_BUILD === '1';
 
+/*
+  Node built-ins a browser bundle may name but never call: sql.js (the En
+  Croissant reader, `src/database/encroissant/browser-reader.worker.ts`) is one
+  file for Node and browsers, and its Node branch requires `fs` and `path`.
+  Empty in the browser only; the server keeps the real modules.
+*/
+const BROWSER_EMPTY = ['fs', 'path', 'crypto'] as const;
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   typedRoutes: true,
+  turbopack: {
+    resolveAlias: Object.fromEntries(
+      BROWSER_EMPTY.map((name) => [name, { browser: './src/lib/empty-module.ts' }]),
+    ),
+  },
+  // The end-to-end server runs webpack (playwright.config.ts); the same rule.
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve ??= {};
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        ...Object.fromEntries(BROWSER_EMPTY.map((name) => [name, false])),
+      };
+    }
+    return config;
+  },
   // E2E owns its disposable output instead of inheriting an ordinary dev
   // server's cache or sharing the production build's generated manifests.
   ...(process.env.KINGFISHER_E2E === '1'

@@ -63,7 +63,8 @@ test('New database in the sidebar asks for a name on the Databases page', async 
   const nav = sidebar(page);
   await nav.locator('[data-nav-section="databases"]').hover();
   await nav.getByRole('link', { name: 'New database' }).click();
-  await expect(page.getByRole('dialog', { name: 'New SQLite collection' })).toBeVisible();
+  // A new collection is made in this browser unless a companion is asked for.
+  await expect(page.getByRole('dialog', { name: 'New collection' })).toBeVisible();
   await expect(page).toHaveURL(/\/databases$/);
 });
 

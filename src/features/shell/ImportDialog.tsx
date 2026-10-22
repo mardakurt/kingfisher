@@ -22,6 +22,10 @@ import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { invalidateGames } from '@/features/persistence/queries';
 import { importGames } from '@/persistence/import-game';
+import {
+  browserCollectionKey,
+  browserCollectionRepositories,
+} from '@/persistence/browser-collections';
 import { getRepositories } from '@/persistence/repositories';
 import { gameTitle } from '@/persistence/describe';
 import type { ImportProgress } from '@/persistence/types';
@@ -55,6 +59,8 @@ export function ImportDialog() {
 
 function ImportForm() {
   const setOpen = useUi((state) => state.setImportOpen);
+  // Opened from a collection kept beside My games: its games go there.
+  const target = useUi((state) => state.importTarget);
   const notify = useUi((state) => state.notify);
   const loadFen = useAnalysis((state) => state.loadFen);
   const openDocument = useAnalysis((state) => state.openDocument);
@@ -78,15 +84,31 @@ function ImportForm() {
 
     try {
       await runImport(async (signal, onProgress) => {
-        const repositories = await getRepositories();
+        const repositories = target
+          ? await browserCollectionRepositories(browserCollectionKey(target.id))
+          : await getRepositories();
         const summary = await importGames(file ?? text, repositories.games, {
           signal,
           onProgress,
         });
 
         invalidateGames(client);
+        if (target) {
+          await client.invalidateQueries({ queryKey: ['collections'] });
+          await client.invalidateQueries({ queryKey: ['collection-games', target.id] });
+        }
 
-        if (summary.firstGame) {
+        if (summary.firstGame && target) {
+          // A stored game opens by its id in My games; this one is elsewhere,
+          // so it opens as source material named after its collection.
+          openDocument({
+            tree: summary.firstGame.tree,
+            document: {
+              kind: 'untitled',
+              title: `${gameTitle(summary.firstGame)} (${target.name})`,
+            },
+          });
+        } else if (summary.firstGame) {
           openDocument({
             tree: summary.firstGame.tree,
             document: {
@@ -108,8 +130,8 @@ function ImportForm() {
           message: summary.cancelled
             ? `Import stopped. ${summary.imported} of ${summary.games} game(s) were added.`
             : summary.imported === 0
-              ? 'Every game in that PGN was already in your database.'
-              : `${summary.imported} game${summary.imported === 1 ? '' : 's'} added to your database.`,
+              ? `Every game in that PGN was already in ${target ? `“${target.name}”` : 'your database'}.`
+              : `${summary.imported} game${summary.imported === 1 ? '' : 's'} added to ${target ? `“${target.name}”` : 'your database'}.`,
           detail: [
             summary.duplicates > 0 ? `${summary.duplicates} duplicate(s) skipped.` : null,
             summary.indexedPositions > 0
@@ -130,7 +152,7 @@ function ImportForm() {
       if (failure instanceof DOMException && failure.name === 'AbortError') return;
       setError(failure instanceof Error ? failure.message : 'The import failed.');
     }
-  }, [client, file, notify, openDocument, runImport, setOpen, text]);
+  }, [client, file, notify, openDocument, runImport, setOpen, target, text]);
 
   const submit = () => {
     if (busy) return;
@@ -183,8 +205,12 @@ function ImportForm() {
     <Dialog
       open
       onClose={close}
-      title="Import a game or position"
-      description="Paste a PGN or a FEN. The format is detected automatically, and every game in a PGN is added to your local database."
+      title={target ? `Import games into “${target.name}”` : 'Import a game or position'}
+      description={
+        target
+          ? `Paste a PGN or choose a file. Every game in it is added to ${target.name}, kept in this browser; My games is not changed.`
+          : 'Paste a PGN or a FEN. The format is detected automatically, and every game in a PGN is added to your local database.'
+      }
       width="w-[620px]"
       footer={
         <>

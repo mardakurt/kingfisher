@@ -759,3 +759,27 @@ privacy page to it.
 - **Legal pages and Settings may not deny the account** while
   `public-services.json` says accounts are enabled; `docs:check` refuses the
   sentences that did.
+
+## Added after 1.5.3 (web, 2026-10-22)
+
+- **A browser keeps several game collections** (`persistence/browser-collections.ts`).
+  Each is its own IndexedDB database with the application's schema; the list
+  is the small `kingfisher-collections` database. Ids are `browser:<key>`.
+  Use `repositoriesForCollection(id)` (`database/collections/registry.ts`)
+  rather than `getRepositories()` wherever a feature acts on "the collection
+  the person chose" — `getRepositories()` is My games and the rest of the
+  workspace. Collections are device-local: never add them to sync. A backup
+  with games carries them; a restore never deletes one it does not mention.
+- **En Croissant in the browser** reads a chosen file with sql.js
+  (`database/encroissant/sqlite-read.ts`). It states the companion's checks
+  and query; `sqlite-read.test.ts` holds the two readers to the same rows, so
+  change both together. `next.config.ts` makes `fs`, `path` and `crypto`
+  empty modules in browser bundles because sql.js names them.
+- **PGN files are read in pieces** (`persistence/pgn-chunks.ts`), each ending
+  where a game ends. Do not go back to `Blob.text()` for a chosen file.
+- **On a phone** the header drops New tab, Set up and Settings (the drawer
+  has Settings, the Position menu has Set up) and page icons, so a route's
+  name fits; `e2e/phone-usability.spec.ts` holds titles, public pages at
+  320 px, Settings and 16 px text fields to it.
+- **Puzzles** pick the side by a fair coin, then a random puzzle within 75
+  points of the target (`choosePuzzle`).

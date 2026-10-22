@@ -485,7 +485,9 @@ Two readers bring another program's database into a Kingfisher collection,
 and both end in the same place as a PGN import: a validated tree,
 `normalizeGame`, `indexGame`, the classifier, one write per page to whichever
 `GameCollection` the player chose. `database/encroissant/` reads En Croissant's
-SQLite through the companion; `database/chessbase/` reads a ChessBase database
+SQLite through the companion, or in the browser from a chosen file with
+sql.js (`sqlite-read.ts` states the companion's checks and query, and its
+test holds the two readers to the same rows); `database/chessbase/` reads a ChessBase database
 (the `.cbh` file family) or a `.cbv` archive entirely in the browser — the
 files are chosen in a dialog, handed to a Worker as transferred buffers and
 never written. The ChessBase reader is layered as the format is: `archive.ts`
@@ -2541,3 +2543,28 @@ mutating or closing that collection during import is refused. Process restart
 still requires reimporting the archive, with committed records deduplicated.
 
 The collection tag index includes recorded PGN Title values alongside annotators, sources and teams. Each title link uses the existing metadata query path with exact matching; local and SQLite readers extract the file's Title tag, without inferring one from players or comments.
+
+## Collections kept in the browser (2026-10-22)
+
+`persistence/browser-collections.ts`. A browser holds My games and any
+number of collections beside it. Each collection is **its own IndexedDB
+database with the application's schema**, opened by the same
+`openPersistenceDatabaseAt` as the main one, so the game repository, the
+position index, fingerprint uniqueness, search and the `GameCollection`
+port (`LocalGameCollection` with the collection's ref) work unchanged; no
+migration of the main database was needed. The list of collections — key,
+name, creation time — is a second small database,
+`kingfisher-collections`. Both are device-local: imported games are not
+synced, and a name arriving without its games would be a lie.
+
+- Collection ids are `browser:<key>`; `database/collections/registry.ts`
+  lists and opens them, `repositoriesForCollection(id)` hands a feature the
+  repositories for My games or a browser collection (null for SQLite).
+- The explorer reads each through `PersistentLocalCollectionProvider` with
+  the collection's identity and database name
+  (`database/providers/browser-collections.ts`, registered as the
+  `browser` provider group by `useBrowserCollectionSync`).
+- Backups: when a backup includes games, `snapshotBrowserCollections`
+  adds a `collections` section; restore matches by key, creates what is
+  missing, and never deletes a collection the backup does not mention.
+- Writes are tracked by the save barrier and are not announced to sync.

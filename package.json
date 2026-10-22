@@ -138,6 +138,7 @@
     "next": "16.3.8",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "sql.js": "1.13.0",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
@@ -147,6 +148,7 @@
     "@types/node": "^24.10.0",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.5",
+    "@types/sql.js": "1.4.9",
     "eslint": "^9.39.5",
     "eslint-config-next": "16.3.8",
     "fake-indexeddb": "^6.2.5",

@@ -8,6 +8,8 @@ import { DATABASE_NAME, DATABASE_VERSION, STORE_NAMES } from '@/persistence/sche
 import type { GameSummary, PositionRecord } from '@/persistence/types';
 
 interface ExploreRequest {
+  /** My games, or a collection kept beside it; absent from older callers. */
+  readonly database?: string;
   readonly fen: Fen;
   readonly filters: ExplorerFilters;
   readonly limit: number;
@@ -27,7 +29,7 @@ self.onmessage = (event: MessageEvent<ExploreRequest>) => {
 };
 
 async function explore(request: ExploreRequest) {
-  const database = await openDatabase();
+  const database = await openDatabase(request.database ?? DATABASE_NAME);
   try {
     const positions = await getPositions(database, positionKey(request.fen));
     const ids = [...new Set(positions.map((position) => position.gameId))];
@@ -38,9 +40,9 @@ async function explore(request: ExploreRequest) {
   }
 }
 
-function openDatabase(): Promise<IDBDatabase> {
+function openDatabase(name: string): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const open = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
+    const open = indexedDB.open(name, DATABASE_VERSION);
     open.onsuccess = () => resolve(open.result);
     open.onerror = () => reject(open.error ?? new Error('Could not open local chess storage.'));
     // The main thread opens and migrates the database before starting this

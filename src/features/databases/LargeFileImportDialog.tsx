@@ -26,6 +26,7 @@ const FINISHED = new Set(['done', 'stopped', 'failed']);
 
 export function LargeFileImportDialog({ onClose }: { readonly onClose: () => void }) {
   const notify = useUi((state) => state.notify);
+  const setImportOpen = useUi((state) => state.setImportOpen);
   const queryClient = useQueryClient();
   const bridge = desktop();
   const [path, setPath] = useState<string | null>(null);
@@ -221,10 +222,23 @@ export function LargeFileImportDialog({ onClose }: { readonly onClose: () => voi
           games through deduplication.
         </p>
         {!bridge ? (
-          <p className="text-secondary">
-            A file this size is read by the companion from its place on disk, which needs the Mac
-            application&apos;s file dialog. In a browser, import through Import PGN.
-          </p>
+          <div className="flex flex-col items-start gap-2">
+            <p className="text-secondary">
+              In a browser, Import PGN takes a file of any size: it is read a few megabytes of whole
+              games at a time and stored as it goes, into My games or into a collection you made in
+              this browser. The browser&apos;s storage quota is the limit, and the Storage line on
+              this page says how much is left.
+            </p>
+            <Button
+              variant="accent"
+              onClick={() => {
+                onClose();
+                setImportOpen(true);
+              }}
+            >
+              Choose a PGN file…
+            </Button>
+          </div>
         ) : null}
         {bridge && !job ? (
           <>

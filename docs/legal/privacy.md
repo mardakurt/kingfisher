@@ -116,6 +116,11 @@ machines and profiles is the **Settings → Database → Export
 backup… / Choose backup to restore…** flow, which produces and consumes a
 versioned JSON file under your control.
 
+Collections you make on the Databases page are IndexedDB databases of
+their own in the same browser, listed in a small one named
+`kingfisher-collections`. They stay on that browser: they are not sent
+to your account, and a backup carries them only when it includes games.
+
 ### Reference cache
 
 When you use the Explorer or a pack query, the application

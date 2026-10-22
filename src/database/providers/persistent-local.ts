@@ -1,4 +1,5 @@
 import { getRepositories } from '@/persistence/repositories';
+import { DATABASE_NAME } from '@/persistence/schema/migrations';
 import type { AppRepositories } from '@/persistence/types';
 
 import type { ChessDatabaseProvider, ExplorerQuery, ExplorerResult } from '../types';
@@ -16,7 +17,7 @@ export interface PersistentLocalDeps {
   readonly createWorker: () => Worker | null;
 }
 
-const defaultDeps: PersistentLocalDeps = {
+export const defaultPersistentLocalDeps: PersistentLocalDeps = {
   repositories: getRepositories,
   createWorker: () => {
     if (typeof Worker === 'undefined') return null;
@@ -31,12 +32,40 @@ const defaultDeps: PersistentLocalDeps = {
   },
 };
 
-export class PersistentLocalCollectionProvider implements ChessDatabaseProvider {
-  constructor(private readonly deps: PersistentLocalDeps = defaultDeps) {}
+/**
+ * Which games the provider reads. My games by default; a collection kept in
+ * this browser beside it is the same schema in a database of its own, and is
+ * explored by the same code with its own name (`browser-collections.ts`).
+ */
+export interface PersistentLocalIdentity {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  /** The IndexedDB database the worker reads. */
+  readonly databaseName: string;
+}
 
-  readonly id = 'local-collection';
-  readonly name = 'My games';
-  readonly description = 'Games stored on this device and indexed by position.';
+const MY_GAMES: PersistentLocalIdentity = {
+  id: 'local-collection',
+  name: 'My games',
+  description: 'Games stored on this device and indexed by position.',
+  databaseName: DATABASE_NAME,
+};
+
+export class PersistentLocalCollectionProvider implements ChessDatabaseProvider {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+
+  constructor(
+    private readonly deps: PersistentLocalDeps = defaultPersistentLocalDeps,
+    private readonly identity: PersistentLocalIdentity = MY_GAMES,
+  ) {
+    this.id = identity.id;
+    this.name = identity.name;
+    this.description = identity.description;
+  }
+
   readonly capabilities = {
     ratingFilter: true,
     dateFilter: true,
@@ -115,6 +144,7 @@ export class PersistentLocalCollectionProvider implements ChessDatabaseProvider 
         else reject(new Error(event.data.error));
       };
       worker.postMessage({
+        database: this.identity.databaseName,
         fen: query.fen,
         filters: query.filters ?? {},
         limit: query.limit ?? 20,
