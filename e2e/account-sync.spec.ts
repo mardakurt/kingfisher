@@ -420,7 +420,9 @@ test.describe('accounts', () => {
     const first = await laptop.newPage();
     await signIn(first);
     await expect(first.getByRole('status').filter({ hasText: /^Synced/ })).toBeVisible();
-    const sync = first.getByRole('switch', { name: 'Sync My games on this device' });
+    const sync = first.getByRole('switch', {
+      name: 'Sync My games and collections on this device',
+    });
     await expect(sync).toHaveAttribute('aria-checked', 'false');
     await first.waitForFunction(() =>
       Boolean((globalThis as { __kingfisher?: unknown }).__kingfisher),
@@ -459,7 +461,9 @@ test.describe('accounts', () => {
     // Not switched on here: the game does not arrive.
     expect(await gameCount(second)).toBe(0);
 
-    await second.getByRole('switch', { name: 'Sync My games on this device' }).click();
+    await second
+      .getByRole('switch', { name: 'Sync My games and collections on this device' })
+      .click();
     await expect.poll(() => gameCount(second), { timeout: 15_000 }).toBe(1);
     await desktop.close();
   });

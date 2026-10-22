@@ -10,6 +10,7 @@ import { Toggle } from '@/components/ui/Toggle';
 import { PageHeader } from '@/features/shell/PageHeader';
 import { cn } from '@/lib/cn';
 import type { SyncConflictRecord } from '@/persistence/sync-state';
+import { COLLECTION_GAME_SYNC_LIMIT } from '@/sync/cloud/collections-source';
 import { GAME_SYNC_LIMIT } from '@/sync/cloud/games-source';
 import { DEVICE_ONLY_STORES } from '@/sync/cloud/scope';
 import { useAccount } from '@/stores/account-store';
@@ -82,16 +83,18 @@ function MyGamesSync() {
     >
       <div className="flex items-center gap-3">
         <Toggle
-          label="Sync My games on this device"
+          label="Sync My games and collections on this device"
           checked={on}
           onChange={(value) => set('syncMyGames', value)}
         />
-        <p className="text-sm text-primary">Sync My games on this device</p>
+        <p className="text-sm text-primary">Sync My games and collections on this device</p>
       </div>
       <p className="mt-1.5 text-[12.5px] leading-relaxed text-secondary">
-        Your newest {GAME_SYNC_LIMIT.toLocaleString()} games travel to every device where this is
-        also on. Games are added, never removed: deleting a game deletes it from this device only,
-        and signing out leaves them here.
+        Your newest {GAME_SYNC_LIMIT.toLocaleString()} games of My games, and the newest{' '}
+        {COLLECTION_GAME_SYNC_LIMIT.toLocaleString()} across the collections you made in this
+        browser, travel to every device where this is also on, each into the collection of the same
+        name. Games and collections are added, never removed: deleting one deletes it from this
+        device only, and signing out leaves them here.
       </p>
     </div>
   );

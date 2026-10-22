@@ -27,6 +27,7 @@ import {
   type ImportDecision,
   type SyncConflictRecord,
 } from '@/persistence/sync-state';
+import { collectionGamesSource, collectionsSource } from '@/sync/cloud/collections-source';
 import { databaseSource } from '@/sync/cloud/local-sources';
 import { SYNCED_STORES } from '@/sync/cloud/scope';
 import { cloudConfigProblem, getCloudClient } from '@/sync/cloud/supabase-client';
@@ -248,7 +249,12 @@ export const useAccount = create<AccountState & AccountActions>()((set, get) => 
       sources: [
         ...SYNCED_STORES.map((store) => databaseSource(database, store)),
         preferencesSource(),
-        ...(usePreferences.getState().syncMyGames ? [gamesSource(database)] : []),
+        // My games and the collections kept beside it travel together, on
+        // the same switch. A collection's writes are not on the change feed,
+        // so they are picked up by the minute's poll rather than at once.
+        ...(usePreferences.getState().syncMyGames
+          ? [gamesSource(database), collectionsSource(), collectionGamesSource()]
+          : []),
       ],
       onApplied: (changes) => announceApplied(changes),
     });

@@ -22,6 +22,13 @@ import { lineToEntries } from '@/repertoire';
 import { importGames } from '@/persistence/import-game';
 
 import { gamesSource, MY_GAMES_STORE } from './games-source';
+import type { BrowserCollectionRecord } from '@/persistence/browser-collections';
+import {
+  collectionGamesSource,
+  collectionsSource,
+  COLLECTION_GAMES_STORE,
+  type CollectionStore,
+} from './collections-source';
 import { databaseSource, type LocalSource } from './local-sources';
 import { SYNCED_STORES } from './scope';
 import { CloudSyncEngine } from './sync-engine';
@@ -51,7 +58,7 @@ function device(
   userId: string,
   name: string,
   shared?: { repositories: AppRepositories; state: MemorySyncStateStore },
-  options: { readonly games?: boolean } = {},
+  options: { readonly games?: boolean; readonly collections?: MemoryCollections } = {},
 ): Device {
   const repositories = shared?.repositories ?? createMemoryRepositories();
   const state = shared?.state ?? new MemorySyncStateStore();
@@ -60,6 +67,9 @@ function device(
   const sources: LocalSource[] = [
     ...SYNCED_STORES.map((store) => databaseSource(repositories.raw, store)),
     ...(options.games ? [gamesSource(repositories.raw)] : []),
+    ...(options.collections
+      ? [collectionsSource(options.collections), collectionGamesSource(options.collections)]
+      : []),
   ];
   const engine = new CloudSyncEngine({
     userId,
@@ -412,5 +422,133 @@ describe('My games, switched on', () => {
     await mac.engine.sync();
     expect(await mac.engine.removeSyncedCopies()).toEqual({ removed: 0, kept: 0 });
     expect(await mac.repositories.games.count()).toBe(1);
+  });
+});
+
+/** One device's collections, in memory: the browser's are global to a test process. */
+class MemoryCollections implements CollectionStore {
+  readonly records = new Map<string, BrowserCollectionRecord>();
+  private readonly repositories = new Map<string, AppRepositories>();
+  async list() {
+    return [...this.records.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }
+  async get(key: string) {
+    return this.records.get(key) ?? null;
+  }
+  async adopt(record: BrowserCollectionRecord) {
+    const here = this.records.get(record.key);
+    if (here) return here;
+    const taken = [...this.records.values()].some((entry) => entry.name === record.name);
+    const adopted = { ...record, name: taken ? `${record.name} (synced)` : record.name };
+    this.records.set(record.key, adopted);
+    return adopted;
+  }
+  async rename(key: string, name: string) {
+    const here = this.records.get(key);
+    if (here) this.records.set(key, { ...here, name });
+  }
+  async games(key: string) {
+    let repositories = this.repositories.get(key);
+    if (!repositories) {
+      repositories = createMemoryRepositories();
+      this.repositories.set(key, repositories);
+    }
+    return repositories.games;
+  }
+  create(key: string, name: string) {
+    this.records.set(key, { key, name, createdAt: 1 });
+  }
+}
+
+describe('collections kept in the browser, switched on with My games', () => {
+  const PGN = `[White "Club, A"]
+[Black "Club, B"]
+[Result "1-0"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Nf6 1-0`;
+
+  it('carry the collection, its name and its games to the other device', async () => {
+    const macCollections = new MemoryCollections();
+    const pcCollections = new MemoryCollections();
+    const mac = device(user, 'mac', undefined, { games: true, collections: macCollections });
+    const pc = device(user, 'pc', undefined, { games: true, collections: pcCollections });
+    await mac.engine.decideImport('imported');
+    macCollections.create('collection-club', 'Club');
+    await importGames(PGN, await macCollections.games('collection-club'));
+    const [sent] = (await (await macCollections.games('collection-club')).search({})).games;
+
+    await mac.engine.sync();
+    expect(await pc.engine.sync()).toMatchObject({ status: 'synced', conflicts: 0 });
+
+    expect(await pcCollections.get('collection-club')).toMatchObject({ name: 'Club' });
+    const arrived = await (await pcCollections.games('collection-club')).get(sent!.id);
+    expect(arrived?.white).toBe('Club, A');
+    // Not into My games: a collection's game stays in its collection.
+    expect(await pc.repositories.games.count()).toBe(0);
+    expect(pc.applied).toContainEqual({
+      store: COLLECTION_GAMES_STORE,
+      key: `collection-club/${sent!.id}`,
+    });
+    expect(await pc.engine.pending()).toBe(0);
+  });
+
+  it('carry a rename, and never a deletion', async () => {
+    const macCollections = new MemoryCollections();
+    const pcCollections = new MemoryCollections();
+    const mac = device(user, 'mac', undefined, { games: true, collections: macCollections });
+    const pc = device(user, 'pc', undefined, { games: true, collections: pcCollections });
+    await mac.engine.decideImport('imported');
+    macCollections.create('collection-club', 'Club');
+    await importGames(PGN, await macCollections.games('collection-club'));
+    await mac.engine.sync();
+    await pc.engine.sync();
+
+    await macCollections.rename('collection-club', 'Club 2026');
+    await mac.engine.sync();
+    await pc.engine.sync();
+    expect((await pcCollections.get('collection-club'))?.name).toBe('Club 2026');
+
+    // Deleted on the Mac: still on the PC.
+    macCollections.records.delete('collection-club');
+    expect(await mac.engine.sync()).toMatchObject({ pushed: 0 });
+    await pc.engine.sync();
+    expect(await pcCollections.get('collection-club')).not.toBeNull();
+    expect(await (await pcCollections.games('collection-club')).count()).toBe(1);
+  });
+
+  it('open a collection for a game that arrives before its name', async () => {
+    const collections = new MemoryCollections();
+    const source = collectionGamesSource(collections);
+    // A game as another device stored it: its id and its exact PGN.
+    const scratch = new MemoryCollections();
+    await importGames(PGN, await scratch.games('x'));
+    const [game] = await (
+      await scratch.games('x')
+    ).getMany((await (await scratch.games('x')).search({})).games.map((entry) => entry.id));
+    await source.put(`collection-new/${game!.id}`, {
+      collection: 'collection-new',
+      id: game!.id,
+      pgn: game!.normalizedPgn,
+    });
+    expect(await collections.get('collection-new')).toMatchObject({ name: 'Synced collection' });
+    await collectionsSource(collections).put('collection-new', {
+      key: 'collection-new',
+      name: 'Arrived later',
+      createdAt: 5,
+    });
+    expect((await collections.get('collection-new'))?.name).toBe('Arrived later');
+    expect(await (await collections.games('collection-new')).count()).toBe(1);
+  });
+
+  it('are nothing to a device that has not switched it on', async () => {
+    const macCollections = new MemoryCollections();
+    const mac = device(user, 'mac', undefined, { games: true, collections: macCollections });
+    const pc = device(user, 'pc');
+    await mac.engine.decideImport('imported');
+    macCollections.create('collection-club', 'Club');
+    await importGames(PGN, await macCollections.games('collection-club'));
+    await mac.engine.sync();
+    expect(await pc.engine.sync()).toMatchObject({ status: 'synced' });
+    expect(await pc.repositories.games.count()).toBe(0);
   });
 });

@@ -22,6 +22,7 @@ import { parsePgn } from '@/chess/pgn';
 import { indexGame, normalizeGame } from '@/persistence/prepare-game';
 import type { PersistenceDatabase } from '@/persistence/indexeddb/database';
 import { fromDatabase } from '@/persistence/repositories';
+import type { GameRepository } from '@/persistence/types';
 
 import type { LocalSource } from './local-sources';
 
@@ -67,22 +68,7 @@ export function gamesSource(database: PersistenceDatabase): LocalSource {
     },
     async put(key, value) {
       if (!isSyncedGame(value) || value.id !== key) return [];
-      const tree = parsePgn(value.pgn).games[0]?.tree;
-      if (!tree) return [];
-      /*
-        The sender's identity and text, kept exactly. Re-deriving them here
-        would not reproduce them — a stored PGN gains the Seven Tag Roster's
-        "?" placeholders, so it fingerprints differently from the PGN first
-        imported — and a game stored under a new id would travel back as a
-        new game, and its text back as a change, on every sync.
-      */
-      const game = {
-        ...normalizeGame(tree),
-        id: key,
-        fingerprint: key.slice('game-'.length),
-        normalizedPgn: value.pgn,
-      };
-      await games.persist(game, indexGame(game));
+      await storeSyncedGame(games, value);
       return [];
     },
     async delete() {
@@ -90,4 +76,26 @@ export function gamesSource(database: PersistenceDatabase): LocalSource {
     },
     isValid: isSyncedGame,
   };
+}
+
+/**
+ * Store a game another device sent, under the sender's identity and text.
+ *
+ * The sender's id and PGN, kept exactly. Re-deriving them here would not
+ * reproduce them — a stored PGN gains the Seven Tag Roster's "?"
+ * placeholders, so it fingerprints differently from the PGN first imported —
+ * and a game stored under a new id would travel back as a new game, and its
+ * text back as a change, on every sync. Shared by My games and the
+ * collections kept beside it (`collections-source.ts`).
+ */
+export async function storeSyncedGame(games: GameRepository, value: SyncedGame): Promise<void> {
+  const tree = parsePgn(value.pgn).games[0]?.tree;
+  if (!tree) return;
+  const game = {
+    ...normalizeGame(tree),
+    id: value.id,
+    fingerprint: value.id.slice('game-'.length),
+    normalizedPgn: value.pgn,
+  };
+  await games.persist(game, indexGame(game));
 }

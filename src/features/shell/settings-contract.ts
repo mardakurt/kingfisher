@@ -418,12 +418,12 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
   },
   {
     key: 'syncMyGames',
-    label: 'Sync My games',
+    label: 'Sync My games and collections',
     surface: 'in-place',
     control: 'features/account/AccountRoute.tsx',
     consumer: 'stores/account-store.ts',
     effect:
-      'Signed in, the newest 2,000 games of My games are uploaded to the account and games other devices uploaded are imported here. Off, the game source is not in the sync engine at all.',
+      'Signed in, the newest 2,000 games of My games, and the newest 2,000 across the collections kept in this browser with their names, are uploaded to the account, and what other devices uploaded is imported here. Off, none of these sources is in the sync engine at all.',
     indexedAs: null,
     previewable: true,
     verifiedBy: 'e2e/account-sync.spec.ts',

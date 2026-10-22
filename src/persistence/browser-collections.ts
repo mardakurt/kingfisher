@@ -176,6 +176,33 @@ export async function createBrowserCollectionNamed(
   return createBrowserCollection(candidate);
 }
 
+/**
+ * A collection another device made, under the key it was made with, so its
+ * games land in the same collection on every device. Its name is kept
+ * unless a different collection here already has it ("Club (synced)").
+ * A collection already here is returned as it is.
+ */
+export async function adoptBrowserCollection(
+  record: BrowserCollectionRecord,
+): Promise<BrowserCollectionRecord> {
+  const here = await getBrowserCollection(record.key);
+  if (here) return here;
+  const taken = new Set(
+    [...(await listBrowserCollections()).map((entry) => entry.name), 'My games'].map((entry) =>
+      entry.toLocaleLowerCase(),
+    ),
+  );
+  const wanted = cleanName(record.name) || 'Synced collection';
+  let name = wanted;
+  for (let n = 1; taken.has(name.toLocaleLowerCase()); n += 1) {
+    name = n === 1 ? `${wanted} (synced)` : `${wanted} (synced ${n})`;
+  }
+  const adopted = { key: record.key, name, createdAt: record.createdAt };
+  await browserCollectionRepositories(adopted.key);
+  await request((await registryStore('readwrite')).put(adopted));
+  return adopted;
+}
+
 export async function renameBrowserCollection(
   key: string,
   name: string,
