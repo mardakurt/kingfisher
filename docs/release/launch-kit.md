@@ -1,6 +1,6 @@
-# Launch kit — Kingfisher 1.5.3
+# Launch kit — Kingfisher 1.5.4
 
-Draft copy for the current public release: Kingfisher 1.5.3 on the web and
+Draft copy for the current public release: Kingfisher 1.5.4 on the web and
 macOS (Apple Silicon, macOS 14 or later, Developer ID signed and notarised).
 This kit contains no user counts, endorsements or claims of complete ChessBase
 parity. Check [`marketing-facts.md`](../product/marketing-facts.md) before posting.
@@ -17,11 +17,13 @@ page-view and performance analytics do not run in the Mac application.
 
 ## Release announcement draft
 
-> Kingfisher 1.5.3 adds an optional account: sign in with email or Google,
-> and your studies, repertoires, training, preparation and analysed
-> positions follow you to every device. Your games travel too if you switch
-> that on. When the same thing changed in two places, neither copy is
-> thrown away. Without an account nothing changes.
+> Kingfisher 1.5.4 does everything with your games in a browser, with
+> nothing installed: collections beside My games that you can import into,
+> search, explore, copy and back up; En Croissant databases read from the
+> file you choose; PGN files of any size. Switch on sync and your
+> collections travel to your other devices. On a phone, a tablet or an
+> installed iPhone every page fits, and Safari users are told how to keep
+> their work. Accounts (since 1.5.3) remain optional.
 >
 > New research tools: an opening map of the next three moves in a local
 > source, openings to reconsider where your own results are poor (with
@@ -37,7 +39,7 @@ page-view and performance analytics do not run in the Mac application.
 > events. Other installed or remote sources retain separate counts, licences
 > and provenance. No combined statistic is presented as a single population.
 >
-> `Kingfisher-1.5.3-arm64.dmg` is Developer ID signed and notarised by Apple.
+> `Kingfisher-1.5.4-arm64.dmg` is Developer ID signed and notarised by Apple.
 > Sparkle checks quietly at launch; Check for Updates opens its native interface.
 > Download and installation require a user action. Work remains in the profile.
 >

@@ -20,8 +20,8 @@ import { publicUrl } from '@/release/public-urls';
   when you change the page.
 */
 const UPDATED = {
-  landing: '2026-10-15',
-  install: '2026-10-14',
+  landing: '2026-10-23',
+  install: '2026-10-23',
   privacy: '2026-10-22',
   security: '2026-10-23',
   dataLicences: '2026-10-04',
