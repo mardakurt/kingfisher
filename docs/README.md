@@ -1,5 +1,6 @@
 # Kingfisher documentation
 
+- [1.5.4 release notes](release/1.5.4.md) — collections, En Croissant and large files in the browser, collection sync, phones, tablets and installed iPhones, Safari storage. Web, and the Mac download.
 - [1.5.3 release notes](release/1.5.3.md) — accounts and sync, opening map, openings to reconsider, analysis history, a faster-reading Studio. Web, and the Mac download (build 1228, notarised).
 - [1.5.2 release notes](release/1.5.2.md) — puzzle move marks, unsaved-work safety, engine fallback.
 - [2026-10-14 stream-hardening report](reports/2026-10-14-stream-hardening.md) — what was audited, found, fixed and run.
@@ -337,7 +338,7 @@ with `git show 16d2fcc2:<path>` (for example
 `git show 16d2fcc2:docs/reports/phase-88-handover.md`).
 
 - [`release/1.0.0.md`](release/1.0.0.md) — the 1.0.0 release notes. The
-  current notes are [`release/1.5.3.md`](release/1.5.3.md).
+  current notes are [`release/1.5.4.md`](release/1.5.4.md).
 - [`../.github/ISSUE_TEMPLATE/`](../.github/ISSUE_TEMPLATE) — issue templates;
   current, and listed here so nothing is unaccounted for.
 - [`../marketing/README.md`](../marketing/README.md) and

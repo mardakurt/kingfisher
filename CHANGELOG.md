@@ -4,7 +4,10 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
-## Unreleased (web)
+## 1.5.4 — 2026-10-23
+
+The web release, and the Mac download `Kingfisher-1.5.4-arm64.dmg`
+([release notes](docs/release/1.5.4.md)).
 
 - **Everything in the browser, nothing to install.** What needed the Mac
   application's companion now works on the website, on any computer:

@@ -23,7 +23,7 @@ const UPDATED = {
   landing: '2026-10-15',
   install: '2026-10-14',
   privacy: '2026-10-22',
-  security: '2026-10-14',
+  security: '2026-10-23',
   dataLicences: '2026-10-04',
   terms: '2026-09-28',
 } as const;
