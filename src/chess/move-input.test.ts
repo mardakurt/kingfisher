@@ -16,6 +16,8 @@ describe('matchMoveInput', () => {
     expect(played('Nf3+!?')).toBe('Nf3');
     expect(played('e4')).toBe('e4');
     expect(played(' e4 ')).toBe('e4');
+    expect(played('1.e4')).toBe('e4');
+    expect(played('1. Nf3')).toBe('Nf3');
   });
 
   it('reads UCI and long algebraic', () => {

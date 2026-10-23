@@ -55,14 +55,18 @@ const FIGURINES: Readonly<Record<string, string>> = {
  * them, so `Nxe5`, `Ne5` and `N:e5` are one input.
  */
 function clean(text: string): string {
-  return text
-    .trim()
-    .replace(/[♔♕♖♗♘♚♛♜♝♞♙♟]/g, (figure) => FIGURINES[figure] ?? '')
-    .replace(/[!?]+$/, '')
-    .replace(/[+#‡]+$/, '')
-    .replace(/([1-8])\s*(?:e\.p\.?|ep)$/i, '$1')
-    .replace(/[\s:=()xX×\-\u2013\u2014]/g, '')
-    .replace(/0/g, 'O');
+  return (
+    text
+      .trim()
+      // A move number written in front of the move: `1.e4`, `12...Nf6`, `3… a6`.
+      .replace(/^\d+\s*(?:\.+|…)\s*/, '')
+      .replace(/[♔♕♖♗♘♚♛♜♝♞♙♟]/g, (figure) => FIGURINES[figure] ?? '')
+      .replace(/[!?]+$/, '')
+      .replace(/[+#‡]+$/, '')
+      .replace(/([1-8])\s*(?:e\.p\.?|ep)$/i, '$1')
+      .replace(/[\s:=()xX×\-\u2013\u2014]/g, '')
+      .replace(/0/g, 'O')
+  );
 }
 
 /**
