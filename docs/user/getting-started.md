@@ -70,7 +70,7 @@ recently. Click any game to open it on the board.
 
 ## 6. Save something
 
-Hit `Cmd+S` (macOS) or `Ctrl+S` (web) and choose a Study. Anything
+Press `⌘S` (`Ctrl+S` on Windows and Linux, in the browser too) and choose a Study. Anything
 you save persists across quits. To prove it: quit the desktop
 application, reopen it, find the same study.
 
