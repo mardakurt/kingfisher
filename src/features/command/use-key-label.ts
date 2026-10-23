@@ -12,13 +12,20 @@
 
 import { useCallback, useMemo } from 'react';
 
+import { useHydrated } from '@/lib/use-hydrated';
 import { useShortcuts } from '@/stores/shortcuts-store';
 
 import { formatBinding } from './bindings';
 import { DEFAULT_BINDINGS } from './shortcuts';
 
+const NONE: Readonly<Record<string, string>> = {};
+
 export function useKeyLabel(): (action: string) => string | undefined {
-  const overrides = useShortcuts((state) => state.overrides);
+  const stored = useShortcuts((state) => state.overrides);
+  // The server knows only the defaults; a person's own keys arrive with the
+  // browser's storage, after hydration, so the first render matches the HTML.
+  const hydrated = useHydrated();
+  const overrides = hydrated ? stored : NONE;
   const bindings = useMemo(() => ({ ...DEFAULT_BINDINGS, ...overrides }), [overrides]);
   return useCallback(
     (action: string) => {
