@@ -135,7 +135,7 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "chess.js": "^1.4.0",
-    "next": "16.3.8",
+    "next": "16.4.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "sql.js": "1.13.0",
@@ -150,12 +150,12 @@
     "@types/react-dom": "^19.2.5",
     "@types/sql.js": "1.4.9",
     "eslint": "^9.39.5",
-    "eslint-config-next": "16.3.8",
+    "eslint-config-next": "16.4.1",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^29.1.1",
     "prettier": "^3.6.2",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
-    "vitest": "^5.0.1"
+    "vitest": "5.0.3"
   }
 }

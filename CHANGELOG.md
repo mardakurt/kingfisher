@@ -9,6 +9,8 @@ real users notice.
 The web release ([release notes](docs/release/1.5.5.md)). The Mac download
 stays 1.5.4 until 1.5.5 is built, notarised and published.
 
+- **Security updates.** Next.js 16.4.1 and Electron 44.5.0 include the
+  upstream security fixes; the test dependencies are patched too.
 - **Type your moves.** Press `T` (or the keyboard button under the board)
   and type a move as you would write it — `Nf3`, `nf3`, `exd5`, `ed5`,
   `e8=Q`, `0-0`, `e2e4`, `♘f3`. Paste or type a whole line

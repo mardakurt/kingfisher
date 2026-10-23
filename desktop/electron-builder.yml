@@ -127,7 +127,7 @@ extraResources:
 
 # The Electron build target. Pinned so that a build is a property of the
 # commit and not of whatever `desktop/node_modules` happens to hold.
-electronVersion: 44.2.0
+electronVersion: 44.5.0
 
 mac:
   # Apple Silicon only. There is no x64 build, no universal build, and the

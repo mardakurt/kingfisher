@@ -89,9 +89,11 @@ test('a PGN or FEN pasted on the page, not in a field, opens Import with it', as
     page.evaluate((value) => {
       const data = new DataTransfer();
       data.setData('text/plain', value);
-      document.body.dispatchEvent(
-        new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }),
-      );
+      const event = new ClipboardEvent('paste', { bubbles: true, cancelable: true });
+      // Firefox discards DataTransfer supplied to a synthetic ClipboardEvent.
+      // Stub only the clipboard boundary; detection and Import run for real.
+      Object.defineProperty(event, 'clipboardData', { value: data });
+      document.body.dispatchEvent(event);
     }, text);
 
   const dialog = page.getByRole('dialog', { name: 'Import a game or position' });

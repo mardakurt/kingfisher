@@ -130,13 +130,17 @@ describe('electron-builder.yml', () => {
   it('is the application the documentation describes', () => {
     expect(config.appId).toBe('app.kingfisher.chess');
     expect(config.productName).toBe('Kingfisher');
-    expect(config.electronVersion).toBe('44.2.0');
     expect(config.mac.hardenedRuntime).toBe(true);
     expect(config.mac.entitlements).toBe('build/entitlements.mac.plist');
     expect(config.mac.extendInfo.LSMinimumSystemVersion).toBe(MINIMUM_MACOS);
     // The .app is notarised in the directory step when credentials are set,
     // so the boot gate and the archives see a stapled application.
     expect(config.mac.notarize).toBe(true);
+  });
+
+  it('packages the Electron runtime declared by the desktop package', () => {
+    const manifest = JSON.parse(readFileSync(path.join(DESKTOP, 'package.json'), 'utf8'));
+    expect(config.electronVersion).toBe(manifest.devDependencies.electron);
   });
 
   it('refuses a publishable build without notarization credentials', () => {
