@@ -14,11 +14,17 @@ The application opens on `/analysis` with a board on the left and
 the engine panel on the right. Stockfish 18 (WebAssembly) is ready
 to answer.
 
-Play a move. Either drag a piece, or use the keyboard:
+Play a move. Drag a piece, click it and then its square, or use the
+keyboard:
 
-- **Arrows** move the cursor.
-- **Enter** drops the selected piece.
-- **Backspace** takes the move back.
+- **T** opens a field under the board: type the move as you would write it
+  (`Nf3`, `exd5`, `O-O`, `e2e4`) and press **Enter**. A whole line —
+  `1.e4 c5 2.Nf3` — is played as far as it is legal.
+- **← →** step back and forward through the moves, **Home** and **End** go
+  to the start and the end of the line, **P** plays it through.
+- **⌘Z** takes a move back; **Delete** removes the move and everything
+  after it.
+- **⌘V** with a PGN or a FEN on the clipboard opens Import with it.
 
 Every board page — Analysis, Studies, Repertoire, Openings,
 Preparation, Review, Endgame — has the same shape: the board, and on
@@ -33,7 +39,7 @@ menu is everything else you can do with what is on the board.
 Click **Analyse this position** in the engine panel. Stockfish
 evaluates the current position to depth 22 in a couple of
 seconds. The principal variation is shown in the engine panel and
-on the board as ghost squares.
+its first move as an arrow on the board.
 
 On a Mac, six native engines can be installed from Settings → Engines
 (Stockfish 19, Stormphrax, Viridithas, Halogen, PlentyChess, Lc0). Three
