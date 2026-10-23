@@ -3,9 +3,9 @@
  * step back or a new document plays none.
  *
  * The browser's audio output cannot be listened to from a test, so the
- * boundary is stubbed instead: `AudioScheduledSourceNode.prototype.start` is
- * wrapped before the page loads, and each sound's first `start` — the noise
- * burst of its knock — is counted. The synthesis itself runs for real.
+ * boundary is stubbed instead: `AudioBufferSourceNode.prototype.start` is
+ * wrapped before the page loads, and each knock's noise burst is counted.
+ * The synthesis itself runs for real.
  */
 
 import { expect, test, type Page } from '@playwright/test';
@@ -14,13 +14,15 @@ async function countSounds(page: Page) {
   await page.addInitScript(() => {
     const started: number[] = [];
     (window as unknown as { __starts: number[] }).__starts = started;
-    const original = AudioScheduledSourceNode.prototype.start;
-    AudioScheduledSourceNode.prototype.start = function start(
-      this: AudioScheduledSourceNode,
-      ...args
+    // A buffer source has its own `start` (with an offset and a duration), so
+    // it is wrapped there rather than on the scheduled-source base class.
+    const original = AudioBufferSourceNode.prototype.start;
+    AudioBufferSourceNode.prototype.start = function start(
+      this: AudioBufferSourceNode,
+      ...args: Parameters<typeof original>
     ) {
-      if (this instanceof AudioBufferSourceNode) started.push(Date.now());
-      return original.apply(this, args as Parameters<typeof original>);
+      started.push(Date.now());
+      return original.apply(this, args);
     };
   });
 }
