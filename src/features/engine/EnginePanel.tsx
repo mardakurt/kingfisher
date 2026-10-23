@@ -28,7 +28,7 @@ import {
   type DepthSample,
 } from '@/engine/metrics';
 import type { PrincipalVariation, WinDrawLoss } from '@/engine/types';
-import { Pin, Play, Plus, Save, Stop, Trash } from '@/components/icons';
+import { Copy, Pin, Play, Plus, Save, Stop, Trash } from '@/components/icons';
 import { Button, IconButton } from '@/components/ui/Button';
 import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
 import { Segmented } from '@/components/ui/Tabs';
@@ -482,6 +482,30 @@ export function EnginePanel({ compact = false }: { readonly compact?: boolean })
                       onClick={() => insert(line.moves, line.moves.length - 1)}
                     >
                       <Plus />
+                    </IconButton>
+                    <IconButton
+                      label="Copy this line as text"
+                      className="h-6 w-6"
+                      disabled={!line.san || line.san.length === 0}
+                      onClick={() => {
+                        const text = `${formatScore(line.score)} ${variationTokens(
+                          node.ply,
+                          line.san ?? [],
+                        )
+                          .map((token) => token.text)
+                          .join(' ')} (depth ${line.depth})`;
+                        void navigator.clipboard
+                          .writeText(text)
+                          .then(() => notify({ tone: 'success', message: 'Engine line copied.' }))
+                          .catch(() =>
+                            notify({
+                              tone: 'error',
+                              message: 'The clipboard is not available here.',
+                            }),
+                          );
+                      }}
+                    >
+                      <Copy />
                     </IconButton>
                   </span>
                 </div>
