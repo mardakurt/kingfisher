@@ -18,6 +18,7 @@ import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
 import { useUi } from '@/stores/ui-store';
 import { desktop } from '@/desktop/bridge';
 import { showTool } from '@/features/workspace/select-tool';
+import { toggleAutoplay } from '@/features/analysis/autoplay';
 import { NAV_SECTIONS } from '@/features/shell/navigation';
 import { newTab, requestCloseTab, stepTab } from '@/features/tabs/tab-actions';
 import { useTabs } from '@/features/tabs/tab-store';
@@ -435,6 +436,14 @@ export function useCommands(): readonly Command[] {
         group: 'Board',
         shortcut: 'F',
         run: () => analysis().flip(),
+      },
+      {
+        id: 'autoplay',
+        title: 'Play through the line',
+        group: 'Board',
+        shortcut: 'P',
+        keywords: 'replay autoplay auto play slideshow pause',
+        run: () => toggleAutoplay(),
       },
       {
         id: 'type-move',

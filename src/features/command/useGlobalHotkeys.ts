@@ -16,6 +16,8 @@ import { useCalculation } from '@/features/calculation/calculation-store';
 import { newTab, requestCloseTab, stepTab } from '@/features/tabs/tab-actions';
 import { useTabs } from '@/features/tabs/tab-store';
 
+import { toggleAutoplay } from '@/features/analysis/autoplay';
+
 import { resolveAction } from './bindings';
 
 /** `1`–`6` annotate the current move with the six move-quality glyphs. */
@@ -176,6 +178,9 @@ export function useGlobalHotkeys(): void {
           return;
         case 'flip':
           analysis.flip();
+          return;
+        case 'autoplay':
+          toggleAutoplay();
           return;
         case 'type-move':
           // The key would otherwise be typed into the field it opens.

@@ -16,6 +16,7 @@ import { BoardControls } from '@/features/analysis/BoardControls';
 import { EvaluationBar } from '@/features/analysis/EvaluationBar';
 import { EvaluationGraph } from '@/features/analysis/EvaluationGraph';
 import { MoveEntry } from '@/features/analysis/MoveEntry';
+import { useAutoplay } from '@/features/analysis/autoplay';
 import { PositionSummary } from '@/features/analysis/PositionSummary';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
 import { cn } from '@/lib/cn';
@@ -120,6 +121,8 @@ export function CanonicalBoardSurface({
     () => resolveBoardCapabilities({ mode, overrides, conceal, concealPieces }),
     [conceal, concealPieces, mode, overrides],
   );
+  // The replay belongs to the board whose controls offer it.
+  useAutoplay(showContext && caps.allowContextActions);
 
   /*
     A running engine follows the board — except behind the curtain. Review

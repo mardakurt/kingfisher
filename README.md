@@ -955,6 +955,7 @@ the full list, and to change any of them. Bindings below are the defaults.
 | `D`          | Database explorer                         |
 | `F`          | Flip the board                            |
 | `T`          | Type a move (`Nf3`, `exd5`, `e2e4`)       |
+| `P`          | Play through the line, or pause           |
 | `1`–`6`      | Annotate `!` `?` `!!` `??` `!?` `?!`      |
 | `C`          | Comment on this move                      |
 | `⇧P` / `⇧M`  | Move variation up / promote to main line  |

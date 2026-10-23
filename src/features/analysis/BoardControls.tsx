@@ -7,10 +7,13 @@ import {
   ChevronRight,
   Flip,
   Keyboard,
+  Play,
   Reset,
   SkipEnd,
   SkipStart,
+  Stop,
 } from '@/components/icons';
+import { toggleAutoplay } from '@/features/analysis/autoplay';
 import { Button, IconButton } from '@/components/ui/Button';
 import { positionPageAvailable } from '@/features/position/open-position-page';
 import { positionPageUrl } from '@/position/knowledge';
@@ -27,6 +30,7 @@ export function BoardControls({
   readonly allowTyping?: boolean;
 }) {
   const moveEntryOpen = useUi((state) => state.moveEntryOpen);
+  const autoplaying = useUi((state) => state.autoplaying);
   const setMoveEntryOpen = useUi((state) => state.setMoveEntryOpen);
   const toStart = useAnalysis((state) => state.toStart);
   const back = useAnalysis((state) => state.back);
@@ -80,6 +84,15 @@ export function BoardControls({
       </IconButton>
       <IconButton label="End of line (End)" onClick={toEnd} disabled={atEnd}>
         <SkipEnd />
+      </IconButton>
+      <IconButton
+        label={autoplaying ? 'Pause the replay (P)' : 'Play through the line (P)'}
+        active={autoplaying}
+        onClick={toggleAutoplay}
+        disabled={!hasMoves}
+        data-autoplay
+      >
+        {autoplaying ? <Stop /> : <Play />}
       </IconButton>
       <span className="mx-1 h-4 w-px bg-line-subtle" />
       <IconButton label="Flip board (F)" onClick={flip}>

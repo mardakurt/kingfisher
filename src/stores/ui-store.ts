@@ -85,6 +85,8 @@ interface UiState {
   importPrefill: string;
   /** The typed-move field under the board. */
   moveEntryOpen: boolean;
+  /** Stepping forward through the line on a timer, as a replay. */
+  autoplaying: boolean;
   positionSetupOpen: boolean;
   saveToStudyOpen: boolean;
   addToRepertoireOpen: boolean;
@@ -125,6 +127,7 @@ interface UiState {
   /** Open Import PGN with `text` already in the box: what ⌘V on the page does. */
   openImportWith(text: string): void;
   setMoveEntryOpen(open: boolean): void;
+  setAutoplaying(playing: boolean): void;
   setPositionSetupOpen(open: boolean): void;
   setSaveToStudyOpen(open: boolean): void;
   setAddToRepertoireOpen(open: boolean): void;
@@ -171,6 +174,7 @@ export const useUi = create<UiState>((set) => ({
   importTarget: null,
   importPrefill: '',
   moveEntryOpen: false,
+  autoplaying: false,
   positionSetupOpen: false,
   saveToStudyOpen: false,
   addToRepertoireOpen: false,
@@ -200,6 +204,7 @@ export const useUi = create<UiState>((set) => ({
     set({ importOpen, importTarget: target ?? null, importPrefill: '' }),
   openImportWith: (importPrefill) => set({ importOpen: true, importTarget: null, importPrefill }),
   setMoveEntryOpen: (moveEntryOpen) => set({ moveEntryOpen }),
+  setAutoplaying: (autoplaying) => set({ autoplaying }),
   setPositionSetupOpen: (positionSetupOpen) => set({ positionSetupOpen }),
   setSaveToStudyOpen: (saveToStudyOpen) => set({ saveToStudyOpen }),
   setAddToRepertoireOpen: (addToRepertoireOpen) => set({ addToRepertoireOpen }),

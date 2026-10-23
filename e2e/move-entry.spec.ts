@@ -106,3 +106,33 @@ test('a PGN or FEN pasted on the page, not in a field, opens Import with it', as
   await page.getByRole('button', { name: 'Import PGN or FEN' }).click();
   await expect(dialog.getByRole('textbox')).toHaveValue('');
 });
+
+test('P plays through the line and stops at its end; pressed again it pauses', async ({ page }) => {
+  await openAnalysis(page);
+  await page.getByRole('button', { name: 'Import PGN or FEN' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Import a game or position' });
+  await dialog.getByRole('textbox').fill('[Event "Replay"]\n\n1. e4 e5 2. Nf3 Nc6 *');
+  await dialog.getByRole('button', { name: 'Import games' }).click();
+  await expect(dialog).toBeHidden();
+
+  // At the end of the line, Play starts again from the beginning.
+  await page.keyboard.press('End');
+  await page.keyboard.press('p');
+  const control = page.locator('[data-autoplay]');
+  await expect(control).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('gridcell', { name: 'e4, White pawn' })).toBeVisible();
+  await expect(page.getByRole('gridcell', { name: 'c6, Black knight' })).toBeVisible({
+    timeout: 10_000,
+  });
+  await expect(control).toHaveAttribute('aria-pressed', 'false');
+
+  // Paused part-way, it stays where it was.
+  await page.keyboard.press('Home');
+  await control.click();
+  await expect(page.getByRole('gridcell', { name: 'e4, White pawn' })).toBeVisible();
+  await control.click();
+  await expect(control).toHaveAttribute('aria-pressed', 'false');
+  const square = await page.getByRole('gridcell', { name: /^f3,/ }).getAttribute('aria-label');
+  await page.waitForTimeout(2_000);
+  await expect(page.getByRole('gridcell', { name: /^f3,/ })).toHaveAttribute('aria-label', square!);
+});

@@ -728,7 +728,7 @@ and missing accounts are reported as such.
   move; Move this variation up / down; Make this the main line; Delete this
   variation; Delete everything after this move; Clear the move tree; Insert
   the best engine line; Save the engine evaluation to this move; Clear
-  pinned engine lines; Flip the board; Type a move; Cycle board coordinates; Switch piece
+  pinned engine lines; Flip the board; Type a move; Play through the line; Cycle board coordinates; Switch piece
   set; Switch board theme; Toggle the evaluation graph; Switch between dark
   and light; Start / Stop engine analysis; Run two engines; Switch to the
   next engine; Show position structure; Show the tablebase; Ask the

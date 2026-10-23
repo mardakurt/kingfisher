@@ -48,6 +48,12 @@ export const SHORTCUTS: readonly Shortcut[] = [
   },
   { id: 'start', defaultBinding: 'home', label: 'Start of game', group: 'Navigation' },
   { id: 'end', defaultBinding: 'end', label: 'End of line', group: 'Navigation' },
+  {
+    id: 'autoplay',
+    defaultBinding: 'p',
+    label: 'Play through the line, or pause',
+    group: 'Navigation',
+  },
 
   { id: 'engine', defaultBinding: 'e', label: 'Start or stop the engine', group: 'Analysis' },
   { id: 'explorer', defaultBinding: 'd', label: 'Show the database explorer', group: 'Analysis' },
