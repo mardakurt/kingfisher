@@ -33,27 +33,52 @@ export interface MoveInputMatch {
 
 const NONE: MoveInputMatch = { move: null, candidates: [], ambiguous: false };
 
-/** Decorations that carry no information about which move: check, mate, glyphs, separators. */
+/** Figurine algebraic, as books and some programs print it: `♘f3` is `Nf3`. */
+const FIGURINES: Readonly<Record<string, string>> = {
+  '♔': 'K',
+  '♕': 'Q',
+  '♖': 'R',
+  '♗': 'B',
+  '♘': 'N',
+  '♚': 'K',
+  '♛': 'Q',
+  '♜': 'R',
+  '♝': 'B',
+  '♞': 'N',
+  '♙': '',
+  '♟': '',
+};
+
+/**
+ * Decorations that carry no information about which move: check, mate,
+ * glyphs, separators, the capture mark. Every spelling is compared without
+ * them, so `Nxe5`, `Ne5` and `N:e5` are one input.
+ */
 function clean(text: string): string {
   return text
     .trim()
+    .replace(/[♔♕♖♗♘♚♛♜♝♞♙♟]/g, (figure) => FIGURINES[figure] ?? '')
     .replace(/[!?]+$/, '')
     .replace(/[+#‡]+$/, '')
-    .replace(/[\s:=()-]/g, '')
+    .replace(/([1-8])\s*(?:e\.p\.?|ep)$/i, '$1')
+    .replace(/[\s:=()xX×\-\u2013\u2014]/g, '')
     .replace(/0/g, 'O');
 }
 
 /**
- * The spellings that name `move`, after `clean`. SAN without its capture
- * mark, UCI, a piece move without its disambiguation, and for pawn captures
+ * The spellings that name `move`, after `clean`: SAN, UCI and long algebraic
+ * (`Ng1f3`), a piece move without its disambiguation, and for pawn captures
  * the file-to-file shorthand (`ed5`).
  */
 function spellings(move: ChessMove): string[] {
-  const san = clean(move.san);
-  const forms = new Set<string>([san, san.replace('x', ''), move.uci]);
+  const promotion = move.promotion?.toUpperCase() ?? '';
+  const forms = new Set<string>([clean(move.san), move.uci]);
   if (move.piece === 'p' && move.captured !== undefined) {
     // `exd5` → `ed5`; with a promotion, `exd8=Q` → `ed8Q`.
-    forms.add(`${move.from[0]}${move.to}${move.promotion?.toUpperCase() ?? ''}`);
+    forms.add(`${move.from[0]}${move.to}${promotion}`);
+  }
+  if (move.piece !== 'p') {
+    forms.add(`${move.piece.toUpperCase()}${move.from}${move.to}`);
   }
   if (move.piece !== 'p' && move.piece !== 'k') {
     // `Ra4` for `R1a4`: what a person types who has not noticed the other

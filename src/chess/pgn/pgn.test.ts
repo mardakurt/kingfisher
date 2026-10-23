@@ -211,6 +211,56 @@ describe('parsePgn', () => {
   });
 });
 
+describe('notations other programs and books write', () => {
+  const read = (pgn: string) => {
+    const game = unwrap(parseSingleGame(pgn));
+    return { moves: mainline(game.tree), issues: game.issues, result: game.tree.headers.Result };
+  };
+
+  it('reads long algebraic, which used to read as zero moves', () => {
+    expect(read('1. e2-e4 e7-e5 2. Ng1-f3 Nb8-c6 3. Bf1-c4 *').moves).toEqual([
+      'e4',
+      'e5',
+      'Nf3',
+      'Nc6',
+      'Bc4',
+    ]);
+    expect(read('1. e2e4 e7e5 2. g1f3 *').moves).toEqual(['e4', 'e5', 'Nf3']);
+  });
+
+  it('reads figurines, lowercase pieces and castling typed with a dash a word processor made', () => {
+    expect(read('1. e4 e5 2. ♘f3 ♞c6 3. ♗c4 ♝c5 4. O–O *')).toMatchObject({
+      moves: ['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Bc5', 'O-O'],
+      issues: [],
+    });
+    expect(read('1. e4 e5 2. nf3 nc6 *').moves).toEqual(['e4', 'e5', 'Nf3', 'Nc6']);
+  });
+
+  it('reads a capture written without its x, and the colon capture', () => {
+    expect(read('1. e4 d5 2. ed5 Qd5 3. Nc3 Qa5 *').moves).toEqual([
+      'e4',
+      'd5',
+      'exd5',
+      'Qxd5',
+      'Nc3',
+      'Qa5',
+    ]);
+    expect(read('1. e4 d5 2. e4:d5 *').moves).toEqual(['e4', 'd5', 'exd5']);
+  });
+
+  it('reads the typeset draw', () => {
+    expect(read('1. e4 e5 ½-½').result).toBe('1/2-1/2');
+  });
+
+  it('still refuses what no single legal move answers', () => {
+    // Two rooks reach d1: `Rd1` is ambiguous, and leniency must not choose.
+    const game = read('[FEN "4k3/8/8/8/8/8/4K3/R6R w - - 0 1"]\n\n1. Rd1 Kd7 *');
+    expect(game.moves).toEqual([]);
+    expect(game.issues[0]?.message).toContain('Illegal move "Rd1"');
+    expect(read('1. e4 e5 2. Qh5 Qh4 3. Qxf8 *').moves).toEqual(['e4', 'e5', 'Qh5', 'Qh4']);
+  });
+});
+
 describe('serializePgn', () => {
   it('round-trips a game with variations, comments and NAGs', () => {
     const source = `[Event "Round trip"]

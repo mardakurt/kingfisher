@@ -29,11 +29,37 @@ export interface Token {
 }
 
 const RESULTS = new Set(['1-0', '0-1', '1/2-1/2', '1/2', '*']);
+/** The draw as typeset by books and some exporters. */
+const HALF_RESULTS = new Set(['½-½', '½–½', '½']);
 
 // Suffix glyphs (`!`, `?!`, …) are deliberately excluded: they are annotations,
 // not part of the move, and are emitted as NAG tokens by `classifyWord`.
 const SAN_PATTERN =
   /^(?:(?:O-O-O|O-O)|(?:[KQRBN][a-h]?[1-8]?x?[a-h][1-8])|(?:[a-h]x?[a-h]?[1-8](?:=?[QRBN])?))[+#]?/;
+
+/**
+ * Long algebraic: both squares, the piece optional (`e2-e4`, `Ng1-f3`,
+ * `e4xd5`, `e7e8Q`). Tried before SAN, which would otherwise read `e2e4` as a
+ * move to e2 followed by a move to e4. The parser resolves it against the
+ * legal moves, because `chess.js` does not read the dash.
+ */
+const LONG_PATTERN = /^[KQRBN]?[a-h][1-8][-x:\u2013]?[a-h][1-8](?:=?[QRBN])?[+#]?/;
+
+/** Figurine algebraic: `♘f3` is `Nf3`; a figurine pawn is no letter at all. */
+const FIGURINE_LETTERS: Readonly<Record<string, string>> = {
+  '♔': 'K',
+  '♕': 'Q',
+  '♖': 'R',
+  '♗': 'B',
+  '♘': 'N',
+  '♚': 'K',
+  '♛': 'Q',
+  '♜': 'R',
+  '♝': 'B',
+  '♞': 'N',
+  '♙': '',
+  '♟': '',
+};
 
 const MOVE_NUMBER_PATTERN = /^(\d+)(\.{1,3})/;
 const NAG_PATTERN = /^\$(\d+)/;
@@ -146,8 +172,8 @@ function classifyWord(word: string, line: number, push: (token: Token) => void):
   let rest = word;
 
   while (rest.length > 0) {
-    if (RESULTS.has(rest)) {
-      push({ type: 'result', value: rest === '1/2' ? '1/2-1/2' : rest, line });
+    if (RESULTS.has(rest) || HALF_RESULTS.has(rest)) {
+      push({ type: 'result', value: RESULTS.has(rest) && rest !== '1/2' ? rest : '1/2-1/2', line });
       return;
     }
 
@@ -165,8 +191,21 @@ function classifyWord(word: string, line: number, push: (token: Token) => void):
       continue;
     }
 
-    // `0-0` and `o-o` are castling. Longer form first, so `o-o-o` is not read as `O-O`.
-    const normalized = rest.replace(/^[0Oo]-[0Oo]-[0Oo]/, 'O-O-O').replace(/^[0Oo]-[0Oo]/, 'O-O');
+    // `0-0`, `o-o` and `O–O` (an en or em dash, from a word processor) are
+    // castling. Longer form first, so `o-o-o` is not read as `O-O`. A
+    // figurine becomes its letter, and a lowercase piece letter (`nf3`) its
+    // capital — not `b`, which is the b-file.
+    const normalized = rest
+      .replace(/^[♔♕♖♗♘♚♛♜♝♞♙♟]/, (figure) => FIGURINE_LETTERS[figure] ?? '')
+      .replace(/^[0Oo][-\u2013\u2014][0Oo][-\u2013\u2014][0Oo]/, 'O-O-O')
+      .replace(/^[0Oo][-\u2013\u2014][0Oo]/, 'O-O')
+      .replace(/^[nrqk](?=[a-h]?[1-8]?[x:]?[a-h][1-8])/, (piece) => piece.toUpperCase());
+    const longMatch = LONG_PATTERN.exec(normalized);
+    if (longMatch) {
+      push({ type: 'move', value: longMatch[0], line });
+      rest = normalized.slice(longMatch[0].length);
+      continue;
+    }
     const sanMatch = SAN_PATTERN.exec(normalized);
     if (sanMatch) {
       const consumed = sanMatch[0].length;

@@ -24,9 +24,23 @@ describe('matchMoveInput', () => {
     expect(played('E2E4')).toBe('e4');
   });
 
+  it('reads long algebraic, figurines and the colon capture', () => {
+    expect(played('Ng1-f3')).toBe('Nf3');
+    expect(played('Ng1f3')).toBe('Nf3');
+    expect(played('♘f3')).toBe('Nf3');
+    const fen = 'rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2';
+    expect(played('e4xd5', fen)).toBe('exd5');
+    expect(played('e4:d5', fen)).toBe('exd5');
+    const passant = '4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1';
+    expect(played('exd6 e.p.', passant)).toBe('exd6');
+    expect(played('exd6ep', passant)).toBe('exd6');
+  });
+
   it('reads castling with letters or zeros', () => {
     const fen = 'r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1';
-    for (const text of ['O-O', '0-0', 'oo', 'OO', 'e1g1']) expect(played(text, fen)).toBe('O-O');
+    for (const text of ['O-O', '0-0', 'oo', 'OO', 'e1g1', 'O–O', 'Ke1g1']) {
+      expect(played(text, fen)).toBe('O-O');
+    }
     for (const text of ['O-O-O', '0-0-0', 'ooo', 'e1c1']) expect(played(text, fen)).toBe('O-O-O');
   });
 

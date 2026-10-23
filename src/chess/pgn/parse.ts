@@ -8,6 +8,8 @@
  * rather than failing the whole file.
  */
 
+import { matchMoveInput } from '../move-input';
+import { moveIntent } from '../moves';
 import { Position } from '../position';
 import { START_FEN } from '../fen';
 import { fail, ok, type Result } from '../result';
@@ -241,6 +243,21 @@ function isNullMove(value: string): boolean {
   return value === '--' || value.toLowerCase() === 'z0';
 }
 
+/**
+ * Play a movetext token: as SAN first, which is nearly every move of nearly
+ * every file and the fast path, then — only when that fails — as a person
+ * might have written it (`e2-e4`, `Ng1f3`, `Ne5` for `Nxe5`), resolved against
+ * the legal moves by `matchMoveInput`. That accepts a token only when exactly
+ * one legal move answers it, so leniency never chooses between two moves: an
+ * ambiguous or impossible token is still an illegal move.
+ */
+function advanceLeniently(position: Position, value: string): ReturnType<Position['advanceSan']> {
+  const strict = position.advanceSan(value);
+  if (strict.ok) return strict;
+  const read = matchMoveInput(position.legalMoves(), value).move;
+  return read ? position.advance(moveIntent(read)) : strict;
+}
+
 interface Frame {
   readonly cursor: NodeId;
   readonly lastMove: NodeId | null;
@@ -330,7 +347,7 @@ function parseOneGame(tokens: readonly Token[], start: number): GameParse {
 
       case 'move': {
         sawMovetext = true;
-        const played = position.advanceSan(token.value);
+        const played = advanceLeniently(position, token.value);
         if (!played.ok) {
           issues.push({
             severity: 'error',
