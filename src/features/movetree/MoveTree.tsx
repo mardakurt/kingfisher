@@ -141,7 +141,8 @@ export function MoveTree({
 
       {empty ? (
         <p className="px-1 py-6 text-center text-2xs text-tertiary">
-          No moves yet. Play on the board, type one with T, paste a PGN or FEN, or take a move from the explorer.
+          No moves yet. Play on the board, type one with T, paste a PGN or FEN, or take a move from
+          the explorer.
         </p>
       ) : virtualized ? (
         <VirtualMoveTree

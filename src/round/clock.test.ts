@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { parsePgn } from '@/chess/pgn/parse';
 import type { GameTree } from '@/chess/tree/types';
 
-import { clockSummary, formatThink } from './clock';
+import { mainlinePath } from '@/chess/tree/tree';
+
+import { clockSummary, clocksAt, formatThink } from './clock';
 
 const tree = (pgn: string): GameTree => {
   const { games } = parsePgn(pgn);
@@ -101,3 +103,49 @@ function shuffle(moves: number): string {
   }
   return out.join(' ');
 }
+
+describe('clocksAt', () => {
+  const game = tree(`[TimeControl "600+5"]
+
+1. e4 {[%clk 0:09:58]} e5 {[%clk 0:09:50]} 2. Nf3 {[%clk 0:09:33]} (2. Nc3 Nf6) Nc6 {[%clk 0:09:52]} *`);
+  const main = mainlinePath(game);
+
+  it('starts both clocks at the control and follows the line move by move', () => {
+    expect(clocksAt(game, game.rootId)).toEqual({ w: 600, b: 600, lastThink: null });
+    expect(clocksAt(game, main[1]!)).toEqual({
+      w: 598,
+      b: 600,
+      lastThink: { color: 'w', seconds: 7 },
+    });
+    expect(clocksAt(game, main[2]!)).toEqual({
+      w: 598,
+      b: 590,
+      lastThink: { color: 'b', seconds: 15 },
+    });
+    expect(clocksAt(game, main[4]!)).toEqual({
+      w: 573,
+      b: 592,
+      lastThink: { color: 'b', seconds: 3 },
+    });
+  });
+
+  it('lets a variation inherit the clocks of the game it left, without inventing a think', () => {
+    const nc3 = game.nodes[main[2]!]!.children.find((id) => game.nodes[id]!.move?.san === 'Nc3')!;
+    const nf6 = game.nodes[nc3]!.children[0]!;
+    expect(clocksAt(game, nc3)).toEqual({ w: 598, b: 590, lastThink: null });
+    expect(clocksAt(game, nf6)).toEqual({ w: 598, b: 590, lastThink: null });
+  });
+
+  it('says nothing for a game without clocks', () => {
+    const plain = tree('1. e4 e5 *');
+    expect(clocksAt(plain, mainlinePath(plain)[2]!)).toBeNull();
+    // A control alone is not a clock: nothing was recorded.
+    const tagged = tree('[TimeControl "600+5"]\n\n1. e4 e5 *');
+    expect(clocksAt(tagged, tagged.rootId)).toBeNull();
+  });
+
+  it('reads clocks without a control, leaving a side unknown until it has moved', () => {
+    const bare = tree('1. e4 {[%clk 0:02:59]} e5 {[%clk 0:02:58]} *');
+    expect(clocksAt(bare, mainlinePath(bare)[1]!)).toEqual({ w: 179, b: null, lastThink: null });
+  });
+});

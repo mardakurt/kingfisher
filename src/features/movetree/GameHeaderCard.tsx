@@ -12,6 +12,9 @@
  */
 
 import type { GameTree } from '@/chess/tree/types';
+import type { Color } from '@/chess/types';
+import { cn } from '@/lib/cn';
+import { formatThink, type ClocksAt } from '@/round/clock';
 import { CountryFlag } from '@/features/player/CountryFlag';
 import { PlayerPortrait } from '@/features/player/PlayerPortrait';
 
@@ -43,7 +46,16 @@ export function siteLabel(site: string | undefined): string | null {
   }
 }
 
-export function GameHeaderCard({ headers }: { readonly headers: GameTree['headers'] }) {
+export function GameHeaderCard({
+  headers,
+  clocks = null,
+  toMove = null,
+}: {
+  readonly headers: GameTree['headers'];
+  /** Both clocks at the move on the board, from the game's `[%clk]` commands. */
+  readonly clocks?: ClocksAt | null;
+  readonly toMove?: Color | null;
+}) {
   const white = recorded(headers.White);
   const black = recorded(headers.Black);
   const title = recorded(headers.Title);
@@ -65,11 +77,20 @@ export function GameHeaderCard({ headers }: { readonly headers: GameTree['header
         </p>
       ) : null}
       <div className="flex items-center gap-2 text-xs">
-        <Side name={white} rating={recorded(headers.WhiteElo)} />
+        <Side
+          name={white}
+          rating={recorded(headers.WhiteElo)}
+          clock={clocks ? <SideClock color="w" clocks={clocks} toMove={toMove} /> : null}
+        />
         <span className="shrink-0 px-1 font-semibold text-primary tabular" data-game-result>
           {result === '1/2-1/2' ? '½–½' : result && result !== '*' ? result : '–'}
         </span>
-        <Side name={black} rating={recorded(headers.BlackElo)} reverse />
+        <Side
+          name={black}
+          rating={recorded(headers.BlackElo)}
+          clock={clocks ? <SideClock color="b" clocks={clocks} toMove={toMove} /> : null}
+          reverse
+        />
       </div>
       {where.length ? (
         <p
@@ -83,13 +104,51 @@ export function GameHeaderCard({ headers }: { readonly headers: GameTree['header
   );
 }
 
+/**
+ * One side's clock at the move on the board, as the broadcast showed it:
+ * the time left, and beside the side that just moved, how long that move
+ * took. The side to move is the one whose clock was running.
+ */
+function SideClock({
+  color,
+  clocks,
+  toMove,
+}: {
+  readonly color: Color;
+  readonly clocks: ClocksAt;
+  readonly toMove: Color | null;
+}) {
+  const left = clocks[color];
+  const think = clocks.lastThink?.color === color ? clocks.lastThink.seconds : null;
+  const running = toMove === color;
+  return (
+    <span
+      className="inline-flex items-baseline gap-1 text-[10.5px] tabular"
+      data-game-clock={color}
+      aria-label={`${color === 'w' ? 'White' : 'Black'} clock ${left === null ? 'not recorded' : formatThink(left)}${think !== null ? `, last move took ${formatThink(think)}` : ''}`}
+    >
+      <span
+        className={cn(
+          'rounded-[3px] px-1',
+          running ? 'bg-surface-3 font-semibold text-primary' : 'text-secondary',
+        )}
+      >
+        {left === null ? '–' : formatThink(left)}
+      </span>
+      {think !== null ? <span className="text-tertiary">+{formatThink(think)}</span> : null}
+    </span>
+  );
+}
+
 function Side({
   name,
   rating,
+  clock = null,
   reverse = false,
 }: {
   readonly name: string | null;
   readonly rating: string | null;
+  readonly clock?: React.ReactNode;
   readonly reverse?: boolean;
 }) {
   return (
@@ -102,8 +161,16 @@ function Side({
           {name ? <CountryFlag name={name} /> : null}
           {name ?? 'Unknown'}
         </span>
-        {rating ? (
-          <span className="block text-[10.5px] text-tertiary tabular">{rating}</span>
+        {rating || clock ? (
+          <span
+            className={cn(
+              'flex items-baseline gap-1.5 text-[10.5px] text-tertiary tabular',
+              reverse && 'flex-row-reverse',
+            )}
+          >
+            {rating ? <span>{rating}</span> : null}
+            {clock}
+          </span>
         ) : null}
       </div>
     </div>

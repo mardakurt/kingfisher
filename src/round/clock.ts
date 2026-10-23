@@ -11,8 +11,14 @@
  * (`available: false`) rather than reporting zeros.
  */
 import { isTimeTrouble, parseTimeControlTag, type TimeControlMetadata } from '@/chess/clock';
-import { mainlinePath } from '@/chess/tree/tree';
-import { colorOfPly, moveNumberOfPly, type GameTree, type MoveNode } from '@/chess/tree/types';
+import { mainlinePath, nodePath } from '@/chess/tree/tree';
+import {
+  colorOfPly,
+  moveNumberOfPly,
+  type GameTree,
+  type MoveNode,
+  type NodeId,
+} from '@/chess/tree/types';
 import type { Color } from '@/chess/types';
 
 export interface MoveThink {
@@ -137,6 +143,54 @@ export function clockSummary(tree: GameTree): ClockSummary {
   };
 
   return { available, control, w: side('w'), b: side('b') };
+}
+
+export interface ClocksAt {
+  /** Seconds on each side's clock at this point of the line, or null when not recorded. */
+  readonly w: number | null;
+  readonly b: number | null;
+  /** How long the move that reached this point took, when the tree can say. */
+  readonly lastThink: { readonly color: Color; readonly seconds: number } | null;
+}
+
+/**
+ * Both clocks as they stood after the move at `nodeId`, read along the line
+ * that reaches it — a variation inherits the clocks of the game it left, and
+ * a move of its own with no reading leaves the last one standing.
+ *
+ * Before a side has moved its clock is the control's starting time when the
+ * TimeControl tag gives one, and unknown otherwise. Null when nothing on the
+ * line, nor the tag, says anything about time: a game without clocks shows
+ * no clocks rather than two dashes.
+ */
+export function clocksAt(tree: GameTree, nodeId: NodeId): ClocksAt | null {
+  const control = parseTimeControlTag(tree.headers.TimeControl);
+  const remaining: Record<Color, number | null> = {
+    w: control?.initialSeconds ?? null,
+    b: control?.initialSeconds ?? null,
+  };
+  let recorded = false;
+  let lastThink: ClocksAt['lastThink'] = null;
+  for (const id of nodePath(tree, nodeId).slice(1)) {
+    const node = tree.nodes[id];
+    if (!node?.move) continue;
+    const color = colorOfPly(node.ply);
+    const reading = typeof node.meta.clockSeconds === 'number' ? node.meta.clockSeconds : null;
+    if (reading !== null || typeof node.meta.elapsedSeconds === 'number') recorded = true;
+    const seconds = thinkOf(node, remaining[color], control);
+    lastThink = seconds === null ? null : { color, seconds };
+    if (reading !== null) remaining[color] = reading;
+  }
+  if (!recorded && !treeHasClock(tree)) return null;
+  return { w: remaining.w, b: remaining.b, lastThink };
+}
+
+/** Whether any move anywhere in the tree carries a clock command. */
+function treeHasClock(tree: GameTree): boolean {
+  return Object.values(tree.nodes).some(
+    (node) =>
+      typeof node.meta.clockSeconds === 'number' || typeof node.meta.elapsedSeconds === 'number',
+  );
 }
 
 /** `4:12` or `0:07`, for a think time; hours when it comes to that. */

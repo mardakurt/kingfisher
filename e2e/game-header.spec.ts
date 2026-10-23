@@ -96,3 +96,35 @@ test('an imported real game displays its preserved PGN Title', async ({ page }) 
     'Botvinnik versus Capablanca, AVRO 1938',
   );
 });
+
+test('a game with clocks shows both clocks at the move on the board', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/analysis');
+  await page.locator('html[data-kingfisher-ready="true"]').waitFor();
+  await page.getByRole('button', { name: 'Import PGN or FEN' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Import a game or position' });
+  await dialog.getByRole('textbox').fill(`[Event "Clocks"]
+[White "Gamma"]
+[Black "Delta"]
+[Result "*"]
+[TimeControl "180+2"]
+
+1. e4 {[%clk 0:03:00]} c5 {[%clk 0:03:01]} 2. Nf3 {[%clk 0:02:59]} d6 {[%clk 0:02:40]} 3. d4 {[%clk 0:02:30]} *`);
+  await dialog.getByRole('button', { name: 'Import games' }).click();
+  await expect(dialog).toBeHidden();
+
+  const white = page.locator('[data-game-clock="w"]').first();
+  const black = page.locator('[data-game-clock="b"]').first();
+  // The start: both at the control's three minutes.
+  await page.keyboard.press('Home');
+  await expect(white).toHaveText('3:00');
+  await expect(black).toHaveText('3:00');
+  // After 3.d4: 2:59 + 2 s increment − 2:30 is 31 s on the move.
+  await page.keyboard.press('End');
+  await expect(white).toHaveText('2:30+0:31');
+  await expect(black).toHaveText('2:40');
+  // After 2...d6: 3:01 + 2 − 2:40.
+  await page.keyboard.press('ArrowLeft');
+  await expect(black).toHaveText('2:40+0:23');
+  await expect(white).toHaveText('2:59');
+});

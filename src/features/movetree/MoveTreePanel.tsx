@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import { Panel, PanelHeader } from '@/components/ui/Panel';
@@ -10,6 +11,7 @@ import { useChessWorkspace } from '@/features/workspace/ChessWorkspaceContext';
 import { cn } from '@/lib/cn';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
+import { clocksAt } from '@/round/clock';
 
 /**
  * The move tree as a self-contained module.
@@ -29,6 +31,8 @@ export function MoveTreePanel({
   readonly className?: string;
 }) {
   const { tree, currentId } = useChessWorkspace();
+  const clocks = useMemo(() => clocksAt(tree, currentId), [tree, currentId]);
+  const toMove = tree.nodes[currentId]?.fen.split(' ')[1] === 'b' ? 'b' : 'w';
   /*
     Dynamic ECO. The index is a lazily loaded dataset, so this is a query
     rather than a synchronous read; with no index the list is exactly what it
@@ -56,7 +60,7 @@ export function MoveTreePanel({
   return (
     <Panel className={cn('h-full', className)}>
       {withHeader ? <PanelHeader>Moves &amp; variations</PanelHeader> : null}
-      <GameHeaderCard headers={tree.headers} />
+      <GameHeaderCard headers={tree.headers} clocks={clocks} toMove={toMove} />
       {/*
         Named, so a test can say "the move list" and mean it.
 
