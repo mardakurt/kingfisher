@@ -14,6 +14,7 @@ import {
   Stop,
 } from '@/components/icons';
 import { toggleAutoplay } from '@/features/analysis/autoplay';
+import { useKeyLabel } from '@/features/command/use-key-label';
 import { Button, IconButton } from '@/components/ui/Button';
 import { positionPageAvailable } from '@/features/position/open-position-page';
 import { positionPageUrl } from '@/position/knowledge';
@@ -35,6 +36,12 @@ export function BoardControls({
   /** False where the board takes no moves, so there is nothing to type. */
   readonly allowTyping?: boolean;
 }) {
+  const keyLabel = useKeyLabel();
+  /** "Flip board (F)", with the key as it is bound now, or no key at all. */
+  const withKey = (label: string, action: string) => {
+    const key = keyLabel(action);
+    return key ? `${label} (${key})` : label;
+  };
   const moveEntryOpen = useUi((state) => state.moveEntryOpen);
   const autoplaying = useUi((state) => state.autoplaying);
   const setMoveEntryOpen = useUi((state) => state.setMoveEntryOpen);
@@ -82,7 +89,7 @@ export function BoardControls({
     // are wider than the strip, and a clipped row hid the clear button.
     <div className="flex min-w-0 flex-wrap items-center gap-0.5">
       <IconButton
-        label="Start of game (Home)"
+        label={withKey('Start of game', 'start')}
         className={PHONE_STEP}
         onClick={toStart}
         disabled={atStart}
@@ -90,21 +97,31 @@ export function BoardControls({
         <SkipStart />
       </IconButton>
       <IconButton
-        label="Previous move (←)"
+        label={withKey('Previous move', 'back')}
         className={PHONE_STEP}
         onClick={back}
         disabled={atStart}
       >
         <ChevronLeft />
       </IconButton>
-      <IconButton label="Next move (→)" className={PHONE_STEP} onClick={forward} disabled={atEnd}>
+      <IconButton
+        label={withKey('Next move', 'forward')}
+        className={PHONE_STEP}
+        onClick={forward}
+        disabled={atEnd}
+      >
         <ChevronRight />
       </IconButton>
-      <IconButton label="End of line (End)" className={PHONE_STEP} onClick={toEnd} disabled={atEnd}>
+      <IconButton
+        label={withKey('End of line', 'end')}
+        className={PHONE_STEP}
+        onClick={toEnd}
+        disabled={atEnd}
+      >
         <SkipEnd />
       </IconButton>
       <IconButton
-        label={autoplaying ? 'Pause the replay (P)' : 'Play through the line (P)'}
+        label={withKey(autoplaying ? 'Pause the replay' : 'Play through the line', 'autoplay')}
         active={autoplaying}
         onClick={toggleAutoplay}
         disabled={!hasMoves}
@@ -114,12 +131,12 @@ export function BoardControls({
         {autoplaying ? <Stop /> : <Play />}
       </IconButton>
       <span className="mx-1 h-4 w-px bg-line-subtle max-sm:hidden" />
-      <IconButton label="Flip board (F)" className={PHONE_STEP} onClick={flip}>
+      <IconButton label={withKey('Flip board', 'flip')} className={PHONE_STEP} onClick={flip}>
         <Flip />
       </IconButton>
       {allowTyping ? (
         <IconButton
-          label="Type a move (T)"
+          label={withKey('Type a move', 'type-move')}
           active={moveEntryOpen}
           onClick={() => setMoveEntryOpen(!moveEntryOpen)}
           // A phone types with the screen's own keyboard over the board; the
