@@ -14,7 +14,9 @@
  * clicking a move twenty plies away does not sound like a game.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+
+import type { ChessMove } from '@/chess/types';
 
 import { useAnalysis } from '@/stores/analysis-store';
 import { usePreferences } from '@/stores/preferences-store';
@@ -131,4 +133,19 @@ export function useMoveSounds(): void {
       playMoveSound(soundOf(node.move.san, node.move.captured !== undefined));
     });
   }, [enabled]);
+}
+
+/**
+ * Sounds a move shown on a board that keeps its own position rather than the
+ * analysis store's — Puzzles. Each move sounds once: a wrong try taken back
+ * restores the previous move to the board, and that is not a move played.
+ */
+export function useSoundForMove(move: ChessMove | null): void {
+  const enabled = usePreferences((state) => state.moveSounds);
+  const sounded = useRef(new WeakSet<ChessMove>());
+  useEffect(() => {
+    if (!move || sounded.current.has(move)) return;
+    sounded.current.add(move);
+    if (enabled) playMoveSound(soundOf(move.san, move.captured !== undefined));
+  }, [enabled, move]);
 }

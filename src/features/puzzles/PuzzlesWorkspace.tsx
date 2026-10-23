@@ -29,6 +29,7 @@ import { Position } from '@/chess/position';
 import type { ChessMove, MoveIntent, Square } from '@/chess/types';
 import { Button } from '@/components/ui/Button';
 import { Chessboard } from '@/features/board/Chessboard';
+import { useSoundForMove } from '@/features/board/move-sounds';
 import type { MoveBadge } from '@/features/board/types';
 import { WorkspaceFrame } from '@/features/workspace/WorkspaceFrame';
 import { Check, Close, Tactics } from '@/components/icons';
@@ -91,6 +92,7 @@ export function PuzzlesWorkspace({ initialPuzzleId }: { readonly initialPuzzleId
   const [line, setLine] = useState<PuzzleLine | null>(null);
   const [position, setPosition] = useState<Position | null>(null);
   const [lastMove, setLastMove] = useState<ChessMove | null>(null);
+  useSoundForMove(lastMove);
   const [step, setStep] = useState(0);
   const [phase, setPhase] = useState<Phase>('loading');
   const [message, setMessage] = useState<string | null>(null);
