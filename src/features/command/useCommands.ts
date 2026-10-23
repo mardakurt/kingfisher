@@ -18,6 +18,7 @@ import { useWorkspaceLayout } from '@/stores/workspace-layout-store';
 import { useUi } from '@/stores/ui-store';
 import { desktop } from '@/desktop/bridge';
 import { showTool } from '@/features/workspace/select-tool';
+import { publicUrl } from '@/release/public-urls';
 import { toggleAutoplay } from '@/features/analysis/autoplay';
 import { NAV_SECTIONS } from '@/features/shell/navigation';
 import { newTab, requestCloseTab, stepTab } from '@/features/tabs/tab-actions';
@@ -25,6 +26,7 @@ import { useTabs } from '@/features/tabs/tab-store';
 import { SETTINGS_INDEX, SETTINGS_SECTIONS } from '@/features/shell/settings-index';
 import { positionPageAvailable } from '@/features/position/open-position-page';
 import { positionPageUrl } from '@/position/knowledge';
+import { lineLink } from '@/position/line-link';
 
 export interface Command {
   readonly id: string;
@@ -198,6 +200,22 @@ export function useCommands(): readonly Command[] {
           if (!fen) return;
           await navigator.clipboard.writeText(fen);
           ui().notify({ tone: 'success', message: 'FEN copied to the clipboard.' });
+        },
+      },
+      {
+        id: 'copy-line-link',
+        title: 'Copy link to this line',
+        group: 'Game',
+        keywords: 'share url address send position',
+        run: async () => {
+          const state = analysis();
+          await navigator.clipboard.writeText(
+            lineLink(publicUrl.studio, state.tree, state.currentId),
+          );
+          ui().notify({
+            tone: 'success',
+            message: 'Link copied. It opens this line, up to this move, in Kingfisher.',
+          });
         },
       },
       {

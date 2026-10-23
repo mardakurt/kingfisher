@@ -13,6 +13,8 @@ import { useCallback, useMemo } from 'react';
 
 import { serializeMovetext, serializePgn, serializePgnFrom } from '@/chess/pgn';
 import { nodePath } from '@/chess/tree/tree';
+import { lineLink } from '@/position/line-link';
+import { publicUrl } from '@/release/public-urls';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 
@@ -23,6 +25,8 @@ export interface CopyActions {
   fen(): void;
   sanLine(): void;
   uciLine(): void;
+  /** A Studio address that opens this line, up to this move, anywhere. */
+  link(): void;
 }
 
 export function useCopyActions(): CopyActions {
@@ -65,6 +69,10 @@ export function useCopyActions(): CopyActions {
           .map((id) => tree.nodes[id]?.move?.uci)
           .filter((uci): uci is NonNullable<typeof uci> => Boolean(uci));
         void write(moves.join(' '), 'UCI move sequence');
+      },
+      link: () => {
+        const { tree, currentId } = useAnalysis.getState();
+        void write(lineLink(publicUrl.studio, tree, currentId), 'Link to this line');
       },
     }),
     [write],

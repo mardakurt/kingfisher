@@ -51,6 +51,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { positionKey, START_FEN } from '@/chess/fen';
 import { Position } from '@/chess/position';
 import { createTree } from '@/chess/tree/tree';
+import { lineFromLink } from '@/position/line-link';
 import { Board, ChevronRight, PanelLeft, PanelRight, Target } from '@/components/icons';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Button, IconButton } from '@/components/ui/Button';
@@ -737,7 +738,11 @@ function Rail({
 function PositionFromUrl({ onPosition }: { readonly onPosition?: () => void }) {
   const params = useSearchParams();
   const pathname = usePathname();
-  const requested = params.get('fen');
+  // `?moves=` is a line played from `?fen=`, or from the start when there is
+  // none (`position/line-link.ts`); either alone is a request.
+  const moves = params.get('moves');
+  const fen = params.get('fen');
+  const requested = fen || moves ? `${fen ?? ''}|${moves ?? ''}` : null;
   const openDocument = useAnalysis((state) => state.openDocument);
   const notify = useUi((state) => state.notify);
   const applied = useRef<string | null>(null);
@@ -749,9 +754,23 @@ function PositionFromUrl({ onPosition }: { readonly onPosition?: () => void }) {
     }
     if (applied.current === requested) return;
     applied.current = requested;
-    const parsed = Position.fromFen(requested);
+    const parsed = Position.fromFen(fen ?? START_FEN);
     if (!parsed.ok) {
       notify({ tone: 'error', message: 'The address carried a position Kingfisher cannot play.' });
+    } else if (moves) {
+      const line = lineFromLink(parsed.value.fen, moves);
+      openDocument({
+        tree: line.tree,
+        currentId: line.currentId,
+        document: { kind: 'untitled', title: 'Untitled analysis' },
+      });
+      if (line.played < line.requested) {
+        notify({
+          tone: 'info',
+          message: `The link's line stops after ${line.played} of its ${line.requested} moves: the next one is not legal there.`,
+        });
+      }
+      onPosition?.();
     } else {
       const current = useAnalysis.getState();
       const onBoard = current.tree.nodes[current.currentId]?.fen;
@@ -772,6 +791,7 @@ function PositionFromUrl({ onPosition }: { readonly onPosition?: () => void }) {
     }
     const rest = new URLSearchParams(params.toString());
     rest.delete('fen');
+    rest.delete('moves');
     const query = rest.toString();
     // Consuming an input parameter is a local history edit, not a server
     // transition. An RSC fetch failure here could hard-reload before the
@@ -781,7 +801,7 @@ function PositionFromUrl({ onPosition }: { readonly onPosition?: () => void }) {
       '',
       `${query ? `${pathname}?${query}` : pathname}${window.location.hash}`,
     );
-  }, [notify, onPosition, openDocument, params, pathname, requested]);
+  }, [fen, moves, notify, onPosition, openDocument, params, pathname, requested]);
 
   return null;
 }

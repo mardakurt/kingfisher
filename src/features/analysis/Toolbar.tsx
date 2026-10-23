@@ -72,6 +72,7 @@ export function Toolbar() {
         { id: 'fen', label: 'Copy FEN', icon: <Copy />, run: copy.fen },
         { id: 'line', label: 'Copy this line (SAN)', icon: <Copy />, run: copy.sanLine },
         { id: 'uci', label: 'Copy this line (UCI)', icon: <Copy />, run: copy.uciLine },
+        { id: 'link', label: 'Copy link to this line', icon: <Copy />, run: copy.link },
       ],
     },
     {
