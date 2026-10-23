@@ -5,6 +5,7 @@ import { loadOpeningIndex, type OpeningIndex } from '@/theory/openings';
 import { compileImportFilter, type ImportFilter } from './import-filter';
 import { indexGame, normalizeGame } from './prepare-game';
 import type { PreparedLocalGame } from './pgn-import-protocol';
+import { readPgnText } from './pgn-chunks';
 import { runPgnWorker } from './pgn-worker-client';
 import type {
   GameRecord,
@@ -118,7 +119,8 @@ export async function importGames(
     };
   }
 
-  const text = typeof source === 'string' ? source : await source.text();
+  // In the file's own encoding, as the worker reads it (`pgn-chunks.ts`).
+  const text = typeof source === 'string' ? source : await readPgnText(source);
   return importGamesOnMainThread(text, repository, options, batchSize);
 }
 

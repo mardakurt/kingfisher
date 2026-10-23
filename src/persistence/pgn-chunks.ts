@@ -14,6 +14,35 @@
  * game is ever split between two parsers.
  */
 
+/** Bytes read to decide a file's encoding before it is decoded. */
+export const ENCODING_PROBE_BYTES = 1 << 20;
+
+export type PgnEncoding = 'utf-8' | 'utf-16le' | 'utf-16be' | 'windows-1252';
+
+/**
+ * The encoding a PGN file was written in, from its first bytes.
+ *
+ * PGN predates UTF-8 and says nothing about it, and files exported on
+ * Windows — ChessBase's among them — are commonly Windows-1252. Decoded as
+ * UTF-8, every accented byte became U+FFFD: "Müller" was stored as "M�ller",
+ * with nothing to say a name had been lost. A byte-order mark names the
+ * encoding outright; otherwise text that is valid UTF-8 is UTF-8 (plain
+ * ASCII is both), and anything else is read as Windows-1252, which gives
+ * every byte a character and is what such files are.
+ */
+export function detectPgnEncoding(bytes: Uint8Array): PgnEncoding {
+  if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) return 'utf-8';
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) return 'utf-16le';
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) return 'utf-16be';
+  try {
+    // `stream` so a character cut by the end of the probe is not an error.
+    new TextDecoder('utf-8', { fatal: true }).decode(bytes, { stream: true });
+    return 'utf-8';
+  } catch {
+    return 'windows-1252';
+  }
+}
+
 /** Characters gathered before looking for a place to cut. */
 export const PGN_PIECE_CHARS = 4_000_000;
 
@@ -43,12 +72,38 @@ export async function* pgnPieces(
     return;
   }
   const reader = source.stream().getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
   try {
-    for (;;) {
+    // The first megabyte is read before anything is decoded, to choose how.
+    const head: Uint8Array[] = [];
+    let headBytes = 0;
+    let ended = false;
+    while (headBytes < ENCODING_PROBE_BYTES) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        ended = true;
+        break;
+      }
+      head.push(value);
+      headBytes += value.length;
+    }
+    const probe = new Uint8Array(headBytes);
+    let offset = 0;
+    for (const chunk of head) {
+      probe.set(chunk, offset);
+      offset += chunk.length;
+    }
+    const decoder = new TextDecoder(detectPgnEncoding(probe));
+    let buffer = '';
+    const chunks = async function* (): AsyncGenerator<Uint8Array> {
+      yield* head;
+      if (ended) return;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) return;
+        yield value;
+      }
+    };
+    for await (const value of chunks()) {
       buffer += decoder.decode(value, { stream: true });
       // A read can bring far more than one piece (a whole small file, at
       // once); it is cut into as many as it holds.
@@ -67,4 +122,11 @@ export async function* pgnPieces(
   } finally {
     reader.releaseLock();
   }
+}
+
+/** A whole PGN file as text, in the encoding it was written in. */
+export async function readPgnText(source: Blob): Promise<string> {
+  let text = '';
+  for await (const piece of pgnPieces(source, Number.POSITIVE_INFINITY)) text += piece;
+  return text;
 }

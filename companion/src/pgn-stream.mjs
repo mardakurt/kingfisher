@@ -64,7 +64,73 @@ function bytesOf(file) {
   }
   const source = createReadStream(file);
   if (file.endsWith('.zst')) return Readable.from(zstdFrameStream(source));
-  return file.endsWith('.gz') ? source.pipe(createGunzip()) : source;
+  return file.endsWith('.gz') ? source.pipe(createGunzip()) : Readable.from(asUtf8(source));
+}
+
+/** Bytes read to decide a plain file's encoding; the browser reads the same. */
+const ENCODING_PROBE_BYTES = 1 << 20;
+
+/**
+ * A PGN a person chose, as UTF-8 whatever it was written in.
+ *
+ * `readline` decodes UTF-8, and a file exported on Windows — ChessBase's
+ * among them — is commonly Windows-1252: every accented byte became U+FFFD
+ * and "Müller" was stored as "M�ller". The rule is the browser's
+ * (`src/persistence/pgn-chunks.ts`): a byte-order mark names the encoding,
+ * text that is valid UTF-8 is UTF-8, and anything else is Windows-1252. A
+ * UTF-8 file passes through as the bytes it was; only a file that is not is
+ * decoded and re-encoded.
+ */
+export async function* asUtf8(source) {
+  const head = [];
+  let headBytes = 0;
+  const iterator = source[Symbol.asyncIterator]();
+  let ended = false;
+  while (headBytes < ENCODING_PROBE_BYTES) {
+    const next = await iterator.next();
+    if (next.done) {
+      ended = true;
+      break;
+    }
+    head.push(next.value);
+    headBytes += next.value.length;
+  }
+  const encoding = detectPgnEncoding(Buffer.concat(head));
+  const rest = async function* () {
+    yield* head;
+    if (ended) return;
+    for (;;) {
+      const next = await iterator.next();
+      if (next.done) return;
+      yield next.value;
+    }
+  };
+  if (encoding === 'utf-8') {
+    // A byte-order mark would sit in front of the first tag and hide it.
+    const first = head[0];
+    if (first && first[0] === 0xef && first[1] === 0xbb && first[2] === 0xbf) {
+      head[0] = first.subarray(3);
+    }
+    yield* rest();
+    return;
+  }
+  const decoder = new TextDecoder(encoding);
+  for await (const chunk of rest()) yield Buffer.from(decoder.decode(chunk, { stream: true }));
+  const tail = decoder.decode();
+  if (tail) yield Buffer.from(tail);
+}
+
+/** The browser's rule, for the companion's readers. */
+export function detectPgnEncoding(bytes) {
+  if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) return 'utf-8';
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) return 'utf-16le';
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) return 'utf-16be';
+  try {
+    new TextDecoder('utf-8', { fatal: true }).decode(bytes, { stream: true });
+    return 'utf-8';
+  } catch {
+    return 'windows-1252';
+  }
 }
 
 /** How many times a dropped download is picked up again before giving up. */
