@@ -14,7 +14,7 @@
 
 import { useEffect } from 'react';
 
-import { parseFen } from '@/chess/fen';
+import { parseFen, withoutImpossibleCastling } from '@/chess/fen';
 import { useUi } from '@/stores/ui-store';
 
 export type DetectedImport = 'fen' | 'pgn' | 'empty' | 'unknown';
@@ -50,7 +50,9 @@ export function usePasteToImport(): void {
       if (ui.importOpen) return;
       const text = event.clipboardData?.getData('text/plain') ?? '';
       const kind = detectImport(text);
-      if (kind !== 'fen' && kind !== 'pgn') return;
+      // A FEN refused only for its castling rights is still a position the
+      // dialog can offer, so it is handed over too.
+      if (kind !== 'fen' && kind !== 'pgn' && !withoutImpossibleCastling(text)) return;
       event.preventDefault();
       ui.openImportWith(text.trim());
     };
