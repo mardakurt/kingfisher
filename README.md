@@ -21,7 +21,7 @@ notation**. See the [1.4.6 comparison](docs/product/chessbase-mac-comparison-1.4
 for what remains different, and the
 [big-data and accounts proposal](docs/product/big-data-and-accounts-proposal.md).
 
-> **Public release · 1.5.4** (macOS, Developer ID signed and notarised)
+> **Public release · 1.5.5** (macOS, Developer ID signed and notarised)
 > Research remains opt-in under Layout.
 > No account required (one is optional, for sync). No cookies. No subscription.
 
@@ -165,8 +165,8 @@ mirror. The site counts page views and load times with cookieless Vercel Web Ana
   checked in the background.
 - **Windows, Linux and Intel Macs are not built and not supported** —
   the packaging configuration is macOS arm64 only. The macOS build needs
-  **macOS 13 (Ventura) or later**, the floor of the Electron runtime it
-  is built on; the web application runs in any modern browser.
+  **macOS 14 (Sonoma) or later**, the minimum supported and declared
+  by the application; the web application runs in any modern browser.
 - **No games before 2020** in any first-party reference.
 - **Chess960 is not supported**, deliberately.
 - **Local Syzygy** needs table files the user supplies; the bundled
@@ -290,7 +290,7 @@ source-labelled variation tree of recorded practice and copy its PGN.
 
 The sections below are the record of what each phase set out to fix, kept
 because the reasons are still the reasons. They are history, not a status line:
-the source is **Kingfisher 1.5.5** and the public Mac download **1.5.4**. Current release status is in
+the source is **Kingfisher 1.5.5** and the public Mac download **1.5.5**. Current release status is in
 [`docs/product/platform-parity.md`](docs/product/platform-parity.md), and
 what changed is in [`CHANGELOG.md`](CHANGELOG.md); the 1.0.0 notes are in
 [`docs/release/1.0.0.md`](docs/release/1.0.0.md).

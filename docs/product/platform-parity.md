@@ -1,16 +1,23 @@
 # Platform parity — the web application and the macOS application
 
-**Local source checkpoint (2026-10-23, 1.5.5).** The local source adds typed
-moves and lines, keyboard promotion, paste-to-import, game clocks and move
-times, engine WDL, replay, line links, selective PGN import, optional sounds,
-PGN decoding and scheduling fixes. These are Mac-facing changes. The public
-descriptor and installed application still name 1.5.4 build 1237; a new 1.5.5
-package has not been certified or published. Closure verified the public
-1.5.4 DMG again with `desktop:public:verify -- --landing --full` (68/68).
-See the [1.5.5 session report](../reports/2026-10-23-1.5.5.md) for source
-validation and the publication boundary.
+**Published revision check (2026-10-23, 1.5.5).** The public Mac download is
+1.5.5 build 1277 from `6344e8d16fc7ab62c4c19e980afdf7c5784f57ba`, stable and
+clean at packaging. The app and DMG are Developer ID signed, notarised and
+stapled; trust is GREEN (29 code objects). The downloaded public DMG matches
+the locally verified artifact's SHA-256 and passed identity, resource and signature
+verification. Source validation passed 647 Chrome E2E tests; the complete
+current unit run passed 4,498 tests. Packaged smoke 23/23, chrome 109/109,
+restart 7/7, engines 25/25, suspend 14/14 and killed-shell recovery passed.
+Full certification is incomplete after walk harness failures and an
+interrupted rerun. A separate unchanged 1,000-action walk passed with zero
+findings. Long soak, packaged leak soak, upgrade and real updater checks
+were not completed. Publication proceeded at the owner's explicit request
+without further disruptive native windows. The website and packaged
+application share the 1.5.5 application source; later commits update release
+metadata, documentation and the test harness, not the packaged app.
+See the [session report](../reports/2026-10-23-1.5.5.md).
 
-**Published revision check (2026-10-23, 1.5.4).** The public Mac download is
+**Previous published revision (2026-10-23, 1.5.4).** The public Mac download is
 1.5.4 build 1237 from `c85f931427be1accc6de50a255d790ee16fb497f`, stable and
 clean at packaging. It is Developer ID signed, and the app and DMG are both
 notarised (DMG submission `4fc39534-d477-4a4c-b36b-488b85224752`) and

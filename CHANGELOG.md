@@ -6,8 +6,9 @@ real users notice.
 
 ## 1.5.5 — 2026-10-23
 
-The web release ([release notes](docs/release/1.5.5.md)). The Mac download
-stays 1.5.4 until 1.5.5 is built, notarised and published.
+The web and macOS release ([release notes](docs/release/1.5.5.md)). The Mac
+download is Developer ID signed and notarised, build 1277. Full Mac acceptance
+remains incomplete; the release notes record the outstanding checks.
 
 - **Security updates.** Next.js 16.4.1 and Electron 44.5.0 include the
   upstream security fixes; the test dependencies are patched too.

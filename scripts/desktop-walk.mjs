@@ -60,6 +60,7 @@ import {
   windowsOf,
 } from './desktop-lib/sparkle-ui.mjs';
 import { dismissUpdateDialog } from './desktop-lib/dismiss-update-dialog.mjs';
+import { reopenWindow } from './desktop-lib/reopen-window.mjs';
 
 // --- arguments ---------------------------------------------------------------
 
@@ -602,14 +603,11 @@ class Walk {
         async run() {
           const p = await page();
           await p.keyboard.press('ControlOrMeta+k');
-          const box = p.getByRole('combobox').or(p.getByRole('textbox')).first();
-          await box.waitFor({ timeout: 3_000 }).catch(() => {});
-          await p.keyboard.type(
-            w.pick(['stud', 'engine', 'copy', 'settings', 'xyzzy', 'explorer']),
-            { delay: 10 },
-          );
-          await p.waitForTimeout(100);
+          const dialog = p.getByRole('dialog', { name: 'Command palette', exact: true });
+          const box = dialog.getByRole('searchbox');
+          await box.fill(w.pick(['stud', 'engine', 'copy', 'settings', 'xyzzy', 'explorer']));
           await p.keyboard.press('Escape');
+          await dialog.waitFor({ state: 'hidden' });
         },
       },
       {
@@ -618,24 +616,12 @@ class Walk {
         async run() {
           const p = await page();
           await p.keyboard.press('ControlOrMeta+,');
-          const dialog = p.getByRole('dialog').first();
-          const opened = await dialog
-            .waitFor({ timeout: 3_000 })
-            .then(() => true)
-            .catch(() => false);
-          if (opened) {
-            for (let i = 0; i < 4; i += 1) await p.keyboard.press('Tab');
-            await p.keyboard.press('Escape');
-            await dialog.waitFor({ state: 'hidden', timeout: 3_000 }).catch(() => {
-              w.findings.push({
-                step: w.stepIndex,
-                action: 'settings',
-                name: 'dialog-escape-trap',
-                detail: 'Settings did not close on Escape',
-              });
-            });
-          }
-          return opened ? 'opened and closed' : 'did not open';
+          const dialog = p.getByRole('dialog', { name: 'Settings', exact: true });
+          await dialog.waitFor();
+          for (let i = 0; i < 4; i += 1) await p.keyboard.press('Tab');
+          await p.keyboard.press('Escape');
+          await dialog.waitFor({ state: 'hidden', timeout: 3_000 });
+          return 'opened and closed';
         },
       },
       {
@@ -757,8 +743,10 @@ class Walk {
             });
           }
           // The Dock click: macOS sends `activate`, the shell makes a window.
-          await w.app.evaluate(({ app }) => app.emit('activate'));
-          const p = await w.currentPage();
+          if (remaining !== 0) return 'window did not close';
+          const p = await reopenWindow(w.app);
+          w.page = p;
+          await w.attachRenderer(p);
           await waitForReady(p);
           return `closed in ${waited} ms, reopened, position ${before ? 'was set' : 'unknown'}`;
         },
@@ -880,24 +868,10 @@ class Walk {
         when: async () => (await w.route()) === '/analysis',
         async run() {
           const p = await page();
-          await p.keyboard.press('ControlOrMeta+k');
-          await p.keyboard.type('set up position', { delay: 10 });
-          await p.waitForTimeout(150);
-          await p.keyboard.press('Enter');
-          const field = p.getByRole('textbox', { name: 'Position FEN' });
-          const opened = await field
-            .waitFor({ timeout: 3_000 })
-            .then(() => true)
-            .catch(() => false);
-          if (!opened) {
-            // Whatever the palette did instead, leave nothing open behind.
-            const covering = await p.evaluate(
-              () => document.querySelector('[role="dialog"]')?.getAttribute('aria-label') ?? null,
-            );
-            await p.keyboard.press('Escape');
-            await p.keyboard.press('Escape');
-            return `setup dialog not reached${covering ? ` (a "${covering}" dialog was open)` : ''}`;
-          }
+          // Set up is a board control, not a command-palette command.
+          await p.getByRole('button', { name: 'Set up position — add or remove pieces' }).click();
+          const dialog = p.getByRole('dialog', { name: 'Set up position', exact: true });
+          const field = dialog.getByRole('textbox', { name: 'Position FEN' });
           await field.fill(
             w.pick([
               'not a fen',
@@ -906,10 +880,13 @@ class Walk {
               'KKKKKKKK/8/8/8/8/8/8/8 w - - 0 1',
             ]),
           );
-          await p.getByRole('button', { name: 'Load FEN' }).click();
-          await p.waitForTimeout(150);
+          await dialog.getByRole('button', { name: 'Load FEN' }).click();
+          const status = await dialog.getByRole('status').innerText();
+          if (status.includes('Legal position. Ready to apply.'))
+            throw new Error('the invalid FEN was not refused');
           await p.keyboard.press('Escape');
-          await p.waitForTimeout(150);
+          await dialog.waitFor({ state: 'hidden' });
+          return status;
         },
       },
       // --- faults, only with --faults ---------------------------------------
