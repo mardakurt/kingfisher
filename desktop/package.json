@@ -17,7 +17,7 @@
     "sparkle:bridge": "node native/sparkle/build.mjs"
   },
   "devDependencies": {
-    "electron": "44.2.0",
+    "electron": "44.5.0",
     "electron-builder": "^26.0.12"
   },
   "author": "Kingfisher"
