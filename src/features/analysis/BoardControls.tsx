@@ -20,6 +20,12 @@ import { positionPageUrl } from '@/position/knowledge';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 
+/**
+ * A phone's strip is 351 px and these are eight controls and a label: at the
+ * 32 px touch-target minimum they fit on one row, at 36 px the last wrapped.
+ */
+const PHONE_STEP = 'max-sm:w-8';
+
 /** Move navigation, kept directly under the board where the eye already is. */
 export function BoardControls({
   showPositionPage = true,
@@ -72,17 +78,29 @@ export function BoardControls({
   };
 
   return (
-    <div className="flex items-center gap-0.5">
-      <IconButton label="Start of game (Home)" onClick={toStart} disabled={atStart}>
+    // Wraps: on a phone the five steps, flip, typing and the position page
+    // are wider than the strip, and a clipped row hid the clear button.
+    <div className="flex min-w-0 flex-wrap items-center gap-0.5">
+      <IconButton
+        label="Start of game (Home)"
+        className={PHONE_STEP}
+        onClick={toStart}
+        disabled={atStart}
+      >
         <SkipStart />
       </IconButton>
-      <IconButton label="Previous move (←)" onClick={back} disabled={atStart}>
+      <IconButton
+        label="Previous move (←)"
+        className={PHONE_STEP}
+        onClick={back}
+        disabled={atStart}
+      >
         <ChevronLeft />
       </IconButton>
-      <IconButton label="Next move (→)" onClick={forward} disabled={atEnd}>
+      <IconButton label="Next move (→)" className={PHONE_STEP} onClick={forward} disabled={atEnd}>
         <ChevronRight />
       </IconButton>
-      <IconButton label="End of line (End)" onClick={toEnd} disabled={atEnd}>
+      <IconButton label="End of line (End)" className={PHONE_STEP} onClick={toEnd} disabled={atEnd}>
         <SkipEnd />
       </IconButton>
       <IconButton
@@ -90,12 +108,13 @@ export function BoardControls({
         active={autoplaying}
         onClick={toggleAutoplay}
         disabled={!hasMoves}
+        className={PHONE_STEP}
         data-autoplay
       >
         {autoplaying ? <Stop /> : <Play />}
       </IconButton>
-      <span className="mx-1 h-4 w-px bg-line-subtle" />
-      <IconButton label="Flip board (F)" onClick={flip}>
+      <span className="mx-1 h-4 w-px bg-line-subtle max-sm:hidden" />
+      <IconButton label="Flip board (F)" className={PHONE_STEP} onClick={flip}>
         <Flip />
       </IconButton>
       {allowTyping ? (
@@ -103,6 +122,10 @@ export function BoardControls({
           label="Type a move (T)"
           active={moveEntryOpen}
           onClick={() => setMoveEntryOpen(!moveEntryOpen)}
+          // A phone types with the screen's own keyboard over the board; the
+          // row is worth more to it than this button. `T` and the palette
+          // still open the field where there is a keyboard.
+          className="max-sm:hidden"
           data-move-entry-toggle
         >
           <Keyboard />
@@ -143,6 +166,7 @@ export function BoardControls({
           });
         }}
         disabled={!hasMoves}
+        className={PHONE_STEP}
         data-reset-moves
       >
         <Reset />
