@@ -460,6 +460,17 @@ function BoardSection() {
       </Row>
 
       <Row
+        label="Move sounds"
+        hint="A short knock for each move, a heavier one for a capture, a tone for a check. Made in the browser; on this device only."
+      >
+        <Toggle
+          label="Play move sounds"
+          checked={prefs.moveSounds}
+          onChange={(value) => prefs.set('moveSounds', value)}
+        />
+      </Row>
+
+      <Row
         label="Evaluation graph"
         hint="A bar per move that has a saved engine evaluation, under the board — and, for a game with clocks, the time each move took."
       >

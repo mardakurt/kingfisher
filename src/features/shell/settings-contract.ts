@@ -183,6 +183,17 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     previewable: true,
   },
   {
+    key: 'moveSounds',
+    label: 'Move sounds',
+    surface: 'settings',
+    control: 'features/shell/SettingsDialog.tsx',
+    consumer: 'features/board/move-sounds.ts',
+    effect: 'Each step forward on the board plays a short synthesised sound; off, none does.',
+    indexedAs: 'move-sounds',
+    previewable: true,
+    verifiedBy: 'e2e/move-sounds.spec.ts',
+  },
+  {
     key: 'showEvaluationGraph',
     label: 'Evaluation graph',
     surface: 'settings',

@@ -114,10 +114,10 @@ export function PrivacyPage(): JSX.Element {
       </p>
       <p>
         A <code>localStorage</code> entry holds the small key/value preferences (theme, piece set,
-        board theme, sound level, last-active route). The contents are visible in the browsers
-        developer tools and are an inert JSON object with no PII beyond what you yourself typed (a
-        study name, a repertoire name, your display name). In Safari, dismissing the note that
-        Safari may delete this site’s data writes the time you dismissed it,{' '}
+        board theme, whether move sounds play, last-active route). The contents are visible in the
+        browsers developer tools and are an inert JSON object with no PII beyond what you yourself
+        typed (a study name, a repertoire name, your display name). In Safari, dismissing the note
+        that Safari may delete this site’s data writes the time you dismissed it,{' '}
         <code>kingfisher.storage-risk.dismissed</code>, so it is not said again for a month.
       </p>
       <p>

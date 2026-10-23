@@ -34,6 +34,8 @@ export const DEVICE_PREFERENCE_KEYS: ReadonlySet<keyof Preferences> = new Set<ke
   'autoBackupRetention',
   // Each device decides whether it sends and receives games.
   'syncMyGames',
+  // Sound on the laptop at home is not sound on the one in the library.
+  'moveSounds',
 ]);
 
 export const SYNCED_PREFERENCE_KEYS: readonly (keyof Preferences)[] = (

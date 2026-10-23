@@ -56,6 +56,8 @@ export interface Preferences {
   showEvaluationBar: boolean;
   /** The bar chart of stored evaluations under the board. */
   showEvaluationGraph: boolean;
+  /** A knock for each move the board steps forward (`move-sounds.ts`). */
+  moveSounds: boolean;
   /**
    * Whether to draw the engine's best-move arrow on the board.
    *
@@ -250,6 +252,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
    * turning it on then is the right moment.
    */
   showEvaluationGraph: false,
+  // Silent unless asked: a sound nobody chose, in a library, is a fault.
+  moveSounds: false,
   showEngineArrows: true,
   engineArrowLines: 'best',
   engineFollowBoard: true,

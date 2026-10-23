@@ -140,6 +140,13 @@ export const SETTINGS_INDEX: readonly SettingsEntry[] = [
     keywords: ['evaluation', 'graph', 'chart', 'history'],
   },
   {
+    id: 'move-sounds',
+    label: 'Move sounds',
+    section: 'board',
+    description: 'A short knock for each move, a heavier one for a capture, a tone for a check.',
+    keywords: ['sound', 'audio', 'click', 'noise', 'move', 'capture', 'mute'],
+  },
+  {
     id: 'piece-set',
     label: 'Piece set',
     section: 'pieces',
