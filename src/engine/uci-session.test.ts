@@ -257,3 +257,63 @@ describe('configuration', () => {
     expect(sent.some((line) => line.startsWith('setoption name Threads'))).toBe(false);
   });
 });
+
+describe('win / draw / loss', () => {
+  const BLACK_TO_MOVE = asFen('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1');
+
+  function withWdl() {
+    const listeners = new Set<(line: string) => void>();
+    const sent: string[] = [];
+    const emit = (line: string) => {
+      for (const listener of [...listeners]) listener(line);
+    };
+    const transport: UciTransport = {
+      onLine(listener) {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+      send(command) {
+        sent.push(command);
+        if (command === 'isready') queueMicrotask(() => emit('readyok'));
+        if (command.startsWith('go')) {
+          queueMicrotask(() => {
+            // From the side to move — Black, here.
+            emit('info depth 10 multipv 1 score cp 40 wdl 300 650 50 pv c7c5');
+            emit('bestmove c7c5');
+          });
+        }
+      },
+      async waitFor() {
+        return '';
+      },
+      dispose() {
+        listeners.clear();
+      },
+    };
+    return { transport, sent };
+  }
+
+  it('asks an engine that declares UCI_ShowWDL, and reads the triple from White', async () => {
+    const { transport, sent } = withWdl();
+    const session = new UciSession(
+      transport,
+      { name: 'Test' },
+      [{ name: 'UCI_ShowWDL', type: 'check', defaultValue: 'false' }],
+      CAPABILITIES,
+    );
+    expect(sent).toContain('setoption name UCI_ShowWDL value true');
+    const handle = session.analyse(
+      { fen: BLACK_TO_MOVE, limit: { kind: 'depth', depth: 10 } },
+      () => {},
+    );
+    const analysis = await handle.finished;
+    expect(analysis.lines[0]?.score).toEqual({ kind: 'cp', cp: -40 });
+    expect(analysis.lines[0]?.wdl).toEqual({ white: 50, draw: 650, black: 300 });
+  });
+
+  it('does not send the option to an engine that never declared it', () => {
+    const { transport, sent } = withWdl();
+    new UciSession(transport, { name: 'Test' }, [], CAPABILITIES);
+    expect(sent.some((command) => command.includes('UCI_ShowWDL'))).toBe(false);
+  });
+});

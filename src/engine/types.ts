@@ -98,6 +98,18 @@ export interface PrincipalVariation {
   readonly san?: readonly San[];
   /** The engine only proved a bound, not an exact value. */
   readonly bound?: 'lower' | 'upper';
+  /**
+   * The engine's win / draw / loss expectation for the line, in thousandths,
+   * from White's point of view (`white` is White winning). Present only when
+   * the engine reported one.
+   */
+  readonly wdl?: WinDrawLoss;
+}
+
+export interface WinDrawLoss {
+  readonly white: number;
+  readonly draw: number;
+  readonly black: number;
 }
 
 export interface EngineAnalysis {

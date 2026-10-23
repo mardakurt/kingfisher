@@ -17,6 +17,12 @@ export interface UciInfo {
   /** From the side to move, exactly as the engine reports it. */
   readonly score?: Score;
   readonly bound?: 'lower' | 'upper';
+  /**
+   * Win, draw and loss in thousandths, from the side to move, when the
+   * engine was asked for them (`UCI_ShowWDL`). The engine's own model of the
+   * outcome, not a conversion of the centipawn score.
+   */
+  readonly wdl?: readonly [number, number, number];
   readonly nodes?: number;
   readonly nps?: number;
   readonly timeMs?: number;
@@ -128,6 +134,25 @@ export function parseInfo(body: string): UciInfo {
         if (next === 'lowerbound' || next === 'upperbound') {
           info.bound = next === 'lowerbound' ? 'lower' : 'upper';
           i += 1;
+        }
+        break;
+      }
+      case 'wdl': {
+        const win = readNumber(tokens, i + 1);
+        const draw = readNumber(tokens, i + 2);
+        const loss = readNumber(tokens, i + 3);
+        i += 3;
+        // Three non-negative parts of one whole, or it is not a WDL.
+        if (
+          win !== undefined &&
+          draw !== undefined &&
+          loss !== undefined &&
+          win >= 0 &&
+          draw >= 0 &&
+          loss >= 0 &&
+          win + draw + loss > 0
+        ) {
+          info.wdl = [win, draw, loss];
         }
         break;
       }

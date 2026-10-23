@@ -29,6 +29,7 @@ import {
   type EngineOptionSpec,
   type EngineSession,
   type PrincipalVariation,
+  type WinDrawLoss,
 } from './types';
 import type { UciTransport } from './transport';
 
@@ -69,6 +70,12 @@ interface Search {
   timer: ReturnType<typeof setTimeout> | null;
 }
 
+/** A side-to-move `wdl` triple, as White / draw / Black. */
+function whiteWdl(wdl: readonly [number, number, number], sideToMove: Color): WinDrawLoss {
+  const [win, draw, loss] = wdl;
+  return sideToMove === 'w' ? { white: win, draw, black: loss } : { white: loss, draw, black: win };
+}
+
 export class UciSession implements EngineSession {
   private nextSearchId = 1;
   private active: Search | null = null;
@@ -105,6 +112,14 @@ export class UciSession implements EngineSession {
     */
     if (this.options.some((option) => option.name === 'OwnBook')) {
       this.client.send('setoption name OwnBook value false');
+    }
+    /*
+      The engine's own outcome model, beside the centipawns. It changes what
+      the engine prints, not what it searches, and an engine that does not
+      declare the option is not sent it.
+    */
+    if (this.options.some((option) => option.name === 'UCI_ShowWDL' && option.type === 'check')) {
+      this.client.send('setoption name UCI_ShowWDL value true');
     }
   }
 
@@ -401,6 +416,7 @@ export class UciSession implements EngineSession {
             ...(info.seldepth !== undefined ? { seldepth: info.seldepth } : {}),
             moves: info.pv,
             ...(info.bound ? { bound: info.bound } : {}),
+            ...(info.wdl ? { wdl: whiteWdl(info.wdl, search.rootTurn) } : {}),
           });
         }
       }

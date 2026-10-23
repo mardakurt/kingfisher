@@ -27,7 +27,7 @@ import {
   engineSessionMetrics,
   type DepthSample,
 } from '@/engine/metrics';
-import type { PrincipalVariation } from '@/engine/types';
+import type { PrincipalVariation, WinDrawLoss } from '@/engine/types';
 import { Pin, Play, Plus, Save, Stop, Trash } from '@/components/icons';
 import { Button, IconButton } from '@/components/ui/Button';
 import { EmptyState, PanelBody, PanelHeader } from '@/components/ui/Panel';
@@ -278,6 +278,10 @@ export function EnginePanel({ compact = false }: { readonly compact?: boolean })
         ) : null}
       </PanelHeader>
 
+      {!compact && analysis && !stale && analysis.lines[0]?.wdl ? (
+        <WdlStrip wdl={analysis.lines[0].wdl} />
+      ) : null}
+
       {showEngineArrows && identity ? (
         <div
           className="flex items-center gap-3 border-b border-line-subtle px-2.5 py-1 text-[10px] text-tertiary [@container(max-height:260px)]:hidden"
@@ -403,6 +407,7 @@ export function EnginePanel({ compact = false }: { readonly compact?: boolean })
                       'w-[52px] shrink-0 rounded-[var(--radius-control)] px-1 py-0.5 text-center text-xs font-medium tabular',
                       scoreTone(line),
                     )}
+                    title={line.wdl ? describeWdl(line.wdl) : undefined}
                   >
                     {formatScore(line.score)}
                   </span>
@@ -536,6 +541,47 @@ export function EnginePanel({ compact = false }: { readonly compact?: boolean })
           </div>
         </footer>
       )}
+    </div>
+  );
+}
+
+const percent = (thousandths: number): number => Math.round(thousandths / 10);
+
+/** "White wins 34% · draw 60% · Black wins 6%", the engine's own outcome model. */
+export function describeWdl(wdl: WinDrawLoss): string {
+  return `White wins ${percent(wdl.white)}% · draw ${percent(wdl.draw)}% · Black wins ${percent(wdl.black)}%`;
+}
+
+/**
+ * The engine's win / draw / loss expectation for its top line.
+ *
+ * Shown only when the engine itself reported it (`UCI_ShowWDL`): it is the
+ * engine's model of the outcome, which a centipawn score is not, and a
+ * conversion of centipawns into percentages here would be a number the engine
+ * never computed. White on the left, as on the evaluation bar.
+ */
+function WdlStrip({ wdl }: { readonly wdl: WinDrawLoss }) {
+  const total = Math.max(1, wdl.white + wdl.draw + wdl.black);
+  return (
+    <div
+      className="flex items-center gap-2 border-b border-line-subtle px-2.5 py-1 text-[10px] text-tertiary"
+      data-engine-wdl
+      title="The engine's own win / draw / loss expectation for its top line"
+    >
+      <div
+        className="flex h-1.5 min-w-12 flex-1 overflow-hidden rounded-full ring-1 ring-[var(--eval-edge)]"
+        role="img"
+        aria-label={describeWdl(wdl)}
+      >
+        <span style={{ width: `${(wdl.white / total) * 100}%`, background: 'var(--eval-white)' }} />
+        <span
+          style={{ width: `${(wdl.draw / total) * 100}%`, background: 'var(--eval-midline)' }}
+        />
+        <span style={{ width: `${(wdl.black / total) * 100}%`, background: 'var(--eval-black)' }} />
+      </div>
+      <span className="shrink-0 tabular" aria-hidden>
+        W {percent(wdl.white)}% · D {percent(wdl.draw)}% · B {percent(wdl.black)}%
+      </span>
     </div>
   );
 }

@@ -74,6 +74,15 @@ describe('parseInfo', () => {
     expect(info.pv).toEqual(['e2e4']);
   });
 
+  it('reads the win / draw / loss triple and refuses one that is not', () => {
+    const info = parseInfo('depth 20 score cp 31 wdl 120 850 30 nodes 5 pv e2e4');
+    expect(info.wdl).toEqual([120, 850, 30]);
+    expect(info.nodes).toBe(5);
+    expect(info.pv).toEqual(['e2e4']);
+    expect(parseInfo('depth 20 score cp 31 wdl 120 -1 30 pv e2e4').wdl).toBeUndefined();
+    expect(parseInfo('depth 20 score cp 31 wdl 0 0 0 pv e2e4').wdl).toBeUndefined();
+  });
+
   it('stops the principal variation at the end of the line', () => {
     const info = parseInfo('depth 3 pv e2e4 e7e5');
     expect(info.pv).toEqual(['e2e4', 'e7e5']);
