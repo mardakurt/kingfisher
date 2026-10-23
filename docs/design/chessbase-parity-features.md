@@ -163,17 +163,16 @@ Find Novelty and Novelty Annotation, as a fact about a named population.
   stores per-position counts by year and 200-point Elo class plus earliest
   game references. The Opening Report renders each pack separately and a test
   rejects figures labelled with another population.
-  - **Open defect, recorded not fixed.** The pack's outcome tally is a
-    three-way ternary — `result === '1-0' ? white : result === '1/2-1/2' ?
-draws : black` — so a game with no recorded result (`*`) is filed as a
-    **Black win**. That is a false claim about a game, and it is why a pack's
-    three outcome columns always add up to its game count while a collection's
-    do not. It is not fixed here because the correction changes pack bytes:
-    every pack would need rebuilding and re-digesting, which is a data phase
-    with network downloads, not a code change. The companion side already
-    counts such games and the report states how many are in no column, so the
-    shortfall is visible rather than silent; the pack side stays wrong until a
-    pack rebuild carries the correction.
+  - **Not a defect (corrected 2026-10-23).** This entry used to record that
+    the pack's outcome tally — `result === '1-0' ? white : result ===
+'1/2-1/2' ? draws : black` — files a game with no recorded result (`*`)
+    as a Black win. No such game reaches the tally: the scan
+    (`scripts/reference/scan.worker.mjs`) has rejected every game whose
+    result is not `1-0`, `0-1` or `1/2-1/2` as `bad_result` since the pack
+    builder was written (2026-09-04), and `reduceExplorer` throws on any
+    other outcome in its cached rows. A pack's three columns add up because
+    a pack holds only decided games; a collection's need not, because it
+    keeps unfinished ones, and the report says how many are in no column.
 - A selected companion SQLite collection now contributes its own year and Elo
   sections. The companion reads at most 2,001 distinct headers through the
   position index and returns only compact tallies plus up to three linked
