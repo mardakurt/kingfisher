@@ -21,6 +21,8 @@ import { QuestionDialog } from './QuestionDialog';
 import type { NodeId } from '@/chess/tree/types';
 import { serializeMovetext, serializePgnFrom } from '@/chess/pgn';
 import { nodePath } from '@/chess/tree/tree';
+import { lineLink } from '@/position/line-link';
+import { publicUrl } from '@/release/public-urls';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 
@@ -185,6 +187,24 @@ export function MoveContextMenu() {
               void navigator.clipboard
                 .writeText(text)
                 .then(() => notify({ tone: 'success', message: 'Line copied.' }))
+                .catch(() =>
+                  notify({ tone: 'error', message: 'The clipboard is not available here.' }),
+                );
+            },
+          },
+          {
+            id: 'copy-link',
+            label: 'Copy link to the line to here',
+            icon: <Copy />,
+            run: () => {
+              void navigator.clipboard
+                .writeText(lineLink(publicUrl.studio, tree, nodeId))
+                .then(() =>
+                  notify({
+                    tone: 'success',
+                    message: 'Link copied. It opens this line, up to this move, in Kingfisher.',
+                  }),
+                )
                 .catch(() =>
                   notify({ tone: 'error', message: 'The clipboard is not available here.' }),
                 );
