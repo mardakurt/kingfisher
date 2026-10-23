@@ -437,6 +437,14 @@ export function useCommands(): readonly Command[] {
         run: () => analysis().flip(),
       },
       {
+        id: 'type-move',
+        title: 'Type a move…',
+        group: 'Board',
+        shortcut: 'T',
+        keywords: 'keyboard enter san notation input scoresheet',
+        run: () => ui().setMoveEntryOpen(true),
+      },
+      {
         id: 'toggle-coordinates',
         title: 'Cycle board coordinates (inside, outside, off)',
         group: 'Board',

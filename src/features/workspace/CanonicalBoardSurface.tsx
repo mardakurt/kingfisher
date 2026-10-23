@@ -15,6 +15,7 @@ import { useReferenceArrows } from '@/stores/reference-arrows-store';
 import { BoardControls } from '@/features/analysis/BoardControls';
 import { EvaluationBar } from '@/features/analysis/EvaluationBar';
 import { EvaluationGraph } from '@/features/analysis/EvaluationGraph';
+import { MoveEntry } from '@/features/analysis/MoveEntry';
 import { PositionSummary } from '@/features/analysis/PositionSummary';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
 import { cn } from '@/lib/cn';
@@ -75,6 +76,7 @@ export function CanonicalBoardSurface({
   const clearShapes = useAnalysis((state) => state.clearShapes);
   const prefs = usePreferences();
   const notify = useUi((state) => state.notify);
+  const moveEntryOpen = useUi((state) => state.moveEntryOpen);
   const goTo = useAnalysis((state) => state.goTo);
   const analysis = useEngine((state) => state.primary.analysis);
   const analysedFen = useEngine((state) => state.primary.analysedFen);
@@ -413,9 +415,12 @@ export function CanonicalBoardSurface({
             Training) withholds evidence; the position page is exactly that
             evidence and the button must not even be drawn.
           */}
-          <BoardControls showPositionPage={caps.showEvaluation} />
+          <BoardControls showPositionPage={caps.showEvaluation} allowTyping={caps.allowMoves} />
           <PositionSummary />
         </div>
+      ) : null}
+      {moveEntryOpen && caps.allowMoves ? (
+        <MoveEntry position={position} onMove={onMove} showCandidates={caps.showLegalHints} />
       ) : null}
       {showEvaluationArtifacts && caps.showEvaluation && prefs.showEvaluationGraph ? (
         <EvaluationGraph

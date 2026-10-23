@@ -78,6 +78,7 @@ export const SHORTCUTS: readonly Shortcut[] = [
     group: 'Analysis',
   },
   { id: 'flip', defaultBinding: 'f', label: 'Flip the board', group: 'Analysis' },
+  { id: 'type-move', defaultBinding: 't', label: 'Type a move', group: 'Editing' },
 
   /*
     The working tabs, on the keys a person already has for them.

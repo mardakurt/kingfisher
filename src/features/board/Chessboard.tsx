@@ -279,6 +279,10 @@ export function Chessboard({
       const origin = selectedRef.current;
       if (origin && isLegalTarget(origin, square)) {
         interactionRef.current = { kind: 'done' };
+        // The press commits the move, and a promotion opens its picker
+        // focused. The mousedown that follows would move focus to the page
+        // and leave the picker without the keyboard.
+        event.preventDefault();
         commitMove(origin, square);
         return;
       }
@@ -802,6 +806,13 @@ function PromotionPicker({ square, orientation, color, pieceSet, onChoose }: Pro
         if (event.key === 'Escape') {
           event.preventDefault();
           onChoose(null);
+          return;
+        }
+        // The piece's own letter, as a move would be written: e8=N.
+        const letter = event.key.toLowerCase();
+        if (!event.metaKey && !event.ctrlKey && isPromotionPiece(letter)) {
+          event.preventDefault();
+          onChoose(letter);
         }
       }}
     >
@@ -826,6 +837,15 @@ function PromotionPicker({ square, orientation, color, pieceSet, onChoose }: Pro
               event.stopPropagation();
               onChoose(type);
             }}
+            /*
+              The picker focuses its first button, so Enter and Space reach
+              it — as a click with no pointer behind it (`detail` 0). Pointer
+              clicks have already chosen on pointerdown and unmounted the
+              picker; this is the keyboard's way in, which had none.
+            */
+            onClick={(event) => {
+              if (event.detail === 0) onChoose(type);
+            }}
             aria-label={`Promote to ${PROMOTION_NAMES[type]}`}
           >
             <PieceIcon piece={{ color, type }} set={pieceSet} className="h-full w-full p-[10%]" />
@@ -835,6 +855,9 @@ function PromotionPicker({ square, orientation, color, pieceSet, onChoose }: Pro
     </div>
   );
 }
+
+const isPromotionPiece = (value: string): value is PromotionPiece =>
+  value === 'q' || value === 'r' || value === 'b' || value === 'n';
 
 const PROMOTION_NAMES: Record<PromotionPiece, string> = {
   q: 'queen',

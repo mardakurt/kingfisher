@@ -177,6 +177,11 @@ export function useGlobalHotkeys(): void {
         case 'flip':
           analysis.flip();
           return;
+        case 'type-move':
+          // The key would otherwise be typed into the field it opens.
+          event.preventDefault();
+          ui.setMoveEntryOpen(true);
+          return;
         case 'clear-shapes':
           analysis.clearShapes(analysis.currentId);
           return;

@@ -437,6 +437,12 @@ export const Pencil = (p: IconProps) => (
     <path d="M4 20h4l10-10a2.5 2.5 0 0 0-4-4L4 16z" />
   </Icon>
 );
+export const Keyboard = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="2.5" y="6" width="19" height="12" rx="2" />
+    <path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M8 14h8" />
+  </Icon>
+);
 export const Copy = (p: IconProps) => (
   <Icon {...p}>
     <rect x="9" y="9" width="11" height="11" rx="2" />

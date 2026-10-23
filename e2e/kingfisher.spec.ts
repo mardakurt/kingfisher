@@ -279,6 +279,18 @@ test('canonical board handles special positions, orientation and every external 
   await page.getByRole('button', { name: 'Promote to queen' }).click();
   await expect(page.getByRole('gridcell', { name: 'e8, White queen' })).toBeVisible();
 
+  // The picker takes the keyboard: it opens focused, Enter chooses the
+  // focused piece, and a piece's letter chooses that piece.
+  await importFen(page, 'k7/4P3/8/8/8/8/8/4K3 w - - 0 1');
+  await play(page, 'e7', 'e8');
+  await expect(page.getByRole('button', { name: 'Promote to queen' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('gridcell', { name: 'e8, White queen' })).toBeVisible();
+  await importFen(page, 'k7/4P3/8/8/8/8/8/4K3 w - - 0 1');
+  await play(page, 'e7', 'e8');
+  await page.keyboard.press('n');
+  await expect(page.getByRole('gridcell', { name: 'e8, White knight' })).toBeVisible();
+
   await importFen(page, '4k3/8/8/8/8/8/4R3/4K3 b - - 0 1');
   await expect(
     page.getByRole('gridcell', { name: 'e8, Black king' }).locator('[style*="--square-check"]'),

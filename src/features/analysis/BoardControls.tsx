@@ -2,7 +2,15 @@
 
 import { useRouter } from 'next/navigation';
 
-import { ChevronLeft, ChevronRight, Flip, Reset, SkipEnd, SkipStart } from '@/components/icons';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Flip,
+  Keyboard,
+  Reset,
+  SkipEnd,
+  SkipStart,
+} from '@/components/icons';
 import { Button, IconButton } from '@/components/ui/Button';
 import { positionPageAvailable } from '@/features/position/open-position-page';
 import { positionPageUrl } from '@/position/knowledge';
@@ -12,9 +20,14 @@ import { useUi } from '@/stores/ui-store';
 /** Move navigation, kept directly under the board where the eye already is. */
 export function BoardControls({
   showPositionPage = true,
+  allowTyping = true,
 }: {
   readonly showPositionPage?: boolean;
+  /** False where the board takes no moves, so there is nothing to type. */
+  readonly allowTyping?: boolean;
 }) {
+  const moveEntryOpen = useUi((state) => state.moveEntryOpen);
+  const setMoveEntryOpen = useUi((state) => state.setMoveEntryOpen);
   const toStart = useAnalysis((state) => state.toStart);
   const back = useAnalysis((state) => state.back);
   const forward = useAnalysis((state) => state.forward);
@@ -72,6 +85,16 @@ export function BoardControls({
       <IconButton label="Flip board (F)" onClick={flip}>
         <Flip />
       </IconButton>
+      {allowTyping ? (
+        <IconButton
+          label="Type a move (T)"
+          active={moveEntryOpen}
+          onClick={() => setMoveEntryOpen(!moveEntryOpen)}
+          data-move-entry-toggle
+        >
+          <Keyboard />
+        </IconButton>
+      ) : null}
       {showPositionPage ? (
         <Button
           onClick={openPositionPage}

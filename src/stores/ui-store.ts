@@ -81,6 +81,8 @@ interface UiState {
    * this browser beside My games. Null is My games.
    */
   importTarget: { readonly id: string; readonly name: string } | null;
+  /** The typed-move field under the board. */
+  moveEntryOpen: boolean;
   positionSetupOpen: boolean;
   saveToStudyOpen: boolean;
   addToRepertoireOpen: boolean;
@@ -118,6 +120,7 @@ interface UiState {
   openSettingsAt(section: string): void;
   /** Open or close Import PGN; a target names the browser collection it writes into. */
   setImportOpen(open: boolean, target?: { readonly id: string; readonly name: string }): void;
+  setMoveEntryOpen(open: boolean): void;
   setPositionSetupOpen(open: boolean): void;
   setSaveToStudyOpen(open: boolean): void;
   setAddToRepertoireOpen(open: boolean): void;
@@ -162,6 +165,7 @@ export const useUi = create<UiState>((set) => ({
   settingsSection: null,
   importOpen: false,
   importTarget: null,
+  moveEntryOpen: false,
   positionSetupOpen: false,
   saveToStudyOpen: false,
   addToRepertoireOpen: false,
@@ -188,6 +192,7 @@ export const useUi = create<UiState>((set) => ({
   setJobsOpen: (jobsOpen) => set({ jobsOpen }),
   openSettingsAt: (settingsSection) => set({ settingsSection, settingsOpen: true }),
   setImportOpen: (importOpen, target) => set({ importOpen, importTarget: target ?? null }),
+  setMoveEntryOpen: (moveEntryOpen) => set({ moveEntryOpen }),
   setPositionSetupOpen: (positionSetupOpen) => set({ positionSetupOpen }),
   setSaveToStudyOpen: (saveToStudyOpen) => set({ saveToStudyOpen }),
   setAddToRepertoireOpen: (addToRepertoireOpen) => set({ addToRepertoireOpen }),
