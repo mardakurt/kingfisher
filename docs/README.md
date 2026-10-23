@@ -1,5 +1,6 @@
 # Kingfisher documentation
 
+- [1.5.5 release notes](release/1.5.5.md) — typed moves and lines, paste to import, clocks and time per move, engine win/draw/loss, replay, links to a line, selective import, move sounds; Windows PGN encodings, other notations, spaced-repetition days. Web.
 - [1.5.4 release notes](release/1.5.4.md) — collections, En Croissant and large files in the browser, collection sync, phones, tablets and installed iPhones, Safari storage. Web, and the Mac download.
 - [2026-10-23 browser and devices report](reports/2026-10-23-browser-and-devices.md) — what was audited, found, fixed and run for 1.5.4, and what was not.
 - [1.5.3 release notes](release/1.5.3.md) — accounts and sync, opening map, openings to reconsider, analysis history, a faster-reading Studio. Web, and the Mac download (build 1228, notarised).
@@ -339,7 +340,7 @@ with `git show 16d2fcc2:<path>` (for example
 `git show 16d2fcc2:docs/reports/phase-88-handover.md`).
 
 - [`release/1.0.0.md`](release/1.0.0.md) — the 1.0.0 release notes. The
-  current notes are [`release/1.5.4.md`](release/1.5.4.md).
+  current notes are [`release/1.5.5.md`](release/1.5.5.md).
 - [`../.github/ISSUE_TEMPLATE/`](../.github/ISSUE_TEMPLATE) — issue templates;
   current, and listed here so nothing is unaccounted for.
 - [`../marketing/README.md`](../marketing/README.md) and

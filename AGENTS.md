@@ -517,7 +517,7 @@ number (`git rev-list --count HEAD`), commit, dirty flag and channel, in
 them. `KINGFISHER_DESKTOP_CHANNEL` is `dev` (default), `preview` or
 `stable`; a publishable channel refuses a dirty tree.
 
-- **The source version and the public Mac download are 1.5.4.** The
+- **The source version is 1.5.5; the public Mac download is 1.5.4.** The
   public Mac descriptor names the build that has been published and
   byte-verified; it changes only after that.
   Bump the marketing version only for a real release.

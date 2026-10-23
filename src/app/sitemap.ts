@@ -22,7 +22,7 @@ import { publicUrl } from '@/release/public-urls';
 const UPDATED = {
   landing: '2026-10-23',
   install: '2026-10-23',
-  privacy: '2026-10-22',
+  privacy: '2026-10-23',
   security: '2026-10-23',
   dataLicences: '2026-10-04',
   terms: '2026-09-28',

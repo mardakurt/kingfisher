@@ -4,6 +4,56 @@ The user-facing changelog. Internal phase history is in
 `docs/reports/` and `docs/product/phase-*.md`; the list below is what
 real users notice.
 
+## 1.5.5 — 2026-10-23
+
+The web release ([release notes](docs/release/1.5.5.md)). The Mac download
+stays 1.5.4 until 1.5.5 is built, notarised and published.
+
+- **Type your moves.** Press `T` (or the keyboard button under the board)
+  and type a move as you would write it — `Nf3`, `nf3`, `exd5`, `ed5`,
+  `e8=Q`, `0-0`, `e2e4`, `♘f3`. Paste or type a whole line
+  (`1.e4 c5 2.Nf3 d6`) and it is played as far as it is legal. A move two
+  pieces could make (`Rd1` with both rooks able to go) is never guessed: it
+  says which two.
+- **Paste a game anywhere.** ⌘V with a PGN or a FEN on the page, outside a
+  text field, opens Import with it already in the box.
+- **Clocks.** A game with `[%clk]` shows both clocks at the move on the
+  board, and how long that move took. With the evaluation graph on, a
+  _Time per move_ strip lines each think up with the evaluation above it.
+- **Win / draw / loss.** Where the engine reports its own outcome model
+  (Stockfish 18 and Lc0 do), the engine panel shows it under its header,
+  and each line's score shows its own in a tooltip.
+- **Play a game through.** `P`, or the play button under the board, steps
+  through the line once every 1.2 seconds; press again to pause.
+- **Share a line as a link.** _Copy link to this line_ writes an address
+  that opens the position, with the moves that reached it, in anyone's
+  Kingfisher. Only the moves go into it — no names, comments or
+  evaluations.
+- **Import only what you want.** Import PGN → _Keep only some games_: a
+  minimum rating for both players or either, a player by name, a span of
+  years. The summary says how many were left out.
+- **Move sounds**, if you want them: Settings → Board → Move sounds. Off by
+  default, kept on this device.
+- **Fixed: accented names in Windows PGN files.** A PGN exported on
+  Windows (ChessBase's, often) stored "Müller" as "M�ller". Kingfisher now
+  reads the file in the encoding it was written in, in the browser and in
+  the companion.
+- **Fixed: games in other notations stopped at the first move.** Long
+  algebraic (`1. e2-e4 e7-e5`) imported as a game with no moves; `♘f3`,
+  `O–O` with a typographic dash, `nf3` and the `½-½` result each cut the
+  game short.
+- **Fixed: spaced repetition and the time of day.** A card reviewed at
+  11 pm with a one-day interval came back at 11 pm the next day, so a
+  morning session missed it. Cards are now due at the start of their day
+  (4 am, so a session past midnight counts as the evening before).
+- **Fixed: the keyboard could not choose a promotion.** Enter on the
+  focused piece, or `q` `r` `b` `n`, now promotes.
+- **Fixed:** a refused FEN with castling rights its pieces cannot have is
+  offered back without exactly those rights; on a phone, the controls under
+  the board fit on one row again; a study's name is no longer cut short in
+  the header; a page with nothing on its board no longer shows another
+  game's moves in its notation; "1 months".
+
 ## 1.5.4 — 2026-10-23
 
 The web release, and the Mac download `Kingfisher-1.5.4-arm64.dmg`
