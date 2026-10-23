@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatFen, parseFen, positionKey, START_FEN } from './fen';
+import { START_FEN, formatFen, parseFen, positionKey, withoutImpossibleCastling } from './fen';
 import { expect as unwrap } from './result';
 import { squareIndex } from './board';
 
@@ -72,5 +72,29 @@ describe('positionKey', () => {
     expect(positionKey('8/8/8/3k4/8/3K4/8/8 w - - 12 45')).toBe(
       positionKey('8/8/8/3k4/8/3K4/8/8 w - - 0 1'),
     );
+  });
+});
+
+describe('withoutImpossibleCastling', () => {
+  it('drops only the rights the pieces cannot support, and names them', () => {
+    expect(withoutImpossibleCastling('4k3/8/8/8/8/8/8/4K2R w KQ - 0 1')).toEqual({
+      fen: '4k3/8/8/8/8/8/8/4K2R w K - 0 1',
+      removed: 'Q',
+    });
+    expect(withoutImpossibleCastling('r3k3/8/8/8/8/8/8/4K3 w KQkq - 0 1')).toEqual({
+      fen: 'r3k3/8/8/8/8/8/8/4K3 w q - 0 1',
+      removed: 'KQk',
+    });
+    expect(withoutImpossibleCastling('4k3/8/8/8/8/8/8/R3K3 b Kk - 3 40')).toEqual({
+      fen: '4k3/8/8/8/8/8/8/R3K3 b - - 3 40',
+      removed: 'Kk',
+    });
+  });
+
+  it('offers nothing when the rights are possible or the FEN is wrong for another reason', () => {
+    expect(withoutImpossibleCastling('r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1')).toBeNull();
+    expect(withoutImpossibleCastling('4k3/8/8/8/8/8/8/4K2R w KQ - 0 1 extra field')).toBeNull();
+    // Two white kings are not cured by removing a castling right.
+    expect(withoutImpossibleCastling('4k3/8/8/8/8/8/8/K3K2R w KQ - 0 1')).toBeNull();
   });
 });

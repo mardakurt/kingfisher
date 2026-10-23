@@ -62,3 +62,20 @@ test('a filtered import keeps the games asked for and counts the rest', async ({
     page.getByText('No game in that PGN matched the filter (both players 2900+).'),
   ).toBeVisible();
 });
+
+test('a FEN refused for impossible castling rights is offered without them', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/analysis');
+  await page.locator('html[data-kingfisher-ready="true"]').waitFor();
+  await page.getByRole('button', { name: 'Import PGN or FEN' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Import a game or position' });
+  await dialog.getByRole('textbox').first().fill('4k3/8/8/8/8/8/8/4K2R w KQ - 0 1');
+  await dialog.getByRole('button', { name: 'Load position' }).click();
+  // Refused first, with the reason; nothing loaded behind the person's back.
+  await expect(dialog.getByText(/Castling right Q \(white queenside\)/)).toBeVisible();
+  await expect(dialog.locator('[data-castling-repair]')).toContainText('castling right Q');
+  await dialog.getByRole('button', { name: 'Load without Q' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText('Position loaded without castling Q.')).toBeVisible();
+  await expect(page.getByRole('gridcell', { name: 'h1, White rook' })).toBeVisible();
+});

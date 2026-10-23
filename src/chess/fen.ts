@@ -308,6 +308,43 @@ function validateCastling(
   return ok(true);
 }
 
+/**
+ * The FEN with only the castling rights its pieces can support, and which
+ * were removed — or null when every right it claims is possible (or the FEN
+ * is unreadable for another reason, which removing rights would not cure).
+ *
+ * Never applied silently: `validateCastling` refuses such a FEN, and a person
+ * who pasted one from a careless source is offered this as an explicit
+ * choice. Dropping a right is not a guess about the position — the right
+ * cannot exist with the king or the rook elsewhere — but which FEN to load is
+ * still theirs to say.
+ */
+export function withoutImpossibleCastling(
+  input: string,
+): { readonly fen: string; readonly removed: string } | null {
+  const fields = input.trim().split(/\s+/);
+  if (fields.length < 4) return null;
+  const board = parsePlacement(fields[0]!);
+  const castling = parseCastling(fields[2]!);
+  if (!board.ok || !castling.ok) return null;
+  const at = (index: number, color: Color, type: PieceType) => {
+    const piece = board.value[index];
+    return piece?.color === color && piece.type === type;
+  };
+  const kept: CastlingRights = {
+    whiteKing: castling.value.whiteKing && at(4, 'w', 'k') && at(7, 'w', 'r'),
+    whiteQueen: castling.value.whiteQueen && at(4, 'w', 'k') && at(0, 'w', 'r'),
+    blackKing: castling.value.blackKing && at(60, 'b', 'k') && at(63, 'b', 'r'),
+    blackQueen: castling.value.blackQueen && at(60, 'b', 'k') && at(56, 'b', 'r'),
+  };
+  const before = formatCastling(castling.value);
+  const after = formatCastling(kept);
+  if (before === after) return null;
+  const removed = [...before].filter((right) => !after.includes(right)).join('');
+  const repaired = [fields[0], fields[1], after, ...fields.slice(3)].join(' ');
+  return parseFen(repaired).ok ? { fen: repaired, removed } : null;
+}
+
 const KNIGHT_DELTAS: readonly (readonly [number, number])[] = [
   [1, 2],
   [2, 1],

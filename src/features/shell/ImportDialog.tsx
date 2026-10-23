@@ -17,6 +17,7 @@
 import { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
+import { withoutImpossibleCastling } from '@/chess/fen';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { invalidateGames } from '@/features/persistence/queries';
@@ -110,6 +111,9 @@ function ImportForm() {
   const runImport = useImportJob((state) => state.run);
 
   const kind = file ? 'pgn' : detect(text);
+  // A FEN refused only for castling rights its pieces cannot have: offered,
+  // never applied, as the same position without them.
+  const castlingRepair = !file && error ? withoutImpossibleCastling(text) : null;
 
   const importPgn = useCallback(async () => {
     setError(null);
@@ -349,6 +353,36 @@ function ImportForm() {
         </span>
         {error && <span className="text-negative">{error}</span>}
       </div>
+      {castlingRepair ? (
+        <div
+          className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-control)] border border-line bg-surface-2 px-3 py-2 text-2xs text-secondary"
+          data-castling-repair
+        >
+          <span>
+            Without the castling right{castlingRepair.removed.length === 1 ? '' : 's'}{' '}
+            <span className="font-mono text-primary">{castlingRepair.removed}</span>, which the
+            pieces cannot have, this is a position Kingfisher can play.
+          </span>
+          <Button
+            size="sm"
+            variant="subtle"
+            onClick={() => {
+              const result = loadFen(castlingRepair.fen);
+              if (!result.ok) {
+                setError(result.error.message);
+                return;
+              }
+              notify({
+                tone: 'success',
+                message: `Position loaded without castling ${castlingRepair.removed}.`,
+              });
+              setOpen(false);
+            }}
+          >
+            Load without {castlingRepair.removed}
+          </Button>
+        </div>
+      ) : null}
     </Dialog>
   );
 }
