@@ -136,3 +136,26 @@ test('P plays through the line and stops at its end; pressed again it pauses', a
   await page.waitForTimeout(2_000);
   await expect(page.getByRole('gridcell', { name: /^f3,/ })).toHaveAttribute('aria-label', square!);
 });
+
+test('a whole line typed or pasted into the field is played as far as it is legal', async ({
+  page,
+}) => {
+  await openAnalysis(page);
+  await page.getByRole('button', { name: 'Type a move (T)' }).click();
+  const field = page.getByLabel('Type a move', { exact: true });
+  await field.fill('1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 a6');
+  await expect(page.locator('#move-entry-status')).toContainText('Enter plays the line');
+  await field.press('Enter');
+  await expect(field).toHaveValue('');
+  await expect(page.getByRole('gridcell', { name: 'a6, Black pawn' })).toBeVisible();
+  await expect(page.getByRole('gridcell', { name: 'c3, White knight' })).toBeVisible();
+
+  // A line that breaks keeps what was not played, from the move that stopped it.
+  await field.fill('6.Bg5 e6 7.Ke3 Be7');
+  await field.press('Enter');
+  await expect(page.locator('#move-entry-status')).toContainText(
+    'Played 2 moves; “Ke3” is not a legal move there.',
+  );
+  await expect(field).toHaveValue('Ke3 Be7');
+  await expect(page.getByRole('gridcell', { name: 'g5, White bishop' })).toBeVisible();
+});

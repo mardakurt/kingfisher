@@ -123,3 +123,42 @@ export function matchMoveInput(moves: readonly ChessMove[], text: string): MoveI
     .map(({ move }) => move);
   return { move: null, candidates: prefixed, ambiguous: false };
 }
+
+export interface LineInputMatch {
+  /** The moves read, in order, up to the first that no single legal move answers. */
+  readonly moves: readonly ChessMove[];
+  /** The token that stopped the line, when one did. */
+  readonly stoppedAt: string | null;
+  /** Why it stopped: no legal move, or more than one. */
+  readonly stoppedBecause: 'illegal' | 'ambiguous' | null;
+}
+
+/**
+ * Several moves at once — `e4 c5 Nf3`, `1.e4 c5 2.Nf3`, `1. e4 c5 2. Nf3 d6`
+ * — read one after another from `start`, each against the position the
+ * previous one reached. Move numbers, ellipses and result marks are skipped.
+ * Reading stops at the first token that is not exactly one legal move, and
+ * says which, so a person sees how far their line went.
+ */
+export function matchLineInput(
+  start: { legalMoves(): readonly ChessMove[]; after(move: ChessMove): typeof start },
+  text: string,
+): LineInputMatch {
+  const tokens = text
+    .replace(/\d+\s*(?:\.(?:\s*\.\.)?|…)/g, ' ')
+    .replace(/…/g, ' ')
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token !== '' && !/^(?:1-0|0-1|1\/2-1\/2|½-½|\*)$/.test(token));
+  const moves: ChessMove[] = [];
+  let position = start;
+  for (const token of tokens) {
+    const match = matchMoveInput(position.legalMoves(), token);
+    if (!match.move) {
+      return { moves, stoppedAt: token, stoppedBecause: match.ambiguous ? 'ambiguous' : 'illegal' };
+    }
+    moves.push(match.move);
+    position = position.after(match.move);
+  }
+  return { moves, stoppedAt: null, stoppedBecause: null };
+}

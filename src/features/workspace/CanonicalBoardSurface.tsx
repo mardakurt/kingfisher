@@ -424,7 +424,12 @@ export function CanonicalBoardSurface({
         </div>
       ) : null}
       {moveEntryOpen && caps.allowMoves ? (
-        <MoveEntry position={position} onMove={onMove} showCandidates={caps.showLegalHints} />
+        <MoveEntry
+          position={position}
+          onMove={onMove}
+          showCandidates={caps.showLegalHints}
+          allowLines={!capture}
+        />
       ) : null}
       {showEvaluationArtifacts && caps.showEvaluation && prefs.showEvaluationGraph ? (
         <>

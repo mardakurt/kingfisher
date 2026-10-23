@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { matchMoveInput } from './move-input';
+import { matchLineInput, matchMoveInput } from './move-input';
 import { Position } from './position';
 import { expect as unwrap } from './result';
 
@@ -109,5 +109,32 @@ describe('matchMoveInput', () => {
     const fen = '4k3/8/8/b7/8/2N5/8/4K3 w - - 0 1';
     expect(played('Nb5', fen)).toBeNull();
     expect(matchMoveInput(movesOf(fen), 'N').candidates).toEqual([]);
+  });
+});
+
+describe('matchLineInput', () => {
+  const sans = (text: string, fen?: string) =>
+    matchLineInput(fen ? unwrap(Position.fromFen(fen)) : Position.initial(), text).moves.map(
+      (move) => move.san,
+    );
+
+  it('reads a line however it is numbered', () => {
+    const najdorf = ['e4', 'c5', 'Nf3', 'd6', 'd4', 'cxd4', 'Nxd4', 'Nf6', 'Nc3', 'a6'];
+    expect(sans('e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6')).toEqual(najdorf);
+    expect(sans('1.e4 c5 2.Nf3 d6 3.d4 cxd4 4.Nxd4 Nf6 5.Nc3 a6')).toEqual(najdorf);
+    expect(sans('1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 *')).toEqual(najdorf);
+    expect(sans('e2e4 c7c5 g1f3')).toEqual(['e4', 'c5', 'Nf3']);
+  });
+
+  it('reads a line from Black, numbered with an ellipsis', () => {
+    const fen = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1';
+    expect(sans('1...c5 2.Nf3', fen)).toEqual(['c5', 'Nf3']);
+    expect(sans('1… e5 2. Nf3 Nc6', fen)).toEqual(['e5', 'Nf3', 'Nc6']);
+  });
+
+  it('stops at the first move that is not exactly one legal move, and names it', () => {
+    const line = matchLineInput(Position.initial(), 'e4 e5 Ke3 Nf6');
+    expect(line.moves.map((move) => move.san)).toEqual(['e4', 'e5']);
+    expect(line).toMatchObject({ stoppedAt: 'Ke3', stoppedBecause: 'illegal' });
   });
 });

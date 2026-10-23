@@ -14,12 +14,13 @@
  * cannot play an illegal move, and an input two moves answer is never
  * guessed. The field stays open after a move, because entering a line is
  * several moves in a row; Escape closes it and gives the keys back to the
- * board.
+ * board. Several moves at once — a line pasted from a book or a chat — are
+ * played in turn as far as they are legal.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { matchMoveInput } from '@/chess/move-input';
+import { matchLineInput, matchMoveInput } from '@/chess/move-input';
 import type { Position } from '@/chess/position';
 import type { MoveIntent } from '@/chess/types';
 import { moveIntent } from '@/chess/moves';
@@ -33,11 +34,18 @@ export function MoveEntry({
   position,
   onMove,
   showCandidates,
+  allowLines,
 }: {
   readonly position: Position;
   readonly onMove: (intent: MoveIntent) => void;
   /** False where the workspace withholds legal-move hints. */
   readonly showCandidates: boolean;
+  /**
+   * Whether several moves typed at once (`1.e4 c5 2.Nf3`) are played in turn.
+   * False where the board is collecting one answer — a training question or
+   * a calculation — and a line would be several answers.
+   */
+  readonly allowLines: boolean;
 }) {
   const setOpen = useUi((state) => state.setMoveEntryOpen);
   const [text, setText] = useState('');
@@ -50,6 +58,13 @@ export function MoveEntry({
 
   const legal = useMemo(() => position.legalMoves(), [position]);
   const match = useMemo(() => matchMoveInput(legal, text), [legal, text]);
+  // More than one word that is not a move number: a line, not a move.
+  const isLine =
+    allowLines &&
+    text
+      .replace(/\d+\s*(?:\.+|…)/g, ' ')
+      .trim()
+      .split(/\s+/).length > 1;
 
   const play = (intent: MoveIntent) => {
     onMove(intent);
@@ -60,6 +75,22 @@ export function MoveEntry({
 
   const submit = () => {
     if (text.trim() === '') return;
+    if (isLine) {
+      const line = matchLineInput(position, text);
+      for (const move of line.moves) onMove(moveIntent(move));
+      if (line.stoppedAt === null) {
+        setText('');
+        setProblem(null);
+      } else {
+        // What was not played stays in the field, from the move that stopped.
+        setText(text.slice(Math.max(0, text.indexOf(line.stoppedAt))));
+        setProblem(
+          `${line.moves.length > 0 ? `Played ${line.moves.length} move${line.moves.length === 1 ? '' : 's'}; ` : ''}“${line.stoppedAt}” is ${line.stoppedBecause === 'ambiguous' ? 'more than one legal move' : 'not a legal move'} there.`,
+        );
+      }
+      input.current?.focus();
+      return;
+    }
     if (match.move) {
       play(moveIntent(match.move));
       return;
@@ -143,12 +174,14 @@ export function MoveEntry({
           <span className="text-negative" data-move-entry-problem>
             {problem}
           </span>
+        ) : isLine ? (
+          <span className="text-secondary">Enter plays the line</span>
         ) : match.move ? (
           <span className="text-secondary">
             Enter plays <span className="font-medium text-primary">{match.move.san}</span>
           </span>
         ) : null}
-        {!problem && !match.move
+        {!problem && !isLine && !match.move
           ? shown.slice(0, SHOWN_CANDIDATES).map((move) => (
               <button
                 key={move.uci}
@@ -161,7 +194,7 @@ export function MoveEntry({
               </button>
             ))
           : null}
-        {!problem && !match.move && shown.length > SHOWN_CANDIDATES ? (
+        {!problem && !isLine && !match.move && shown.length > SHOWN_CANDIDATES ? (
           <span className="text-tertiary">+{shown.length - SHOWN_CANDIDATES} more</span>
         ) : null}
       </div>
