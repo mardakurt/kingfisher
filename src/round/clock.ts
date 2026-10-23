@@ -185,6 +185,32 @@ export function clocksAt(tree: GameTree, nodeId: NodeId): ClocksAt | null {
   return { w: remaining.w, b: remaining.b, lastThink };
 }
 
+/**
+ * Seconds each move of the main line took, in order, with null where the
+ * tree cannot say — the column a time chart draws per ply. Empty when the
+ * game records no clocks at all.
+ */
+export function mainlineThinkTimes(
+  tree: GameTree,
+): readonly { readonly nodeId: NodeId; readonly seconds: number | null }[] {
+  if (!treeHasClock(tree)) return [];
+  const control = parseTimeControlTag(tree.headers.TimeControl);
+  const prior: Record<Color, number | null> = {
+    w: control?.initialSeconds ?? null,
+    b: control?.initialSeconds ?? null,
+  };
+  return mainlinePath(tree)
+    .slice(1)
+    .map((nodeId) => {
+      const node = tree.nodes[nodeId];
+      if (!node?.move) return { nodeId, seconds: null };
+      const color = colorOfPly(node.ply);
+      const seconds = thinkOf(node, prior[color], control);
+      if (typeof node.meta.clockSeconds === 'number') prior[color] = node.meta.clockSeconds;
+      return { nodeId, seconds };
+    });
+}
+
 /** Whether any move anywhere in the tree carries a clock command. */
 function treeHasClock(tree: GameTree): boolean {
   return Object.values(tree.nodes).some(

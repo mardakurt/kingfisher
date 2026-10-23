@@ -128,3 +128,39 @@ test('a game with clocks shows both clocks at the move on the board', async ({ p
   await expect(black).toHaveText('2:40+0:23');
   await expect(white).toHaveText('2:59');
 });
+
+test('with the graph on, a game with clocks shows its time per move', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/analysis');
+  await page.locator('html[data-kingfisher-ready="true"]').waitFor();
+  await page.evaluate(() => {
+    const raw = window.localStorage.getItem('kingfisher.preferences');
+    const parsed = raw ? JSON.parse(raw) : { state: {}, version: 7 };
+    parsed.state = { ...parsed.state, showEvaluationGraph: true };
+    window.localStorage.setItem('kingfisher.preferences', JSON.stringify(parsed));
+  });
+  await page.reload();
+  await page.locator('html[data-kingfisher-ready="true"]').waitFor();
+
+  const importPgn = async (pgn: string) => {
+    await page.getByRole('button', { name: 'Import PGN or FEN' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Import a game or position' });
+    await dialog.getByRole('textbox').fill(pgn);
+    await dialog.getByRole('button', { name: 'Import games' }).click();
+    await expect(dialog).toBeHidden();
+  };
+
+  await importPgn('[Event "No clocks"]\n\n1. e4 e5 2. Nf3 *');
+  await expect(page.locator('[data-evaluation-graph]')).toHaveCount(1);
+  await expect(page.locator('[data-time-graph]')).toHaveCount(0);
+
+  await importPgn(`[Event "Clocks"]
+[TimeControl "180+2"]
+
+1. e4 {[%clk 0:03:00]} c5 {[%clk 0:03:01]} 2. Nf3 {[%clk 0:02:59]} d6 {[%clk 0:02:40]} 3. d4 {[%clk 0:02:30]} *`);
+  const graph = page.locator('[data-time-graph]');
+  await expect(graph).toHaveCount(1);
+  // 3.d4: 2:59 + 2 − 2:30.
+  await expect(graph.locator('[data-time-graph-longest]')).toHaveText('longest 0:31 on 3. d4');
+  await expect(graph.locator('rect')).toHaveCount(5);
+});

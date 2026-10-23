@@ -496,7 +496,7 @@ export function useCommands(): readonly Command[] {
         id: 'toggle-evaluation-graph',
         title: 'Toggle the evaluation graph',
         group: 'Board',
-        keywords: 'chart curve advantage',
+        keywords: 'chart curve advantage time clock per move',
         run: () => prefs().set('showEvaluationGraph', !prefs().showEvaluationGraph),
       },
       {

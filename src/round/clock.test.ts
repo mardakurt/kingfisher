@@ -5,7 +5,7 @@ import type { GameTree } from '@/chess/tree/types';
 
 import { mainlinePath } from '@/chess/tree/tree';
 
-import { clockSummary, clocksAt, formatThink } from './clock';
+import { clockSummary, clocksAt, formatThink, mainlineThinkTimes } from './clock';
 
 const tree = (pgn: string): GameTree => {
   const { games } = parsePgn(pgn);
@@ -147,5 +147,15 @@ describe('clocksAt', () => {
   it('reads clocks without a control, leaving a side unknown until it has moved', () => {
     const bare = tree('1. e4 {[%clk 0:02:59]} e5 {[%clk 0:02:58]} *');
     expect(clocksAt(bare, mainlinePath(bare)[1]!)).toEqual({ w: 179, b: null, lastThink: null });
+  });
+});
+
+describe('mainlineThinkTimes', () => {
+  it('times every main-line move the clocks allow, and none without clocks', () => {
+    const game = tree(`[TimeControl "600+5"]
+
+1. e4 {[%clk 0:09:58]} e5 {[%clk 0:09:50]} 2. Nf3 {[%clk 0:09:33]} (2. Nc3) Nc6 *`);
+    expect(mainlineThinkTimes(game).map((entry) => entry.seconds)).toEqual([7, 15, 30, null]);
+    expect(mainlineThinkTimes(tree('1. e4 e5 *'))).toEqual([]);
   });
 });

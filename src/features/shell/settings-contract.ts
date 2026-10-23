@@ -188,7 +188,8 @@ export const SETTING_CONTRACTS: readonly SettingContract[] = [
     surface: 'settings',
     control: 'features/shell/SettingsDialog.tsx',
     consumer: 'features/workspace/CanonicalBoardSurface.tsx',
-    effect: 'The bar chart under the board appears or goes.',
+    effect:
+      'The bar chart under the board appears or goes, with the time-per-move strip for a game with clocks.',
     indexedAs: 'evaluation-graph',
     previewable: true,
   },

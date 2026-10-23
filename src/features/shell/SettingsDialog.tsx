@@ -461,7 +461,7 @@ function BoardSection() {
 
       <Row
         label="Evaluation graph"
-        hint="A bar per move that has a saved engine evaluation, under the board."
+        hint="A bar per move that has a saved engine evaluation, under the board — and, for a game with clocks, the time each move took."
       >
         <Toggle
           label="Show evaluation graph"

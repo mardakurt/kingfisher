@@ -16,6 +16,7 @@ import { BoardControls } from '@/features/analysis/BoardControls';
 import { EvaluationBar } from '@/features/analysis/EvaluationBar';
 import { EvaluationGraph } from '@/features/analysis/EvaluationGraph';
 import { MoveEntry } from '@/features/analysis/MoveEntry';
+import { TimeGraph } from '@/features/analysis/TimeGraph';
 import { useAutoplay } from '@/features/analysis/autoplay';
 import { PositionSummary } from '@/features/analysis/PositionSummary';
 import { useAnalysisPosition } from '@/features/analysis/useAnalysisPosition';
@@ -426,12 +427,20 @@ export function CanonicalBoardSurface({
         <MoveEntry position={position} onMove={onMove} showCandidates={caps.showLegalHints} />
       ) : null}
       {showEvaluationArtifacts && caps.showEvaluation && prefs.showEvaluationGraph ? (
-        <EvaluationGraph
-          tree={tree}
-          currentId={currentId}
-          onSelect={goTo}
-          className="mx-auto mt-1.5 w-full max-w-[960px] shrink-0"
-        />
+        <>
+          <EvaluationGraph
+            tree={tree}
+            currentId={currentId}
+            onSelect={goTo}
+            className="mx-auto mt-1.5 w-full max-w-[960px] shrink-0"
+          />
+          <TimeGraph
+            tree={tree}
+            currentId={currentId}
+            onSelect={goTo}
+            className="mx-auto mt-1 w-full max-w-[960px] shrink-0"
+          />
+        </>
       ) : null}
     </div>
   );
