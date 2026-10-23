@@ -17,7 +17,7 @@
 import { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { withoutImpossibleCastling } from '@/chess/fen';
+import { parseFen, withoutImpossibleCastling } from '@/chess/fen';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { invalidateGames } from '@/features/persistence/queries';
@@ -112,8 +112,12 @@ function ImportForm() {
 
   const kind = file ? 'pgn' : detect(text);
   // A FEN refused only for castling rights its pieces cannot have: offered,
-  // never applied, as the same position without them.
-  const castlingRepair = !file && error ? withoutImpossibleCastling(text) : null;
+  // never applied, as the same position without them. It is not a FEN the
+  // detector accepts, so it is recognised here, from the box, before any
+  // button could be pressed for it.
+  const castlingRepair =
+    !file && (kind === 'unknown' || error) ? withoutImpossibleCastling(text) : null;
+  const castlingReason = castlingRepair ? parseFen(text.trim()) : null;
 
   const importPgn = useCallback(async () => {
     setError(null);
@@ -348,7 +352,10 @@ function ImportForm() {
         <span className="text-tertiary">
           {kind === 'fen' && 'Detected a FEN position.'}
           {kind === 'pgn' && (file ? 'PGN file selected.' : 'Detected a PGN game.')}
-          {kind === 'unknown' && 'This does not look like a PGN or a FEN.'}
+          {kind === 'unknown' &&
+            (castlingReason && !castlingReason.ok
+              ? `A FEN Kingfisher cannot play as written. ${castlingReason.error.message}`
+              : 'This does not look like a PGN or a FEN.')}
           {kind === 'empty' && 'Paste a game or a position. ⌘↵ to load.'}
         </span>
         {error && <span className="text-negative">{error}</span>}

@@ -70,9 +70,9 @@ test('a FEN refused for impossible castling rights is offered without them', asy
   await page.getByRole('button', { name: 'Import PGN or FEN' }).click();
   const dialog = page.getByRole('dialog', { name: 'Import a game or position' });
   await dialog.getByRole('textbox').first().fill('4k3/8/8/8/8/8/8/4K2R w KQ - 0 1');
-  await dialog.getByRole('button', { name: 'Load position' }).click();
-  // Refused first, with the reason; nothing loaded behind the person's back.
+  // Refused as written, with the reason; nothing is loaded behind the person's back.
   await expect(dialog.getByText(/Castling right Q \(white queenside\)/)).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Import games' })).toBeDisabled();
   await expect(dialog.locator('[data-castling-repair]')).toContainText('castling right Q');
   await dialog.getByRole('button', { name: 'Load without Q' }).click();
   await expect(dialog).toBeHidden();
