@@ -186,6 +186,8 @@ export function useGlobalHotkeys(): void {
           // The key would otherwise be typed into the field it opens.
           event.preventDefault();
           ui.setMoveEntryOpen(true);
+          // Already open, with the keys back on the board: take them again.
+          document.getElementById('move-entry-input')?.focus();
           return;
         case 'clear-shapes':
           analysis.clearShapes(analysis.currentId);

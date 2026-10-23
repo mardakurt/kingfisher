@@ -53,6 +53,13 @@ test('a line typed into the move field is played, move after move', async ({ pag
   await expect(field).toHaveAttribute('aria-invalid', 'true');
   await expect(page.getByRole('gridcell', { name: 'd1, White queen' })).toBeVisible();
 
+  // Open but no longer focused, T takes the keys back to the field.
+  await page.getByRole('grid', { name: 'Chessboard' }).click({ position: { x: 1, y: 1 } });
+  await expect(field).not.toBeFocused();
+  await page.keyboard.press('t');
+  await expect(field).toBeFocused();
+  await expect(field).toHaveValue('Qh5');
+
   // Escape closes the field and gives the keys back to the board.
   await field.press('Escape');
   await expect(field).toBeHidden();
