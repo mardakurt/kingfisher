@@ -1,5 +1,15 @@
 # Platform parity — the web application and the macOS application
 
+**Local source checkpoint (2026-10-23, 1.5.5).** The local source adds typed
+moves and lines, keyboard promotion, paste-to-import, game clocks and move
+times, engine WDL, replay, line links, selective PGN import, optional sounds,
+PGN decoding and scheduling fixes. These are Mac-facing changes. The public
+descriptor and installed application still name 1.5.4 build 1237; a new 1.5.5
+package has not been certified or published. Closure verified the public
+1.5.4 DMG again with `desktop:public:verify -- --landing --full` (68/68).
+See the [1.5.5 session report](../reports/2026-10-23-1.5.5.md) for source
+validation and the publication boundary.
+
 **Published revision check (2026-10-23, 1.5.4).** The public Mac download is
 1.5.4 build 1237 from `c85f931427be1accc6de50a255d790ee16fb497f`, stable and
 clean at packaging. It is Developer ID signed, and the app and DMG are both
