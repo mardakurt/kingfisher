@@ -18,6 +18,36 @@ import type { ReviewGrade, ScheduleState } from '@/persistence/domain';
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * The hour, local time, at which a study day begins.
+ *
+ * An interval of one day used to mean twenty-four hours: a line reviewed at
+ * 23:00 came back at 23:00 the next day, so a person who studies in the
+ * morning met none of the previous evening's cards and they slid a day. A
+ * day is a calendar day, and a card scheduled for it is waiting when that
+ * day's study begins. The day turns at 04:00 rather than midnight so that a
+ * session past midnight still belongs to the evening it started in — the
+ * convention of the spaced-repetition programs people already use.
+ */
+export const DAY_ROLLOVER_HOUR = 4;
+
+/**
+ * When a card scheduled `days` days from `now` falls due: at the start of
+ * that study day, local time. Zero days is now — the same session.
+ *
+ * Calendar arithmetic rather than `days * DAY_MS`, so a daylight-saving
+ * change in between does not move the hour.
+ */
+export function dueAfterDays(now: number, days: number): number {
+  if (days <= 0) return now;
+  const date = new Date(now);
+  // The study day `now` belongs to: before the rollover it is still yesterday's.
+  if (date.getHours() < DAY_ROLLOVER_HOUR) date.setDate(date.getDate() - 1);
+  date.setDate(date.getDate() + days);
+  date.setHours(DAY_ROLLOVER_HOUR, 0, 0, 0);
+  return date.getTime();
+}
+
 export const MIN_EASE = 1.3;
 export const MAX_EASE = 2.8;
 const DEFAULT_EASE = 2.5;
@@ -75,7 +105,7 @@ export function grade(state: ScheduleState, review: ReviewGrade, now: number): S
       streak,
       intervalDays,
       ease,
-      dueAt: now + intervalDays * DAY_MS,
+      dueAt: dueAfterDays(now, intervalDays),
       lastReviewedAt: now,
       reviewCount,
       lapses: state.lapses + 1,
@@ -97,7 +127,7 @@ export function grade(state: ScheduleState, review: ReviewGrade, now: number): S
     streak,
     intervalDays: capped,
     ease,
-    dueAt: now + capped * DAY_MS,
+    dueAt: dueAfterDays(now, capped),
     lastReviewedAt: now,
     reviewCount,
     lapses: state.lapses,
@@ -164,7 +194,10 @@ export function describeInterval(days: number): string {
   if (days <= 0) return 'today';
   if (days === 1) return 'tomorrow';
   if (days < 30) return `${days} days`;
-  if (days < 365) return `${Math.round(days / 30)} months`;
+  if (days < 365) {
+    const months = Math.round(days / 30);
+    return months === 1 ? '1 month' : `${months} months`;
+  }
   return '1 year';
 }
 

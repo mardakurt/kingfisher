@@ -7,10 +7,12 @@ import type { ScheduleState } from '@/persistence/domain';
 
 import {
   DAY_MS,
+  DAY_ROLLOVER_HOUR,
   MAX_EASE,
   MIN_EASE,
   countQueue,
   describeInterval,
+  dueAfterDays,
   grade,
   isDue,
   newSchedule,
@@ -25,6 +27,38 @@ import {
  */
 const T0 = Date.UTC(2026, 0, 15, 12, 0, 0);
 const days = (n: number) => n * DAY_MS;
+
+describe('the study day', () => {
+  // Local times, built in whatever zone the suite runs in: the rule is about
+  // the person's own clock, so the test states it in that clock.
+  const at = (day: number, hour: number, minute = 0) =>
+    new Date(2026, 2, day, hour, minute).getTime();
+
+  it('brings a card back at the start of the day it is due, not 24 hours later', () => {
+    const lateEvening = at(10, 23, 30);
+    expect(dueAfterDays(lateEvening, 1)).toBe(at(11, DAY_ROLLOVER_HOUR));
+    // So the next morning's session finds it.
+    expect(isDue({ ...newSchedule(0), dueAt: dueAfterDays(lateEvening, 1) }, at(11, 8))).toBe(true);
+    expect(dueAfterDays(at(10, 9), 3)).toBe(at(13, DAY_ROLLOVER_HOUR));
+  });
+
+  it('counts a session after midnight as part of the evening it started in', () => {
+    expect(dueAfterDays(at(11, 1, 15), 1)).toBe(at(11, DAY_ROLLOVER_HOUR));
+    expect(dueAfterDays(at(11, DAY_ROLLOVER_HOUR), 1)).toBe(at(12, DAY_ROLLOVER_HOUR));
+  });
+
+  it('keeps a same-session card in the session', () => {
+    expect(dueAfterDays(at(10, 23, 30), 0)).toBe(at(10, 23, 30));
+  });
+
+  it('keeps the hour across a daylight-saving change', () => {
+    // Europe and North America change their clocks in March; whichever the
+    // suite's zone does, the card is due at the rollover hour local time.
+    const due = new Date(dueAfterDays(at(1, 12), 30));
+    expect(due.getHours()).toBe(DAY_ROLLOVER_HOUR);
+    expect(due.getDate()).toBe(31);
+  });
+});
 
 describe('a new item', () => {
   it('is due immediately and counts as new', () => {
@@ -65,7 +99,7 @@ describe('grading', () => {
     state = grade(state, 'good', T0);
     // 3 days × ease 2.5 = 7.5, rounded.
     expect(state.intervalDays).toBe(8);
-    expect(state.dueAt).toBe(T0 + days(8));
+    expect(state.dueAt).toBe(dueAfterDays(T0, 8));
     expect(stageOf(state)).toBe('review');
   });
 
@@ -227,6 +261,7 @@ describe('the queue', () => {
     expect(describeInterval(1)).toBe('tomorrow');
     expect(describeInterval(9)).toBe('9 days');
     expect(describeInterval(60)).toBe('2 months');
+    expect(describeInterval(35)).toBe('1 month');
     expect(describeInterval(400)).toBe('1 year');
   });
 });
@@ -267,7 +302,7 @@ describe('training persistence', () => {
 
     const second = await repositories.training.review(item.id, 'good', true, T0 + days(1));
     expect(second.schedule.intervalDays).toBe(1);
-    expect(second.schedule.dueAt).toBe(T0 + days(1) + days(1));
+    expect(second.schedule.dueAt).toBe(dueAfterDays(T0 + days(1), 1));
 
     // Re-reading is what a reload does to a repository.
     const reloaded = await repositories.training.get(item.id);

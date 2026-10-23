@@ -25,7 +25,7 @@
  */
 
 import type { ReviewGrade, ReviewItemRecord, ScheduleState } from '@/persistence/domain';
-import { DAY_MS, grade, isDue, newSchedule, stageOf } from '@/training/schedule';
+import { DAY_MS, dueAfterDays, grade, isDue, newSchedule, stageOf } from '@/training/schedule';
 
 /**
  * What the player chooses after a review, in the terms they think in.
@@ -88,7 +88,7 @@ export function scheduleAfterReview(
   return {
     ...base,
     intervalDays: days,
-    dueAt: now + days * DAY_MS,
+    dueAt: dueAfterDays(now, days),
     lastReviewedAt: now,
     reviewCount: base.reviewCount + 1,
     streak: base.streak + 1,

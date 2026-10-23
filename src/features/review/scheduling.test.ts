@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ReviewItemRecord, ScheduleState } from '@/persistence/domain';
-import { DAY_MS, newSchedule } from '@/training/schedule';
+import { DAY_MS, dueAfterDays, newSchedule } from '@/training/schedule';
 import {
   describeNextReview,
   dueReviews,
@@ -34,7 +34,7 @@ describe('scheduling a reviewed position', () => {
     const week = scheduleAfterReview(base, 'one-week', NOW)!;
 
     expect(week.intervalDays).toBe(7);
-    expect(week.dueAt).toBe(NOW + 7 * DAY_MS);
+    expect(week.dueAt).toBe(dueAfterDays(NOW, 7));
     /*
       The player overrode the algorithm for this position. Feeding that back
       into the ease would make the *next* automatic interval reflect a decision
@@ -62,7 +62,7 @@ describe('scheduling a reviewed position', () => {
   it('starts a schedule for a position that never had one', () => {
     const first = scheduleAfterReview(undefined, 'three-weeks', NOW)!;
     expect(first.intervalDays).toBe(21);
-    expect(first.dueAt).toBe(NOW + 21 * DAY_MS);
+    expect(first.dueAt).toBe(dueAfterDays(NOW, 21));
   });
 
   it('offers every choice with a plain explanation of what it does', () => {

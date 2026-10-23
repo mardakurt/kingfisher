@@ -27,6 +27,7 @@
 import type { San } from '@/chess/types';
 import type { ScheduleState } from '@/persistence/domain';
 import { isDue, newSchedule } from '@/training/schedule';
+import { localDay } from './rehearsed';
 import type {
   EndgamePositionRecord,
   PreparationSessionRecord,
@@ -217,8 +218,9 @@ export function endgameSlice(
 ): readonly EndgameCard[] {
   const eligible = records.filter((record) => record.pieceCount <= ENDGAME_TABLEBASE_LIMIT);
   if (eligible.length === 0) return [];
-  const day = Math.floor(now / DAY_MS);
-  const pick = pickSeeded(eligible, `${salt}|${day}`);
+  // The person's own day, as the rest of the page counts it — not UTC's,
+  // which turned the pick over in the middle of an evening east of Greenwich.
+  const pick = pickSeeded(eligible, `${salt}|${localDay(now)}`);
   return [
     {
       kind: 'endgame',
