@@ -959,7 +959,7 @@ the full list, and to change any of them. Bindings below are the defaults.
 | `P`          | Play through the line, or pause           |
 | `1`–`6`      | Annotate `!` `?` `!!` `??` `!?` `?!`      |
 | `C`          | Comment on this move                      |
-| `⇧P` / `⇧M`  | Move variation up / promote to main line  |
+| `⇧M`         | Promote to main line                      |
 | `⇧↑` `⇧↓`    | Reorder this variation among its siblings |
 | `Delete`     | Delete this move and everything after it  |
 | `X`          | Clear arrows and highlights               |

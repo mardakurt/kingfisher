@@ -23,6 +23,7 @@ import { serializeMovetext, serializePgnFrom } from '@/chess/pgn';
 import { nodePath } from '@/chess/tree/tree';
 import { lineLink } from '@/position/line-link';
 import { publicUrl } from '@/release/public-urls';
+import { useKeyLabel } from '@/features/command/use-key-label';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 
@@ -31,6 +32,7 @@ export function MoveContextMenu() {
   const setMoveMenu = useUi((state) => state.setMoveMenu);
   const setCommentingNodeId = useUi((state) => state.setCommentingNodeId);
   const notify = useUi((state) => state.notify);
+  const keyLabel = useKeyLabel();
 
   const tree = useAnalysis((state) => state.tree);
   const goTo = useAnalysis((state) => state.goTo);
@@ -65,7 +67,7 @@ export function MoveContextMenu() {
           {
             id: 'comment',
             label: node.comment ? 'Edit comment…' : 'Add comment…',
-            shortcut: 'C',
+            shortcut: keyLabel('comment'),
             icon: <Pencil />,
             run: () => {
               goTo(nodeId);
@@ -141,7 +143,7 @@ export function MoveContextMenu() {
                 {
                   id: 'clear-shapes',
                   label: `Clear ${node.shapes.length} arrow(s) and highlight(s)`,
-                  shortcut: 'X',
+                  shortcut: keyLabel('clear-shapes'),
                   run: () => clearShapes(nodeId),
                 },
               ]
@@ -154,14 +156,14 @@ export function MoveContextMenu() {
           {
             id: 'promote-main',
             label: 'Make this the main line',
-            shortcut: '⇧M',
+            shortcut: keyLabel('promote-main'),
             disabled: onMainline,
             run: () => promoteToMain(nodeId),
           },
           {
             id: 'promote',
             label: 'Move variation up',
-            shortcut: '⇧P',
+            shortcut: keyLabel('promote'),
             icon: <ArrowUp />,
             disabled: !hasSideLine || index <= 0,
             run: () => promote(nodeId),
@@ -169,6 +171,7 @@ export function MoveContextMenu() {
           {
             id: 'demote',
             label: 'Move variation down',
+            shortcut: keyLabel('demote'),
             icon: <ArrowDown />,
             disabled: !hasSideLine || index < 0 || index >= order.length - 1,
             run: () => demote(nodeId),
@@ -246,7 +249,7 @@ export function MoveContextMenu() {
           {
             id: 'delete',
             label: 'Delete from this move',
-            shortcut: '⌫',
+            shortcut: keyLabel('delete'),
             icon: <Trash />,
             danger: true,
             run: () => deleteNode(nodeId),
@@ -257,6 +260,7 @@ export function MoveContextMenu() {
   }, [
     clearShapes,
     deleteNode,
+    keyLabel,
     deleteVariation,
     demote,
     goTo,

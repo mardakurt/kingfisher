@@ -66,3 +66,22 @@ describe('the shortcut table and the handler agree', () => {
     }
   });
 });
+
+describe('printed key hints', () => {
+  const read = (relative: string) => readFileSync(path.resolve(__dirname, relative), 'utf8');
+  const actions = new Set(SHORTCUTS.map((shortcut) => shortcut.id));
+
+  it('name actions the keyboard table has, never a key written out', () => {
+    const palette = read('./useCommands.ts');
+    const named = [...palette.matchAll(/action: '([^']+)'/g)].map((match) => match[1]!);
+    expect(named.length).toBeGreaterThan(10);
+    expect(named.filter((action) => !actions.has(action))).toEqual([]);
+    // A literal key beside a command is what drifted ("⇧P" for a ⇧↑ action).
+    expect(palette).not.toMatch(/\bshortcut: '/);
+
+    const menu = read('../movetree/MoveContextMenu.tsx');
+    const labelled = [...menu.matchAll(/keyLabel\('([^']+)'\)/g)].map((match) => match[1]!);
+    expect(labelled.filter((action) => !actions.has(action))).toEqual([]);
+    expect(menu).not.toMatch(/shortcut: '[^0-9]/);
+  });
+});

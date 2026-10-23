@@ -24,6 +24,7 @@ import { parseMoveSequence } from '@/features/search/move-sequence';
 import { assessQuery } from '@/features/search/query-limits';
 
 import { rank } from './rank';
+import { useKeyLabel } from './use-key-label';
 
 import { useCommands, type Command } from './useCommands';
 
@@ -71,6 +72,8 @@ function PaletteDialog() {
   const prefill = useUi((state) => state.commandPalettePrefill);
   const clearPrefill = useUi((state) => state.setCommandPalettePrefill);
   const commands = useCommands();
+  // The keys as they are bound now, overrides included, for the hints.
+  const keyLabel = useKeyLabel();
 
   /*
    * The prefill is consumed once on mount: if a caller asked the palette
@@ -424,9 +427,12 @@ function PaletteDialog() {
                     )}
                   >
                     <span className="min-w-0 flex-1 truncate">{command.title}</span>
-                    {command.shortcut ? (
-                      <kbd className="shrink-0 rounded-[var(--radius-control)] border border-line bg-surface-1 px-1.5 py-0.5 font-mono text-[10px] text-tertiary">
-                        {command.shortcut}
+                    {command.action && keyLabel(command.action) ? (
+                      <kbd
+                        className="shrink-0 rounded-[var(--radius-control)] border border-line bg-surface-1 px-1.5 py-0.5 font-mono text-[10px] text-tertiary"
+                        data-command-key={command.action}
+                      >
+                        {keyLabel(command.action)}
                       </kbd>
                     ) : null}
                   </button>

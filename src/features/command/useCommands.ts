@@ -32,7 +32,13 @@ export interface Command {
   readonly id: string;
   readonly title: string;
   readonly group: string;
-  readonly shortcut?: string;
+  /**
+   * The keyboard action that does the same thing (`shortcuts.ts`), whose
+   * current binding the palette shows. Named rather than written out, so the
+   * hint cannot drift from the key: "⇧P" was shown for "Move this variation
+   * up" while the key was ⇧↑, and a rebound key went on showing the old one.
+   */
+  readonly action?: string;
   readonly keywords?: string;
   readonly run: () => void | Promise<void>;
 }
@@ -344,7 +350,7 @@ export function useCommands(): readonly Command[] {
         id: 'add-comment',
         title: 'Comment on this move…',
         group: 'Editing',
-        shortcut: 'C',
+        action: 'comment',
         keywords: 'annotate note prose text',
         run: () => ui().setCommentingNodeId(analysis().currentId),
       },
@@ -352,7 +358,7 @@ export function useCommands(): readonly Command[] {
         id: 'promote-variation',
         title: 'Move this variation up',
         group: 'Editing',
-        shortcut: '⇧P',
+        action: 'promote',
         keywords: 'promote reorder branch sibling',
         run: () => analysis().promote(analysis().currentId),
       },
@@ -367,7 +373,7 @@ export function useCommands(): readonly Command[] {
         id: 'promote-mainline',
         title: 'Make this the main line',
         group: 'Editing',
-        shortcut: '⇧M',
+        action: 'promote-main',
         keywords: 'promote mainline primary',
         run: () => analysis().promoteToMain(analysis().currentId),
       },
@@ -452,14 +458,14 @@ export function useCommands(): readonly Command[] {
         id: 'flip-board',
         title: 'Flip the board',
         group: 'Board',
-        shortcut: 'F',
+        action: 'flip',
         run: () => analysis().flip(),
       },
       {
         id: 'autoplay',
         title: 'Play through the line',
         group: 'Board',
-        shortcut: 'P',
+        action: 'autoplay',
         keywords: 'replay autoplay auto play slideshow pause',
         run: () => toggleAutoplay(),
       },
@@ -467,7 +473,7 @@ export function useCommands(): readonly Command[] {
         id: 'type-move',
         title: 'Type a move…',
         group: 'Board',
-        shortcut: 'T',
+        action: 'type-move',
         keywords: 'keyboard enter san notation input scoresheet',
         run: () => ui().setMoveEntryOpen(true),
       },
@@ -528,7 +534,7 @@ export function useCommands(): readonly Command[] {
         id: 'start-engine',
         title: 'Start engine analysis',
         group: 'Engine',
-        shortcut: 'E',
+        action: 'engine',
         run: startEngine,
       },
       {
@@ -609,21 +615,21 @@ export function useCommands(): readonly Command[] {
         id: 'show-explorer',
         title: 'Show the database explorer',
         group: 'Panels',
-        shortcut: 'D',
+        action: 'explorer',
         run: () => showTool(pathname, 'explorer'),
       },
       {
         id: 'show-engine-panel',
         title: 'Show the engine panel',
         group: 'Panels',
-        shortcut: '⇧E',
+        action: 'engine-panel',
         run: () => showTool(pathname, 'engine'),
       },
       {
         id: 'show-notes',
         title: 'Show notes and annotations',
         group: 'Panels',
-        shortcut: 'N',
+        action: 'notes-panel',
         run: () => showTool(pathname, 'notes'),
       },
       {
@@ -644,7 +650,7 @@ export function useCommands(): readonly Command[] {
         id: 'show-calculation',
         title: 'Calculate here, with evidence hidden',
         group: 'Panels',
-        shortcut: '⇧C',
+        action: 'calculate',
         keywords: 'blindfold candidates variation think',
         run: () => showTool(pathname, 'calculation'),
       },
@@ -659,7 +665,7 @@ export function useCommands(): readonly Command[] {
         id: 'shortcuts',
         title: 'Keyboard shortcuts',
         group: 'Interface',
-        shortcut: '?',
+        action: 'shortcuts',
         run: () => ui().setShortcutsOpen(true),
       },
       {
@@ -672,7 +678,7 @@ export function useCommands(): readonly Command[] {
         id: 'settings',
         title: 'Settings',
         group: 'Interface',
-        shortcut: '⌘,',
+        action: 'settings',
         run: () => ui().setSettingsOpen(true),
       },
       {
