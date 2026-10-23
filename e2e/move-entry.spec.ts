@@ -75,3 +75,34 @@ test('an input two legal moves answer is not guessed', async ({ page }) => {
   await field.press('Enter');
   await expect(page.getByRole('gridcell', { name: 'c4, White pawn' })).toBeVisible();
 });
+
+test('a PGN or FEN pasted on the page, not in a field, opens Import with it', async ({ page }) => {
+  await openAnalysis(page);
+  const paste = (text: string) =>
+    page.evaluate((value) => {
+      const data = new DataTransfer();
+      data.setData('text/plain', value);
+      document.body.dispatchEvent(
+        new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }),
+      );
+    }, text);
+
+  const dialog = page.getByRole('dialog', { name: 'Import a game or position' });
+  // Text that is neither is left alone.
+  await paste('just some words');
+  await expect(dialog).toBeHidden();
+
+  await paste('k7/4P3/8/8/8/8/8/4K3 w - - 0 1');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('textbox')).toHaveValue('k7/4P3/8/8/8/8/8/4K3 w - - 0 1');
+  await dialog.getByRole('button', { name: 'Load position' }).click();
+  await expect(page.getByRole('gridcell', { name: 'e7, White pawn' })).toBeVisible();
+
+  await paste('[Event "Pasted"]\n\n1. d4 d5 2. c4 *');
+  await expect(dialog.getByRole('textbox')).toHaveValue('[Event "Pasted"]\n\n1. d4 d5 2. c4 *');
+  await expect(dialog.getByText('Detected a PGN game.')).toBeVisible();
+  // Closing and reopening Import starts it empty again.
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await page.getByRole('button', { name: 'Import PGN or FEN' }).click();
+  await expect(dialog.getByRole('textbox')).toHaveValue('');
+});

@@ -17,7 +17,6 @@
 import { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { parseFen } from '@/chess/fen';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { invalidateGames } from '@/features/persistence/queries';
@@ -32,17 +31,7 @@ import type { ImportProgress } from '@/persistence/types';
 import { useAnalysis } from '@/stores/analysis-store';
 import { useUi } from '@/stores/ui-store';
 import { useImportJob } from './import-job-store';
-
-type Detected = 'fen' | 'pgn' | 'empty' | 'unknown';
-
-function detect(text: string): Detected {
-  const trimmed = text.trim();
-  if (trimmed === '') return 'empty';
-  if (!trimmed.includes('\n') && parseFen(trimmed).ok) return 'fen';
-  if (/\[\s*\w+\s+"/.test(trimmed) || /\d+\s*\.\s*[A-Za-z]/.test(trimmed)) return 'pgn';
-  if (parseFen(trimmed.split('\n')[0] ?? '').ok) return 'fen';
-  return 'unknown';
-}
+import { detectImport as detect } from './paste-import';
 
 const STAGE_TEXT: Record<ImportProgress['stage'], string> = {
   parsing: 'Reading the file',
@@ -66,7 +55,8 @@ function ImportForm() {
   const openDocument = useAnalysis((state) => state.openDocument);
   const client = useQueryClient();
 
-  const [text, setText] = useState('');
+  // A paste on the page arrives here as the box's first content.
+  const [text, setText] = useState(() => useUi.getState().importPrefill);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [storageWarning, setStorageWarning] = useState<string | null>(null);

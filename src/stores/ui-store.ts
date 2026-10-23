@@ -81,6 +81,8 @@ interface UiState {
    * this browser beside My games. Null is My games.
    */
   importTarget: { readonly id: string; readonly name: string } | null;
+  /** Text a paste on the page handed to Import, to start the box with. */
+  importPrefill: string;
   /** The typed-move field under the board. */
   moveEntryOpen: boolean;
   positionSetupOpen: boolean;
@@ -120,6 +122,8 @@ interface UiState {
   openSettingsAt(section: string): void;
   /** Open or close Import PGN; a target names the browser collection it writes into. */
   setImportOpen(open: boolean, target?: { readonly id: string; readonly name: string }): void;
+  /** Open Import PGN with `text` already in the box: what ⌘V on the page does. */
+  openImportWith(text: string): void;
   setMoveEntryOpen(open: boolean): void;
   setPositionSetupOpen(open: boolean): void;
   setSaveToStudyOpen(open: boolean): void;
@@ -165,6 +169,7 @@ export const useUi = create<UiState>((set) => ({
   settingsSection: null,
   importOpen: false,
   importTarget: null,
+  importPrefill: '',
   moveEntryOpen: false,
   positionSetupOpen: false,
   saveToStudyOpen: false,
@@ -191,7 +196,9 @@ export const useUi = create<UiState>((set) => ({
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   setJobsOpen: (jobsOpen) => set({ jobsOpen }),
   openSettingsAt: (settingsSection) => set({ settingsSection, settingsOpen: true }),
-  setImportOpen: (importOpen, target) => set({ importOpen, importTarget: target ?? null }),
+  setImportOpen: (importOpen, target) =>
+    set({ importOpen, importTarget: target ?? null, importPrefill: '' }),
+  openImportWith: (importPrefill) => set({ importOpen: true, importTarget: null, importPrefill }),
   setMoveEntryOpen: (moveEntryOpen) => set({ moveEntryOpen }),
   setPositionSetupOpen: (positionSetupOpen) => set({ positionSetupOpen }),
   setSaveToStudyOpen: (saveToStudyOpen) => set({ saveToStudyOpen }),

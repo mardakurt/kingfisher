@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 
 import { CommandPalette } from '@/features/command/CommandPalette';
 import { useGlobalHotkeys } from '@/features/command/useGlobalHotkeys';
+import { usePasteToImport } from '@/features/shell/paste-import';
 import { MoveContextMenu } from '@/features/movetree/MoveContextMenu';
 import { useWorkspacePersistence } from '@/features/persistence/useWorkspacePersistence';
 import { ShortcutsDialog } from '@/features/shell/ShortcutsDialog';
@@ -109,6 +110,7 @@ const readCurrentFen = (): string | null => selectFen(useAnalysis.getState()) ??
 
 export function AppShell({ children }: { children: ReactNode }) {
   useGlobalHotkeys();
+  usePasteToImport();
   useEnginePositionGuard();
   useWorkspacePersistence();
   useCompanionSync();
