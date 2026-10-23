@@ -254,7 +254,22 @@ export function WorkspaceFrame({
   // takes its minimum, as it does beside an open rail on a laptop.
   const dockNarrow = (Boolean(rail) && !railCollapsed && narrowDock) || sideBySide;
 
-  const moveTreePanel = withMoveTree ? <MoveTreePanel withHeader={false} /> : undefined;
+  /*
+    With nothing on the board (a study with no chapter open, an empty
+    review queue) the notation has no board to be the moves of. It used to
+    show whatever the analysis board last held — a game from elsewhere, under
+    a study that had none. The lower panel and the in-column notation were
+    already withheld in that state; the dock's notation now is too.
+  */
+  const moveTreePanel = withMoveTree ? (
+    empty ? (
+      <p className="px-3 py-6 text-center text-2xs text-tertiary" data-move-tree-absent>
+        Nothing is on the board here yet, so there are no moves to show.
+      </p>
+    ) : (
+      <MoveTreePanel withHeader={false} />
+    )
+  ) : undefined;
 
   return (
     <SideBySideContext.Provider value={sideBySide}>
