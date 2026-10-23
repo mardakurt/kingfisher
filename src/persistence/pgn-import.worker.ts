@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 
 import { createPgnParser, describeRefusals, type PgnRefusal } from '@/chess/pgn';
+import { compileImportFilter } from '@/persistence/import-filter';
 import { pgnPieces } from '@/persistence/pgn-chunks';
 import { indexGame, normalizeGame } from '@/persistence/prepare-game';
 import { classifyTree } from '@/theory/classify-games';
@@ -52,6 +53,8 @@ async function run(request: Extract<PgnWorkerRequest, { type: 'start' }>) {
   let batch: PreparedLocalGame[] | PreparedSqliteGame[] = [];
   const refused: PgnRefusal[] = [];
   let unreadable = 0;
+  const accepts = compileImportFilter(request.filter);
+  let filtered = 0;
 
   // A file is read a few megabytes of whole games at a time (`pgn-chunks.ts`):
   // reading it as one string failed outright on a large download.
@@ -61,10 +64,17 @@ async function run(request: Extract<PgnWorkerRequest, { type: 'start' }>) {
       const parsedGame = parser.next();
       if (!parsedGame) continue;
       const prepared = normalizeGame(parsedGame.tree);
-      const game = openings ? { ...prepared, ...classifyTree(openings, prepared.tree) } : prepared;
-      const positions = indexGame(game);
       parsed += 1;
       issues += parsedGame.issues.length;
+      // Decided on the headers, before classification and position
+      // extraction — the work a left-out game would otherwise cost.
+      if (!accepts(prepared)) {
+        filtered += 1;
+        if (parsed % 25 === 0) post({ type: 'progress', parsed, issues });
+        continue;
+      }
+      const game = openings ? { ...prepared, ...classifyTree(openings, prepared.tree) } : prepared;
+      const positions = indexGame(game);
 
       if (request.target === 'local') {
         (batch as PreparedLocalGame[]).push({ game, positions });
@@ -134,6 +144,7 @@ async function run(request: Extract<PgnWorkerRequest, { type: 'start' }>) {
     issues: issues + unreadable,
     refused: refused.length,
     refusedDetail: describeRefusals(refused),
+    filtered,
   });
 }
 

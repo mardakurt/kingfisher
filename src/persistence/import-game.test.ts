@@ -118,6 +118,36 @@ describe('the import pipeline', () => {
     expect(summary.firstGame?.white).toBe('A');
   });
 
+  it('keeps only the games a filter asks for, and counts the rest', async () => {
+    const pgn = [
+      gameOf(
+        '[White "A"]\n[Black "B"]\n[WhiteElo "2450"]\n[BlackElo "2300"]\n[Date "2024.01.02"]',
+        '1. e4 e5 *',
+      ),
+      gameOf(
+        '[White "C"]\n[Black "D"]\n[WhiteElo "2450"]\n[BlackElo "1900"]\n[Date "2024.01.03"]',
+        '1. d4 d5 *',
+      ),
+      gameOf('[White "E"]\n[Black "F"]\n[Date "2024.01.04"]', '1. c4 e5 *'),
+      gameOf(
+        '[White "G"]\n[Black "H"]\n[WhiteElo "2600"]\n[BlackElo "2550"]\n[Date "2019.05.05"]',
+        '1. Nf3 d5 *',
+      ),
+    ].join('\n\n');
+
+    const summary = await importGames(pgn, repositories.games, {
+      filter: { minRating: 2200, fromYear: 2020 },
+    });
+
+    expect(summary.games).toBe(4);
+    expect(summary.imported).toBe(1);
+    expect(summary.filtered).toBe(3);
+    expect(summary.firstGame?.white).toBe('A');
+    expect(await repositories.games.count()).toBe(1);
+    // Left-out games are not indexed either.
+    expect(summary.indexedPositions).toBe(2);
+  });
+
   it('reports every stage in order, so progress is never invented', async () => {
     const stages: ImportProgress['stage'][] = [];
     await importGames('[White "A"]\n[Black "B"]\n\n1. e4 *', repositories.games, {

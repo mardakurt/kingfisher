@@ -2,6 +2,7 @@ import { describeRefusals, parsePgn, type ParsedGame } from '@/chess/pgn';
 import { classifyTree } from '@/theory/classify-games';
 import { loadOpeningIndex, type OpeningIndex } from '@/theory/openings';
 
+import { compileImportFilter, type ImportFilter } from './import-filter';
 import { indexGame, normalizeGame } from './prepare-game';
 import type { PreparedLocalGame } from './pgn-import-protocol';
 import { runPgnWorker } from './pgn-worker-client';
@@ -23,6 +24,8 @@ export interface ImportGamesOptions {
   readonly batchSize?: number;
   /** Test/embedder seam; production uses the module Worker. */
   readonly createWorker?: () => Worker | null;
+  /** Keep only the games that answer it (selective import). */
+  readonly filter?: ImportFilter;
 }
 
 /**
@@ -73,6 +76,7 @@ export async function importGames(
   const worker = runPgnWorker<PreparedLocalGame>(source, {
     target: 'local',
     batchSize,
+    ...(options.filter ? { filter: options.filter } : {}),
     signal: options.signal,
     createWorker: options.createWorker,
     onParsed: (completed) => options.onProgress?.({ stage: 'parsing', completed, total: 0 }),
@@ -108,6 +112,7 @@ export async function importGames(
       indexedPositions,
       issues: run.issues,
       cancelled: run.cancelled,
+      ...(run.filtered ? { filtered: run.filtered } : {}),
       ...(run.refused ? { refused: run.refused, refusedDetail: run.refusedDetail ?? '' } : {}),
       ...(firstGame ? { firstGame } : {}),
     };
@@ -163,6 +168,8 @@ async function importGamesOnMainThread(
   };
 
   let cancelled = false;
+  const accepts = compileImportFilter(options.filter);
+  let filtered = 0;
   for (const [index, parsedGame] of parsed.games.entries()) {
     if (options.signal?.aborted) {
       cancelled = true;
@@ -170,6 +177,10 @@ async function importGamesOnMainThread(
     }
 
     const prepared = normalizeGame(parsedGame.tree);
+    if (!accepts(prepared)) {
+      filtered += 1;
+      continue;
+    }
     const game = openings ? { ...prepared, ...classifyTree(openings, prepared.tree) } : prepared;
     firstGame ??= game;
     // Position extraction is the "indexing" the progress line refers to; it
@@ -195,6 +206,7 @@ async function importGamesOnMainThread(
     indexedPositions,
     issues: parsed.games.reduce((sum, game) => sum + game.issues.length, 0) + parsed.issues.length,
     cancelled,
+    ...(filtered > 0 ? { filtered } : {}),
     ...(parsed.refused.length > 0 ? { refused: parsed.refused.length, refusedDetail } : {}),
     ...(firstGame ? { firstGame } : {}),
   };

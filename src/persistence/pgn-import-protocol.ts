@@ -1,3 +1,4 @@
+import type { ImportFilter } from './import-filter';
 import type { GameRecord, PositionRecord, StoredClassification } from './types';
 
 export interface PreparedLocalGame {
@@ -51,6 +52,8 @@ export type PgnWorkerRequest =
       readonly source: string | Blob;
       readonly target: PgnImportTarget;
       readonly batchSize: number;
+      /** Keep only the games that answer it; the rest are counted, not prepared. */
+      readonly filter?: ImportFilter;
     }
   | { readonly type: 'ack'; readonly batchId: number };
 
@@ -71,5 +74,7 @@ export type PgnWorkerMessage =
       readonly refused: number;
       /** `describeRefusals` of them, or '' when there were none. */
       readonly refusedDetail: string;
+      /** Games read and left out by the import filter. */
+      readonly filtered: number;
     }
   | { readonly type: 'error'; readonly error: string };

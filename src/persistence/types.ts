@@ -513,6 +513,8 @@ export interface PersistentImportSummary {
   readonly refused?: number;
   /** One sentence naming them, from `describeRefusals`. */
   readonly refusedDetail?: string;
+  /** Games read and left out by the import's filter (`import-filter.ts`). */
+  readonly filtered?: number;
   /**
    * True when the user stopped the import part-way.
    *

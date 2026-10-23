@@ -1,3 +1,4 @@
+import type { ImportFilter } from './import-filter';
 import type {
   PgnImportTarget,
   PgnWorkerMessage,
@@ -14,11 +15,14 @@ export interface PgnWorkerRun {
   /** Games the parser refused rather than imported; absent for a cancelled run. */
   readonly refused?: number;
   readonly refusedDetail?: string;
+  /** Games the import filter left out. */
+  readonly filtered?: number;
 }
 
 export interface PgnWorkerOptions<T> {
   readonly target: PgnImportTarget;
   readonly batchSize: number;
+  readonly filter?: ImportFilter;
   readonly signal?: AbortSignal;
   readonly onParsed?: (parsed: number, issues: number) => void;
   readonly onBatch: (batch: readonly T[], parsed: number, issues: number) => Promise<void>;
@@ -115,6 +119,7 @@ export function runPgnWorker<T extends PreparedLocalGame | PreparedSqliteGame>(
           cancelled: false,
           refused: message.refused,
           refusedDetail: message.refusedDetail,
+          filtered: message.filtered,
         });
         return;
       }
@@ -135,6 +140,7 @@ export function runPgnWorker<T extends PreparedLocalGame | PreparedSqliteGame>(
       source,
       target: options.target,
       batchSize: options.batchSize,
+      ...(options.filter ? { filter: options.filter } : {}),
     };
     worker.postMessage(request);
   });
