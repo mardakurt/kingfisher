@@ -110,3 +110,26 @@ test('the command palette opens from a route that has no board', async ({ page }
     await page.keyboard.press('Escape');
   }
 });
+
+test('a name that arrives after the first layout is given its room', async ({ page }) => {
+  // A study's name replaces "Studies" once the study loads; the header used
+  // to keep the room it measured for "Studies" and cut the new name short.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await gotoRoute(page, '/studies');
+  await page.locator(READY).waitFor();
+  await page.getByRole('button', { name: 'Start a study' }).click();
+  const dialog = page.getByRole('dialog', { name: 'New study' });
+  await dialog.getByRole('textbox').first().fill('Sicilian Najdorf, English Attack');
+  await dialog.getByRole('button', { name: 'Create study' }).click();
+  const name = page.locator('[data-header-title] h1');
+  await expect(name).toHaveText('Sicilian Najdorf, English Attack');
+  await expect
+    .poll(() =>
+      name.evaluate((element) => {
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        return Math.ceil(range.getBoundingClientRect().width) <= element.clientWidth + 1;
+      }),
+    )
+    .toBe(true);
+});

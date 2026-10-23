@@ -544,9 +544,15 @@ function FrameHeader({
     other side; this is the side where the actions arrive late.
   */
   const actionIds = routeActions?.map((action) => action.id).join('|') ?? '';
+  /*
+    And when the name changes. A study's or a game's name arrives after the
+    first layout, and the room was kept from when the header read "Studies":
+    "Sicilian Najdorf" was cut to "Sicilian …" at 1440 px while Position and
+    Set up kept their labels, until the window happened to be resized.
+  */
   useLayoutEffect(() => {
     measure();
-  }, [actionIds, measure]);
+  }, [actionIds, title, subtitle, measure]);
 
   const fen = useAnalysis((state) => state.tree.nodes[state.currentId]?.fen ?? START_FEN);
   const documentTitle = useAnalysis((state) => state.document.title);
