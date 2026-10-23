@@ -104,16 +104,24 @@ read-only source material.
   comment, reorder, promote, copy the line to here, **copy PGN from here**,
   delete after, delete the variation, clear arrows.
 - **New / Import / Export** — New analysis (from the start or any FEN);
-  Import PGN or FEN (paste or a file; a multi-game file goes to the game
-  database with duplicates skipped and malformed games reported); Export:
+  Import PGN or FEN (paste or a file — or ⌘V anywhere on the page outside a
+  text field; a multi-game file goes to the game database with duplicates
+  skipped and malformed games reported; _Keep only some games_ by rating,
+  player and years; Windows-1252 files read in their own encoding); Export:
   _Copy PGN_, _Copy PGN from this move_ (the game from the current move on,
   with a `[FEN]` tag), _Copy FEN_, _Copy this line (SAN)_, _Copy this line
-  (UCI)_; and _Save to study…_, _Add to repertoire…_, _Create training
+  (UCI)_, _Copy link to this line_ (a Studio address with `?moves=`); and _Save to study…_, _Add to repertoire…_, _Create training
   position…_, _Mark as model game…_, _Clear the move tree_, _Mark critical_.
 - **Autosave** — a draft is written 900 ms after a change (5 s at most), the
   chapter after it; a reload of the same tab restores the draft, a fresh
   launch opens a chessboard and keeps the work behind Recent's _Continue_.
 - **Rename** the analysis inline; the title reaches Recent.
+- **Type a move** (`T`): SAN as people type it, UCI, long algebraic or a
+  figurine; a whole numbered line is played as far as it is legal. An input
+  two legal moves answer is reported, never guessed.
+- **Replay** (`P`): the line plays through once every 1.2 s.
+- **Clocks**: a game's `[%clk]` shows both clocks at the move on the board in
+  the game header, and — with the evaluation graph on — time per move.
 
 ### 2.1 Tools available in Analysis (the dock)
 
@@ -723,7 +731,7 @@ and missing accounts are reported as such.
   / Create training_), and a typed **move sequence**.
 - **Commands** (the full list): Back up my work; Open the tour; New
   analysis; Import PGN or FEN; Copy PGN; Copy PGN from this move; Copy FEN;
-  Copy the current line (SAN / UCI); Save this analysis to a study; Search
+  Copy the current line (SAN / UCI); Copy link to this line; Save this analysis to a study; Search
   this position; Open this position in Analysis / Explorer; Comment on this
   move; Move this variation up / down; Make this the main line; Delete this
   variation; Delete everything after this move; Clear the move tree; Insert
